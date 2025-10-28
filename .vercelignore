@@ -1,0 +1,12 @@
+node_modules
+.next
+.vercel
+coverage
+*.log
+.env.local
+.env*.local
+
+# Prisma 관련 파일은 배포에 포함되어야 함
+# .prisma/client 폴더는 제외하지 않음
+# prisma/generated 폴더도 제외하지 않음
+

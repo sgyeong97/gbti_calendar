@@ -12,6 +12,7 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
+    "vercel-build": "prisma generate && next build",
     "db:push": "prisma db push",
     "db:push:sqlite": "DOTENV_CONFIG_PATH=.env.local prisma db push --schema=prisma/schema.sqlite.prisma",
     "db:push:mysql": "DOTENV_CONFIG_PATH=.env.local prisma db push --schema=prisma/schema.mysql.prisma",
