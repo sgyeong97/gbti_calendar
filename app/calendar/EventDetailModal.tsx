@@ -51,7 +51,7 @@ export default function EventDetailModal({ eventId, onClose, onChanged }: Props)
 	if (!eventId) return null;
 	return (
 		<div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-			<div className="rounded p-4 w-full max-w-sm space-y-3" style={{ background: "var(--background)", color: "var(--foreground)" }}>
+			<div className="rounded p-4 w-full max-w-sm mx-4 sm:mx-0 space-y-3 max-h-[85vh] overflow-y-auto" style={{ background: "var(--background)", color: "var(--foreground)" }}>
 				<h2 className="text-lg font-semibold">이벤트 상세</h2>
 				{loading ? (
 					<div className="text-sm text-center py-4">불러오는 중...</div>

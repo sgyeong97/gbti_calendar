@@ -352,27 +352,27 @@ export default function CalendarPage() {
 
 	return (
 		<div className="px-3 py-4 sm:p-6 max-w-5xl mx-auto">
-			<div className="flex items-center justify-between mb-3 sm:mb-4">
-				<div className="flex items-center gap-4">
-					<h1 className="text-xl sm:text-2xl font-semibold">달력</h1>
-					<div className="flex gap-1">
+			<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4">
+				<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+					<h1 className="text-base sm:text-2xl font-semibold">달력</h1>
+					<div className="w-full sm:w-auto grid grid-cols-3 gap-1">
 						<button
-							className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors cursor-pointer ${viewMode === "month" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
-							style={viewMode === "month" ? { backgroundColor: BRAND_COLOR, color: "#111" } : undefined}
+							className={`h-9 text-xs sm:text-sm border rounded-md transition-colors cursor-pointer ${viewMode === "month" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
+							style={viewMode === "month" ? { backgroundColor: BRAND_COLOR, color: "#111", borderColor: BRAND_COLOR } : undefined}
 							onClick={() => setViewMode("month")}
 						>
 							월간
 						</button>
 						<button
-							className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors cursor-pointer ${viewMode === "notices" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
-							style={viewMode === "notices" ? { backgroundColor: BRAND_COLOR, color: "#111" } : undefined}
+							className={`h-9 text-xs sm:text-sm border rounded-md transition-colors cursor-pointer ${viewMode === "notices" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
+							style={viewMode === "notices" ? { backgroundColor: BRAND_COLOR, color: "#111", borderColor: BRAND_COLOR } : undefined}
 							onClick={() => setViewMode("notices")}
 						>
 							공지사항
 						</button>
 						<button
-							className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors cursor-pointer ${viewMode === "favorites" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
-							style={viewMode === "favorites" ? { backgroundColor: BRAND_COLOR, color: "#111" } : undefined}
+							className={`h-9 text-xs sm:text-sm border rounded-md transition-colors cursor-pointer ${viewMode === "favorites" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
+							style={viewMode === "favorites" ? { backgroundColor: BRAND_COLOR, color: "#111", borderColor: BRAND_COLOR } : undefined}
 							onClick={() => setViewMode("favorites")}
 						>
 							즐겨찾기
@@ -381,13 +381,13 @@ export default function CalendarPage() {
 				</div>
 				<div className="flex gap-1.5 sm:gap-2 items-center">
 					<button
-						className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+						className="h-9 px-3 text-xs sm:text-sm rounded-md border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
 						onClick={() => setCurrent(addDays(current, -30))}
 					>
 						이전
 					</button>
 					<button
-						className="min-w-20 text-center px-2 py-1 text-sm rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+						className="h-9 min-w-20 text-center px-2 text-sm rounded-md border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
 						onClick={() => {
 							setPickerYear(current.getFullYear());
 							setPickerMonth(current.getMonth());
@@ -397,14 +397,14 @@ export default function CalendarPage() {
 						{format(current, "yyyy.MM")}
 					</button>
 					<button
-						className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+						className="h-9 px-3 text-xs sm:text-sm rounded-md border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
 						onClick={() => setCurrent(addDays(current, 30))}
 					>
 						다음
 					</button>
 					<button
 						ref={bellBtnRef}
-						className={`px-2 sm:px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-lg sm:text-xl ${notificationsEnabled ? "text-yellow-600" : "text-zinc-600"}`}
+						className={`h-9 w-9 rounded-md border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-lg sm:text-xl ${notificationsEnabled ? "text-yellow-600" : "text-zinc-600"}`}
 						onClick={async () => {
 							if (bellLongPressedRef.current) { bellLongPressedRef.current = false; return; }
 							if (Notification.permission !== "granted") {
@@ -439,7 +439,7 @@ export default function CalendarPage() {
 						{notificationsEnabled ? "🔔" : "🔕"}
 					</button>
 					<button
-						className="px-2 sm:px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-lg sm:text-xl"
+						className="h-9 w-9 rounded-md border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-lg sm:text-xl"
 						onClick={() => router.push("/admin")}
 						title="관리자 페이지"
 					>
@@ -673,8 +673,8 @@ export default function CalendarPage() {
 							<div
 								key={d.toISOString()}
 								className={`border rounded p-1 sm:p-2 min-h-20 sm:min-h-24 border-zinc-200 dark:border-zinc-700 cursor-pointer transition-colors ${isToday(d)
-										? "ring-2"
-										: `${isSameMonth(d, current) ? "bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-800" : "bg-zinc-50 dark:bg-zinc-900/40 text-zinc-400 dark:text-zinc-500"}`
+									? "ring-2"
+									: `${isSameMonth(d, current) ? "bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-800" : "bg-zinc-50 dark:bg-zinc-900/40 text-zinc-400 dark:text-zinc-500"}`
 									}`}
 								style={isToday(d) ? { backgroundColor: "#FFF6D1", boxShadow: `0 0 0 2px ${BRAND_COLOR}`, borderColor: BRAND_COLOR } : undefined}
 								{...getDayTouchHandlers(d)}
@@ -801,9 +801,9 @@ export default function CalendarPage() {
 			)}
 
 			{/* 연/월 선택 모달 */}
-			{showMonthPicker && (
-				<div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-					<div className="rounded p-4 w-full max-w-sm space-y-3" style={{ background: "var(--background)", color: "var(--foreground)" }}>
+		{showMonthPicker && (
+			<div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+				<div className="rounded p-4 w-full max-w-sm mx-4 sm:mx-0 space-y-3 max-h-[85vh] overflow-y-auto" style={{ background: "var(--background)", color: "var(--foreground)" }}>
 						<h2 className="text-lg font-semibold">연/월 선택</h2>
 						<div className="flex gap-2">
 							<select

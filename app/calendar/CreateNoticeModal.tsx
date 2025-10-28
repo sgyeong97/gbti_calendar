@@ -47,7 +47,7 @@ export default function CreateNoticeModal({ onClose, onCreated }: Props) {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="rounded p-4 w-full max-w-md space-y-3" style={{ background: "var(--background)", color: "var(--foreground)" }}>
+      <div className="rounded p-4 w-full max-w-md mx-4 sm:mx-0 space-y-3 max-h-[85vh] overflow-y-auto" style={{ background: "var(--background)", color: "var(--foreground)" }}>
         <h2 className="text-lg font-semibold">공지사항 작성</h2>
         
         <input

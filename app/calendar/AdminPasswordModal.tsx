@@ -37,7 +37,7 @@ export default function AdminPasswordModal({ onClose, onSuccess }: Props) {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="rounded p-4 w-full max-w-sm space-y-3" style={{ background: "var(--background)", color: "var(--foreground)" }}>
+      <div className="rounded p-4 w-full max-w-sm mx-4 sm:mx-0 space-y-3 max-h-[85vh] overflow-y-auto" style={{ background: "var(--background)", color: "var(--foreground)" }}>
         <h2 className="text-lg font-semibold">관리자 인증</h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">공지사항 작성을 위해 관리자 비밀번호를 입력해주세요.</p>
         

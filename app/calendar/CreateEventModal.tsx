@@ -144,7 +144,7 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 
 	return (
 		<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-			<div className="rounded p-4 w-full max-w-sm space-y-2" style={{ background: "var(--background)", color: "var(--foreground)" }}>
+			<div className="rounded p-4 w-full max-w-sm mx-4 sm:mx-0 space-y-2 max-h-[85vh] overflow-y-auto" style={{ background: "var(--background)", color: "var(--foreground)" }}>
 				<h2 className="text-lg font-semibold">이벤트 추가</h2>
 				{selectedDate && (
 					<div className="text-sm text-zinc-600 dark:text-zinc-400">
