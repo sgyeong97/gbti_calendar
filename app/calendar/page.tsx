@@ -467,10 +467,10 @@ export default function CalendarPage() {
 								}}
 							>
 							<div className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
-									{isToday(d) ? (
-										<span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-500 text-white dark:bg-indigo-400 dark:text-black">
-											{format(d, "d")}
-										</span>
+								{isToday(d) ? (
+									<span className="inline-flex items-center justify-center w-6 h-6 rounded-full" style={{ backgroundColor: BRAND_COLOR, color: "#111" }}>
+										{format(d, "d")}
+									</span>
 									) : (
 									<span>{format(d, "d")}</span>
 									)}
@@ -633,7 +633,8 @@ export default function CalendarPage() {
 							취소
 						</button>
 						<button
-							className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer"
+							className="px-3 py-1 rounded text-black transition-colors cursor-pointer"
+							style={{ backgroundColor: BRAND_COLOR }}
 							onClick={() => {
 								const newDate = new Date(pickerYear, pickerMonth, 1);
 								setCurrent(newDate);
@@ -717,7 +718,8 @@ function AdminAuthModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
 						</button>
 						<button
 							type="submit"
-							className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer"
+							className="px-4 py-2 rounded text-black transition-colors cursor-pointer"
+							style={{ backgroundColor: BRAND_COLOR }}
 							disabled={loading}
 						>
 							{loading ? "확인 중..." : "확인"}
