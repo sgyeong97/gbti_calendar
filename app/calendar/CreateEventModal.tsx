@@ -66,7 +66,6 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 	const [allParticipants, setAllParticipants] = useState<string[]>([]);
 	const [repeat, setRepeat] = useState<{enabled:boolean, days:Set<number>}>({ enabled: false, days: new Set<number>() });
 	const [loading, setLoading] = useState(false);
-	const [isAdmin, setIsAdmin] = useState(false);
 
 	// 선택된 날짜가 변경되면 모든 상태 업데이트
 	useEffect(() => {
@@ -77,12 +76,7 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 	}, [selectedDate]);
 
 	useEffect(() => {
-		// 권한 확인
-		fetch("/api/session").then((r) => r.json()).then((data) => {
-			setIsAdmin(data.role === "admin");
-		});
-
-		// 참여자 목록 (관리자만)
+		// 참여자 목록 (모든 사용자 노출)
 		fetch("/api/participants").then((r) => r.json()).then((data) => {
 			setAllParticipants((data.participants ?? []).map((p: any) => p.name));
 		});
@@ -103,7 +97,7 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 			const startAt = new Date(`${date}T${start}:00`);
 			const endAt = new Date(`${date}T${end}:00`);
 
-			// 권한에 따라 데이터 구성
+			// 요청 데이터 구성
 			const requestData: any = {
 				title,
 				startAt,
@@ -114,19 +108,17 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 				color,
 			};
 
-			// 관리자만 참여자와 반복 기능 사용 가능
-			if (isAdmin) {
-				if (participants.length > 0) {
-					requestData.participants = participants;
-				}
-				if (repeat.enabled && repeat.days.size > 0) {
-					requestData.repeat = {
-						daysOfWeek: Array.from(repeat.days),
-						startMinutes: parseInt(start.split(":")[0]) * 60 + parseInt(start.split(":")[1]),
-						endMinutes: parseInt(end.split(":")[0]) * 60 + parseInt(end.split(":")[1]),
-						color
-					};
-				}
+			// 모든 사용자: 참여자/반복 설정 가능
+			if (participants.length > 0) {
+				requestData.participants = participants;
+			}
+			if (repeat.enabled && repeat.days.size > 0) {
+				requestData.repeat = {
+					daysOfWeek: Array.from(repeat.days),
+					startMinutes: parseInt(start.split(":")[0]) * 60 + parseInt(start.split(":")[1]),
+					endMinutes: parseInt(end.split(":")[0]) * 60 + parseInt(end.split(":")[1]),
+					color
+				};
 			}
 
 			const res = await fetch("/api/events", {
@@ -186,8 +178,7 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 					/>
 				</div>
 
-				{/* 참여자 태그 입력 (관리자만) */}
-				{isAdmin && (
+				{/* 참여자 태그 입력 (모든 사용자) */}
 					<div>
 						<label className="text-sm">참여자</label>
 						<div className="flex gap-2 mt-1">
@@ -236,7 +227,6 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 							))}
 						</div>
 					</div>
-				)}
 
 				{/* 색상 선택 */}
 				<div>
@@ -257,8 +247,7 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 					</div>
 				</div>
 
-				{/* 반복 옵션 (관리자만) */}
-				{isAdmin && (
+				{/* 반복 옵션 (모든 사용자) */}
 					<div className="mt-2 space-y-2">
 						<label className="inline-flex items-center gap-2">
 							<input
@@ -271,8 +260,8 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 						{repeat.enabled && (
 							<div className="flex items-center gap-2 text-sm">
 								{["월","화","수","목","금","토","일"].map((w, i) => {
-									// Monday-first UI → JS getDay mapping
-									const mapping = [0, 1, 2, 3, 4, 5, 6];
+									// Monday-first UI → JS getDay
+									const mapping = [1, 2, 3, 4, 5, 6, 0];
 									const jsDayOfWeek = mapping[i];
 									return (
 										<button
@@ -289,7 +278,6 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 							</div>
 						)}
 					</div>
-				)}
 
 				<div className="flex justify-end gap-2">
 					<button
