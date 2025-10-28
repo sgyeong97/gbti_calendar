@@ -51,10 +51,12 @@ export default function CalendarPage() {
 		const fetchEvents = async () => {   
 			let startStr: string, endStr: string;
 
-			if (viewMode === "week") {
-				// 주간 뷰: 현재 주 범위
-				startStr = format(startOfWeek(current, { weekStartsOn: 1 }), "yyyy-MM-dd");
-				endStr = format(endOfWeek(current, { weekStartsOn: 1 }), "yyyy-MM-dd");
+            if (viewMode === "week") {
+                // 주간 뷰: 타임존 경계 안전을 위해 하루 여유를 두고 조회
+                const start = startOfWeek(current, { weekStartsOn: 1 });
+                const end = endOfWeek(current, { weekStartsOn: 1 });
+                startStr = format(addDays(start, -1), "yyyy-MM-dd");
+                endStr = format(addDays(end, 1), "yyyy-MM-dd");
 			} else {
 				// 월간 뷰: 월 전체 범위
 				startStr = format(startOfWeek(startOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
@@ -553,9 +555,11 @@ export default function CalendarPage() {
 					// 뷰 모드에 따라 올바른 날짜 범위로 이벤트 새로고침
 					let startStr: string, endStr: string;
 
-					if (viewMode === "week") {
-						startStr = format(startOfWeek(current, { weekStartsOn: 1 }), "yyyy-MM-dd");
-						endStr = format(endOfWeek(current, { weekStartsOn: 1 }), "yyyy-MM-dd");
+                    if (viewMode === "week") {
+                        const start = startOfWeek(current, { weekStartsOn: 1 });
+                        const end = endOfWeek(current, { weekStartsOn: 1 });
+                        startStr = format(addDays(start, -1), "yyyy-MM-dd");
+                        endStr = format(addDays(end, 1), "yyyy-MM-dd");
 					} else {
 						startStr = format(startOfWeek(startOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
 						endStr = format(endOfWeek(endOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
@@ -581,9 +585,11 @@ export default function CalendarPage() {
 					// 뷰 모드에 따라 올바른 날짜 범위로 이벤트 새로고침
 					let startStr: string, endStr: string;
 
-					if (viewMode === "week") {
-						startStr = format(startOfWeek(current, { weekStartsOn: 1 }), "yyyy-MM-dd");
-						endStr = format(endOfWeek(current, { weekStartsOn: 1 }), "yyyy-MM-dd");
+                    if (viewMode === "week") {
+                        const start = startOfWeek(current, { weekStartsOn: 1 });
+                        const end = endOfWeek(current, { weekStartsOn: 1 });
+                        startStr = format(addDays(start, -1), "yyyy-MM-dd");
+                        endStr = format(addDays(end, 1), "yyyy-MM-dd");
 					} else {
 						startStr = format(startOfWeek(startOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
 						endStr = format(endOfWeek(endOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");

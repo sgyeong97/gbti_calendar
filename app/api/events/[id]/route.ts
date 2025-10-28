@@ -72,6 +72,14 @@ export async function GET(_req: NextRequest, ctx: ParamsPromise) {
                 participantRecords = pr.data || [];
             }
 
+            // 같은 시리즈(제목+시간대)만 필터링해 반복 요일 계산
+            const sameSeriesSlots = (allSlots || []).filter((s: any) =>
+                s.eventTitle === slot.eventTitle &&
+                s.startMinutes === slot.startMinutes &&
+                s.endMinutes === slot.endMinutes
+            );
+            const recurringDays = Array.from(new Set(sameSeriesSlots.map((s: any) => s.dayOfWeek))).sort();
+
             const virtualEvent = {
                 id,
                 calendarId: slot.calendarId ?? calendarId,
@@ -85,7 +93,7 @@ export async function GET(_req: NextRequest, ctx: ParamsPromise) {
                 isRecurring: true,
                 recurringSlotId: slot.id,
                 recurringSlots: allSlots || [],
-                recurringDays: (allSlots || []).map((s: any) => s.dayOfWeek) || [],
+                recurringDays,
                 recurringStartMinutes: slot.startMinutes,
                 recurringEndMinutes: slot.endMinutes
             };
@@ -116,8 +124,7 @@ export async function GET(_req: NextRequest, ctx: ParamsPromise) {
 }
 
 export async function PUT(req: NextRequest, ctx: ParamsPromise) {
-	const role = req.cookies.get("gbti_role")?.value;
-	if (role !== "admin") return NextResponse.json({ error: "Admin only" }, { status: 403 });
+	// 일반 사용자도 이벤트 수정 가능
 	const { id } = await ctx.params;
 	const { title, participants, ...otherData } = await req.json();
 	
@@ -164,8 +171,7 @@ export async function PUT(req: NextRequest, ctx: ParamsPromise) {
 }
 
 export async function DELETE(_req: NextRequest, ctx: ParamsPromise) {
-	const role = _req.cookies.get("gbti_role")?.value;
-	if (role !== "admin") return NextResponse.json({ error: "Admin only" }, { status: 403 });
+	// 일반 사용자도 이벤트 삭제 가능
 	const { id } = await ctx.params;
 	
 	try {
@@ -247,8 +253,7 @@ export async function DELETE(_req: NextRequest, ctx: ParamsPromise) {
 }
 
 export async function PATCH(req: NextRequest, ctx: ParamsPromise) {
-	const role = req.cookies.get("gbti_role")?.value;
-	if (role !== "admin") return NextResponse.json({ error: "Admin only" }, { status: 403 });
+	// 일반 사용자도 이벤트 수정 가능
 	const { id } = await ctx.params;
 	const { endsOn } = await req.json();
 

@@ -81,9 +81,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  // 관리자만 이벤트 생성 가능
-  const block = requireAdmin(req);
-  if (block) return block;
+  // 일반 사용자도 이벤트 생성 가능
   const body = await req.json();
   const participantNames: string[] = body.participants ?? [];
   
@@ -101,7 +99,7 @@ export async function POST(req: NextRequest) {
     if (!existingCal) {
       await supabaseAdmin
         .from('Calendar')
-        .insert({ id: calendarId, name: body.calendarName ?? "기본 캘린더", color: body.calendarColor ?? "#4f46e5" });
+        .insert({ id: calendarId, name: body.calendarName ?? "기본 캘린더", color: body.calendarColor ?? "#FDC205" });
     }
 
     // 반복 이벤트인 경우 일반 이벤트는 생성하지 않음 (반복 슬롯만 생성)
@@ -109,7 +107,7 @@ export async function POST(req: NextRequest) {
       const eventStartDate = new Date(body.startAt);
       const startDayOfWeek = eventStartDate.getDay();
       const participantNamesStr = participantNames.length > 0 ? JSON.stringify(participantNames) : null;
-      const eventColor = body.color || body.repeat?.color || "#60a5fa";
+      const eventColor = body.color || body.repeat?.color || "#FDC205";
       
       // 각 요일의 첫 발생 날짜 계산
       for (const dow of body.repeat.daysOfWeek) {
@@ -146,7 +144,7 @@ export async function POST(req: NextRequest) {
     // 일반 이벤트 생성
     const { data: created, error: eventError } = await supabase
       .from('Event')
-      .insert({ title: body.title, startAt: body.startAt, endAt: body.endAt, allDay: !!body.allDay, calendarId, color: body.color || "#60a5fa" })
+      .insert({ title: body.title, startAt: body.startAt, endAt: body.endAt, allDay: !!body.allDay, calendarId, color: body.color || "#FDC205" })
       .select()
       .single();
     
