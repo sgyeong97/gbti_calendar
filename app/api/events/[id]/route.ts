@@ -24,7 +24,10 @@ export async function GET(_req: NextRequest, ctx: ParamsPromise) {
 				.eq('id', calendarId)
 				.single();
 			
-			if (calError || !calendar) {
+			if (calError) {
+				return NextResponse.json({ error: calError.message }, { status: 500 });
+			}
+			if (!calendar) {
 				return NextResponse.json({ error: "Not found" }, { status: 404 });
 			}
 			
@@ -60,10 +63,13 @@ export async function GET(_req: NextRequest, ctx: ParamsPromise) {
 			const participantNamesList = participants.length > 0 ? participants : 
 				(calendar.members || []).map((m: any) => m.participant.name);
 			
-			const { data: participantRecords } = await supabase
+			const { data: participantRecords, error: participantsError } = await supabase
 				.from('Participant')
 				.select('*')
 				.in('name', participantNamesList);
+			if (participantsError) {
+				return NextResponse.json({ error: participantsError.message }, { status: 500 });
+			}
 			
 			const virtualEvent = {
 				id,
@@ -98,7 +104,10 @@ export async function GET(_req: NextRequest, ctx: ParamsPromise) {
 		.eq('id', id)
 		.single();
 	
-	if (error || !event) {
+	if (error) {
+		return NextResponse.json({ error: error.message }, { status: 500 });
+	}
+	if (!event) {
 		return NextResponse.json({ error: "Not found" }, { status: 404 });
 	}
 	
