@@ -18,7 +18,7 @@ export async function GET(_req: NextRequest, ctx: ParamsPromise) {
             const dateStr = parts.slice(2, -1).join('-');
 
             // 1) 슬롯을 우선 조회 (더 견고)
-            const { data: slot, error: slotErr } = await supabase
+            const { data: slot, error: slotErr } = await supabaseAdmin
                 .from('RecurringSlot')
                 .select('*')
                 .eq('id', slotId)
@@ -29,7 +29,7 @@ export async function GET(_req: NextRequest, ctx: ParamsPromise) {
             }
 
             // 2) 캘린더 및 멤버 조회 (없어도 진행 가능)
-            const { data: calendar, error: calError } = await supabase
+            const { data: calendar, error: calError } = await supabaseAdmin
                 .from('Calendar')
                 .select(`
                     *,
@@ -42,7 +42,7 @@ export async function GET(_req: NextRequest, ctx: ParamsPromise) {
             }
 
             // 3) 같은 캘린더의 모든 슬롯 (반복 요일 계산용)
-            const { data: allSlots } = await supabase
+            const { data: allSlots } = await supabaseAdmin
                 .from('RecurringSlot')
                 .select('*')
                 .eq('calendarId', slot.calendarId ?? calendarId)
@@ -64,7 +64,7 @@ export async function GET(_req: NextRequest, ctx: ParamsPromise) {
                 : ((calendar?.members || []).map((m: any) => m.participant.name));
             let participantRecords: any[] = [];
             if (participantNamesList && participantNamesList.length > 0) {
-                const pr = await supabase
+                const pr = await supabaseAdmin
                     .from('Participant')
                     .select('*')
                     .in('name', participantNamesList);
