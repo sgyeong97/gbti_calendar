@@ -270,9 +270,10 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 						</label>
 						{repeat.enabled && (
 							<div className="flex items-center gap-2 text-sm">
-								{["일","월","화","수","목","금","토"].map((w, i) => {
-									// JavaScript getDay(): 0=일, 1=월, ..., 6=토
-									const jsDayOfWeek = i === 0 ? 0 : i; // 일=0, 월=1, ..., 토=6
+								{["월","화","수","목","금","토","일"].map((w, i) => {
+									// Monday-first UI → JS getDay mapping
+									const mapping = [1, 2, 3, 4, 5, 6, 0];
+									const jsDayOfWeek = mapping[i];
 									return (
 										<button
 											key={i}
@@ -299,7 +300,8 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 						닫기
 					</button>
 					<button
-						className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 transition-colors cursor-pointer"
+						className="px-3 py-1 rounded text-black disabled:opacity-50 transition-colors cursor-pointer"
+						style={{ backgroundColor: "#FDC205" }}
 						onClick={submit}
 						disabled={loading}
 					>
