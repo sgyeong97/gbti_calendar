@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import CreateEventModal from "@/app/calendar/CreateEventModal";
 import EventDetailModal from "@/app/calendar/EventDetailModal";
 import CreateNoticeModal from "@/app/calendar/CreateNoticeModal";
@@ -37,6 +38,7 @@ type Notice = {
 };
 
 export default function CalendarPage() {
+    const router = useRouter();
 	const [current, setCurrent] = useState<Date>(new Date());
 	const [events, setEvents] = useState<Event[]>([]);
 	const [selectedParticipant, setSelectedParticipant] = useState<string>("");
@@ -44,7 +46,7 @@ export default function CalendarPage() {
 	const [viewMode, setViewMode] = useState<ViewMode>("month");
 	const [favoriteUsers, setFavoriteUsers] = useState<FavoriteUser[]>([]);
 	const [showFavorites, setShowFavorites] = useState(false);
-	const [showAdminAuth, setShowAdminAuth] = useState(false);
+    // 관리자 버튼은 라우팅으로 대체
 	const [notices, setNotices] = useState<Notice[]>([]);
 	const [showCreateNoticeModal, setShowCreateNoticeModal] = useState(false);
 	const [showAdminPasswordModal, setShowAdminPasswordModal] = useState(false);
@@ -104,15 +106,16 @@ export default function CalendarPage() {
 
 	// 알림 기능 상태 및 참조들
 	const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(false);
-	const [notificationLeadMinutes, setNotificationLeadMinutes] = useState<number>(30);
+const [notificationLeadMinutes, setNotificationLeadMinutes] = useState<number>(30);
+const [notificationLeadMinutesList, setNotificationLeadMinutesList] = useState<number[]>([30]);
 	const swRegistrationRef = useRef<ServiceWorkerRegistration | null>(null);
-	const notifTimersRef = useRef<Map<string, number>>(new Map());
+const notifTimersRef = useRef<Map<string, number>>(new Map());
 	const notifMenuOpenRef = useRef<boolean>(false);
-	const [notifMenuOpen, setNotifMenuOpen] = useState<boolean>(false);
+const [notifMenuOpen, setNotifMenuOpen] = useState<boolean>(false);
 	const [notifMenuPos, setNotifMenuPos] = useState<{ x: number; y: number } | null>(null);
 	const bellLongPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const bellLongPressedRef = useRef<boolean>(false);
-	const bellBtnRef = useRef<HTMLButtonElement | null>(null);
+const bellBtnRef = useRef<HTMLButtonElement | null>(null);
 const [notificationTargets, setNotificationTargets] = useState<string[]>([]);
 const [showNotificationSettings, setShowNotificationSettings] = useState<boolean>(false);
 
@@ -122,6 +125,18 @@ const [showNotificationSettings, setShowNotificationSettings] = useState<boolean
 		setNotificationsEnabled(saved === "1");
 		const savedLead = parseInt(localStorage.getItem("gbti_notifications_minutes") || "30", 10);
 		if (!isNaN(savedLead)) setNotificationLeadMinutes(savedLead);
+		try {
+			const listRaw = localStorage.getItem("gbti_notifications_minutes_list");
+			if (listRaw) {
+				const list = JSON.parse(listRaw);
+				if (Array.isArray(list) && list.length > 0) {
+					setNotificationLeadMinutesList(list);
+					setNotificationLeadMinutes(list[0]);
+				}
+			} else if (!isNaN(savedLead)) {
+				setNotificationLeadMinutesList([savedLead]);
+			}
+		} catch {}
 		try {
 			const savedTargets = JSON.parse(localStorage.getItem("gbti_notifications_targets") || "[]");
 			if (Array.isArray(savedTargets)) setNotificationTargets(savedTargets.slice(0, 3));
@@ -153,16 +168,23 @@ const [showNotificationSettings, setShowNotificationSettings] = useState<boolean
 		return false;
 	}
 
-	function showLocalNotification(title: string, options?: NotificationOptions) {
-		const reg = swRegistrationRef.current;
-		if (reg && reg.showNotification) {
-			reg.showNotification(title, options);
-		} else if (typeof Notification !== "undefined") {
-			new Notification(title, options);
-		}
-	}
+function showLocalNotification(title: string, options?: NotificationOptions) {
+    const reg = swRegistrationRef.current;
+    try {
+        if (reg && reg.showNotification) {
+            reg.showNotification(title, options);
+            return;
+        }
+    } catch {}
+    try {
+        if (typeof Notification !== "undefined") {
+            // eslint-disable-next-line no-new
+            new Notification(title, options);
+        }
+    } catch {}
+}
 
-	// 즐겨찾기 일정 30분 전 알림 스케줄링 (탭이 열려 있는 동안 동작)
+	// 선택 대상 일정의 알림 스케줄링 (탭이 열려 있는 동안 동작)
 	useEffect(() => {
 		if (!notificationsEnabled) {
 			clearAllNotificationTimers();
@@ -175,33 +197,43 @@ const [showNotificationSettings, setShowNotificationSettings] = useState<boolean
 
 		const targetNames = new Set(notificationTargets);
 		const now = Date.now();
-		const maxDelayMs = 24 * 60 * 60 * 1000; // 최대 24시간까지만 예약해 중복/장시간 타이머 방지
+		const maxDelayMs = 24 * 60 * 60 * 1000; // 최대 24시간까지만 예약
 
 		events.forEach((e) => {
 			if (!e.participants || e.participants.length === 0) return;
-			if (targetNames.size === 0) return;
+			if (targetNames.size === 0) return; // 대상이 없으면 예약 안 함
 			const hasTarget = e.participants.some((p) => targetNames.has(p));
 			if (!hasTarget) return;
-			const start = new Date(e.startAt).getTime();
-			const triggerAt = start - notificationLeadMinutes * 60 * 1000; // 리드타임 분 전
-			const delay = triggerAt - now;
-			if (delay <= 0 || delay > maxDelayMs) return;
 
-			const timeoutId = window.setTimeout(() => {
-				showLocalNotification("곧 시작: " + e.title, {
-					body: "즐겨찾기 일정 30분 전입니다.",
-					badge: "/vercel.svg",
-					icon: "/globe.svg",
-				});
-				notifTimersRef.current.delete(e.id);
-			}, delay);
-			notifTimersRef.current.set(e.id, timeoutId);
+			const start = new Date(e.startAt);
+			const startMs = start.getTime();
+			const startTimeText = `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`;
+
+			const leads = (notificationLeadMinutesList.length > 0 ? notificationLeadMinutesList : [notificationLeadMinutes])
+				.filter((m, idx, arr) => arr.indexOf(m) === idx)
+				.sort((a,b) => a - b);
+
+			leads.forEach((m) => {
+				const triggerAt = startMs - m * 60 * 1000;
+				const delay = triggerAt - now;
+				if (delay <= 0 || delay > maxDelayMs) return;
+				const key = `${e.id}:${m}`;
+				const timeoutId = window.setTimeout(() => {
+					showLocalNotification(`${e.title} (${startTimeText})`, {
+						body: `${m}분 후 시작합니다`,
+						badge: "/vercel.svg",
+						icon: "/globe.svg",
+					});
+					notifTimersRef.current.delete(key);
+				}, delay);
+				notifTimersRef.current.set(key, timeoutId);
+			});
 		});
 
 		return () => {
 			clearAllNotificationTimers();
 		};
-	}, [notificationsEnabled, events, notificationTargets, notificationLeadMinutes]);
+	}, [notificationsEnabled, events, notificationTargets, notificationLeadMinutes, notificationLeadMinutesList]);
 
 	// 모바일 제스처: 더블탭 / 롱프레스 감지
 	const lastTapRef = useRef<number>(0);
@@ -404,13 +436,13 @@ const [showNotificationSettings, setShowNotificationSettings] = useState<boolean
 						>
 							{notificationsEnabled ? "🔔" : "🔕"}
 						</button>
-					<button
-							className="px-2 sm:px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-lg sm:text-xl"
-						onClick={() => setShowAdminAuth(true)}
-						title="관리자"
-					>
-						🔒
-					</button>
+                        <button
+                            className="px-2 sm:px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-lg sm:text-xl"
+                            onClick={() => router.push("/admin")}
+                            title="관리자 페이지"
+                        >
+                            🔒
+                        </button>
 				</div>
 			</div>
 
@@ -533,20 +565,29 @@ const [showNotificationSettings, setShowNotificationSettings] = useState<boolean
 						</div>
 
 						<div>
-							<div className="text-sm mb-1">알림 시점</div>
+							<div className="text-sm mb-1">알림 시점(복수 선택 가능)</div>
 							<div className="flex gap-2 flex-wrap">
-								{[5,10,15,30,60,120].map((m) => (
-									<button
-										key={m}
-										className={`px-2 py-1 text-xs rounded border ${notificationLeadMinutes === m ? "bg-yellow-200 text-black" : "hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
-										onClick={() => {
-											setNotificationLeadMinutes(m);
-											localStorage.setItem("gbti_notifications_minutes", String(m));
-										}}
-									>
-										{m}분 전
-									</button>
-								))}
+								{[5,10,15,30,60,120].map((m) => {
+									const selected = notificationLeadMinutesList.includes(m);
+									return (
+										<button
+											key={m}
+											className={`px-2 py-1 text-xs rounded border ${selected ? "bg-yellow-200 text-black" : "hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
+											onClick={() => {
+												let next = notificationLeadMinutesList.slice();
+												if (selected) next = next.filter((x) => x !== m);
+												else next.push(m);
+												setNotificationLeadMinutesList(next);
+												if (next.length > 0) setNotificationLeadMinutes(next[0]);
+												localStorage.setItem("gbti_notifications_minutes_list", JSON.stringify(next));
+												// 구버전 키도 함께 업데이트(선택 첫값)
+												localStorage.setItem("gbti_notifications_minutes", String(next[0] || 30));
+											}}
+										>
+											{m}분 전
+										</button>
+									);
+								})}
 							</div>
 						</div>
 
@@ -554,15 +595,16 @@ const [showNotificationSettings, setShowNotificationSettings] = useState<boolean
 							<button
 								className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
 								onClick={() => {
-									if (Notification.permission !== "granted") {
-										requestNotificationPermission();
-										return;
-									}
-									showLocalNotification("테스트 알림", {
+								const run = () => showLocalNotification("테스트 알림", {
 										body: "알림이 정상 동작합니다.",
 										badge: "/vercel.svg",
 										icon: "/globe.svg",
-									});
+								});
+								if (Notification.permission !== "granted") {
+									requestNotificationPermission().then((ok) => { if (ok) run(); });
+								} else {
+									run();
+								}
 								}}
 							>
 								테스트 알림
