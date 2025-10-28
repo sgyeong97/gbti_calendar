@@ -86,12 +86,30 @@ vercel --prod
 - **Vercel 프로덕션**: `prisma/schema.prisma` (PostgreSQL)
 
 ### 빌드 설정
-`vercel.json`에 이미 다음 설정이 포함되어 있습니다:
-```json
-{
-  "buildCommand": "npx prisma generate && npm run build"
+
+#### Prisma Query Engine 설정
+`prisma/schema.prisma`에 다음 설정이 포함되어 있습니다:
+```prisma
+generator client {
+  provider = "prisma-client"
+  output   = "./generated/client"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 ```
 
-이 설정으로 자동으로 Prisma 클라이언트가 생성됩니다.
+이 설정으로 Vercel 런타임 환경(rhel-openssl-3.0.x)에 맞는 Query Engine이 자동으로 생성됩니다.
+
+#### Next.js 출력 설정
+`next.config.ts`에서 standalone 출력을 사용합니다:
+```typescript
+const nextConfig: NextConfig = {
+  output: "standalone",
+};
+```
+
+이 설정으로 Prisma binary 엔진을 포함한 모든 의존성이 빌드에 포함됩니다.
+
+#### 빌드 스크립트
+- `package.json`의 `vercel-build` 스크립트: `prisma generate && next build`
+- `postinstall` 스크립트: `prisma generate` (자동 실행)
 
