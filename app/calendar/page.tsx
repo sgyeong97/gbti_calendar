@@ -104,13 +104,28 @@ export default function CalendarPage() {
 
 	// 알림 기능 상태 및 참조들
 	const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(false);
+	const [notificationLeadMinutes, setNotificationLeadMinutes] = useState<number>(30);
 	const swRegistrationRef = useRef<ServiceWorkerRegistration | null>(null);
 	const notifTimersRef = useRef<Map<string, number>>(new Map());
+	const notifMenuOpenRef = useRef<boolean>(false);
+	const [notifMenuOpen, setNotifMenuOpen] = useState<boolean>(false);
+	const [notifMenuPos, setNotifMenuPos] = useState<{ x: number; y: number } | null>(null);
+	const bellLongPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const bellLongPressedRef = useRef<boolean>(false);
+	const bellBtnRef = useRef<HTMLButtonElement | null>(null);
+const [notificationTargets, setNotificationTargets] = useState<string[]>([]);
+const [showNotificationSettings, setShowNotificationSettings] = useState<boolean>(false);
 
 	useEffect(() => {
 		// 저장된 설정 불러오기
 		const saved = localStorage.getItem("gbti_notifications_enabled");
 		setNotificationsEnabled(saved === "1");
+		const savedLead = parseInt(localStorage.getItem("gbti_notifications_minutes") || "30", 10);
+		if (!isNaN(savedLead)) setNotificationLeadMinutes(savedLead);
+		try {
+			const savedTargets = JSON.parse(localStorage.getItem("gbti_notifications_targets") || "[]");
+			if (Array.isArray(savedTargets)) setNotificationTargets(savedTargets.slice(0, 3));
+		} catch {}
 		// 서비스 워커 등록
 		if (typeof window !== "undefined" && "serviceWorker" in navigator) {
 			navigator.serviceWorker.register("/sw.js").then((reg) => {
@@ -158,16 +173,17 @@ export default function CalendarPage() {
 
 		clearAllNotificationTimers();
 
-		const favoriteNames = new Set(favoriteUsers.map((f) => f.name));
+		const targetNames = new Set(notificationTargets);
 		const now = Date.now();
 		const maxDelayMs = 24 * 60 * 60 * 1000; // 최대 24시간까지만 예약해 중복/장시간 타이머 방지
 
 		events.forEach((e) => {
 			if (!e.participants || e.participants.length === 0) return;
-			const hasFav = e.participants.some((p) => favoriteNames.has(p));
-			if (!hasFav) return;
+			if (targetNames.size === 0) return;
+			const hasTarget = e.participants.some((p) => targetNames.has(p));
+			if (!hasTarget) return;
 			const start = new Date(e.startAt).getTime();
-			const triggerAt = start - 30 * 60 * 1000; // 30분 전
+			const triggerAt = start - notificationLeadMinutes * 60 * 1000; // 리드타임 분 전
 			const delay = triggerAt - now;
 			if (delay <= 0 || delay > maxDelayMs) return;
 
@@ -185,7 +201,7 @@ export default function CalendarPage() {
 		return () => {
 			clearAllNotificationTimers();
 		};
-	}, [notificationsEnabled, events, favoriteUsers]);
+	}, [notificationsEnabled, events, notificationTargets, notificationLeadMinutes]);
 
 	// 모바일 제스처: 더블탭 / 롱프레스 감지
 	const lastTapRef = useRef<number>(0);
@@ -330,7 +346,7 @@ export default function CalendarPage() {
 					</div>
 				</div>
 					<div className="flex gap-1.5 sm:gap-2 items-center">
-					<button
+						<button
 							className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
 						onClick={() => setCurrent(addDays(current, -30))}
 					>
@@ -346,26 +362,44 @@ export default function CalendarPage() {
 			>
 						{format(current, "yyyy.MM")}
 			</button>
-					<button
+						<button
 							className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
 						onClick={() => setCurrent(addDays(current, 30))}
 					>
 						다음
 					</button>
 						<button
+							ref={bellBtnRef}
 							className={`px-2 sm:px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-lg sm:text-xl ${notificationsEnabled ? "text-yellow-600" : "text-zinc-600"}`}
 							onClick={async () => {
+							if (bellLongPressedRef.current) { bellLongPressedRef.current = false; return; }
 							if (Notification.permission !== "granted") {
 								const ok = await requestNotificationPermission();
 								if (!ok) return;
-							} else {
-								// 토글 비활성화
-								const next = !notificationsEnabled;
-								setNotificationsEnabled(next);
-								localStorage.setItem("gbti_notifications_enabled", next ? "1" : "0");
-								if (!next) clearAllNotificationTimers();
 							}
+							setShowNotificationSettings(true);
 							}}
+							onContextMenu={(e) => {
+								// 우클릭으로 리드타임 메뉴
+								e.preventDefault();
+								setNotifMenuOpen(true);
+								notifMenuOpenRef.current = true;
+								setNotifMenuPos({ x: e.clientX, y: e.clientY });
+							}}
+							onTouchStart={(e) => {
+								bellLongPressedRef.current = false;
+								if (bellLongPressTimerRef.current) clearTimeout(bellLongPressTimerRef.current);
+								bellLongPressTimerRef.current = setTimeout(() => {
+									bellLongPressedRef.current = true;
+									// 아이콘 기준 위치에 메뉴 표시
+									const rect = bellBtnRef.current?.getBoundingClientRect();
+									setNotifMenuPos(rect ? { x: rect.left, y: rect.bottom + 6 } : { x: 12, y: 12 });
+									setNotifMenuOpen(true);
+									notifMenuOpenRef.current = true;
+								}, 500);
+							}}
+							onTouchEnd={() => { if (bellLongPressTimerRef.current) clearTimeout(bellLongPressTimerRef.current); }}
+							onTouchCancel={() => { if (bellLongPressTimerRef.current) clearTimeout(bellLongPressTimerRef.current); }}
 							title="즐겨찾기 알림"
 						>
 							{notificationsEnabled ? "🔔" : "🔕"}
@@ -451,6 +485,77 @@ export default function CalendarPage() {
 				)}
 			</div>
 
+			{/* 알림 설정 모달 */}
+			{showNotificationSettings && (
+				<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+					<div className="rounded p-4 w-full max-w-sm space-y-3" style={{ background: "var(--background)", color: "var(--foreground)" }}>
+						<h2 className="text-lg font-semibold">알림 설정</h2>
+						<div className="flex items-center justify-between">
+							<div className="text-sm">알림</div>
+							<button
+								className={`px-3 py-1 rounded border ${notificationsEnabled ? "bg-yellow-200 text-black" : "bg-zinc-100 dark:bg-zinc-800"}`}
+								onClick={() => {
+									const next = !notificationsEnabled;
+									setNotificationsEnabled(next);
+									localStorage.setItem("gbti_notifications_enabled", next ? "1" : "0");
+									if (!next) clearAllNotificationTimers();
+								}}
+							>
+								{notificationsEnabled ? "ON" : "OFF"}
+							</button>
+						</div>
+
+						<div>
+							<div className="text-sm mb-1">알림 대상(최대 3명)</div>
+							<div className="flex gap-2 flex-wrap">
+								{participantList.map((name) => {
+									const selected = notificationTargets.includes(name);
+									return (
+										<button
+											key={name}
+											className={`px-2 py-1 text-xs rounded border ${selected ? "bg-indigo-600 text-white" : "hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
+											onClick={() => {
+												let next = [...notificationTargets];
+												if (selected) next = next.filter((n) => n !== name);
+												else {
+													if (next.length >= 3) return;
+													next.push(name);
+												}
+												setNotificationTargets(next);
+												localStorage.setItem("gbti_notifications_targets", JSON.stringify(next));
+											}}
+										>
+											{name}
+										</button>
+									);
+								})}
+							</div>
+						</div>
+
+						<div>
+							<div className="text-sm mb-1">알림 시점</div>
+							<div className="flex gap-2 flex-wrap">
+								{[5,10,15,30,60,120].map((m) => (
+									<button
+										key={m}
+										className={`px-2 py-1 text-xs rounded border ${notificationLeadMinutes === m ? "bg-yellow-200 text-black" : "hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
+										onClick={() => {
+											setNotificationLeadMinutes(m);
+											localStorage.setItem("gbti_notifications_minutes", String(m));
+										}}
+									>
+										{m}분 전
+									</button>
+								))}
+							</div>
+						</div>
+
+						<div className="flex justify-end gap-2">
+							<button className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800" onClick={() => setShowNotificationSettings(false)}>닫기</button>
+						</div>
+					</div>
+				</div>
+			)}
 			{viewMode === "notices" ? (
 			// 공지사항 뷰: 갤러리 형태
 			<div className="space-y-4">
@@ -682,6 +787,34 @@ export default function CalendarPage() {
 						</button>
 					</div>
 				</div>
+
+				{/* 알림 리드타임 설정 메뉴 */}
+				{notifMenuOpen && (
+					<div className="fixed inset-0 z-50" onClick={() => { setNotifMenuOpen(false); notifMenuOpenRef.current = false; }}>
+						<div
+							className="absolute rounded border bg-white dark:bg-zinc-900 text-sm shadow-md"
+							style={{ left: (notifMenuPos?.x ?? 12), top: (notifMenuPos?.y ?? 12) }}
+							onClick={(e) => e.stopPropagation()}
+						>
+							<div className="px-3 py-2 border-b dark:border-zinc-700">알림 시간 선택</div>
+							{[5,10,15,30,60].map((m) => (
+								<button
+									key={m}
+									className={`block w-full text-left px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 ${notificationLeadMinutes === m ? "font-semibold" : ""}`}
+									onClick={() => {
+										setNotificationLeadMinutes(m);
+										localStorage.setItem("gbti_notifications_minutes", String(m));
+										setNotifMenuOpen(false);
+										notifMenuOpenRef.current = false;
+									}}
+								>
+									{m}분 전
+								</button>
+							))}
+							<div className="px-3 py-2 border-t dark:border-zinc-700 text-xs text-zinc-500">우클릭/롱프레스로 열기</div>
+						</div>
+					</div>
+				)}
 			</div>
 		)}
 
