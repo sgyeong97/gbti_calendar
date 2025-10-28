@@ -12,10 +12,11 @@ export async function GET(_req: NextRequest, ctx: ParamsPromise) {
         // R-calendarId-date-slotId 형식에서 날짜에 :가 포함될 수 있음
         // 마지막 - 이후가 slotId이므로 역순으로 파싱
         const parts = id.split('-');
-        if (parts.length >= 4) {
+        if (parts.length >= 8) {
+            // R-<calendarId>-<yyyy-MM-ddTHH:mm:ss.sssZ>-<uuid(5 parts)>
             const calendarId = parts[1];
-            const slotId = parts[parts.length - 1]; // 마지막 부분이 slotId
-            const dateStr = parts.slice(2, -1).join('-');
+            const slotId = parts.slice(-5).join('-'); // UUID 5파트 복원
+            const dateStr = parts.slice(2, parts.length - 5).join('-');
 
             // 1) 슬롯을 우선 조회 (더 견고)
             const { data: slot, error: slotErr } = await supabaseAdmin

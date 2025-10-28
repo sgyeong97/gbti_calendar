@@ -48,8 +48,9 @@ export function expandRecurringSlots(slots: any[], start?: string, end?: string)
       const compareDayDate = new Date(compareDay);
       compareDayDate.setHours(0, 0, 0, 0);
       
-      // Check if dayOfWeek matches and is within date range
-      if (slot.dayOfWeek !== compareDay.getDay()) continue;
+      // Check if expected day (from startsOn) matches and is within date range
+      const expectedDow = new Date(slot.startsOn).getDay();
+      if (expectedDow !== compareDay.getDay()) continue;
       
       let isWithinEndDate = true;
       if (slot.endsOn) {
