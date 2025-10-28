@@ -163,28 +163,28 @@ export default function CalendarPage() {
 
 // 하단 입력 폼 제거로 인한 잔여 함수 삭제
 
-	return (
-		<div className="p-6 max-w-5xl mx-auto">
-			<div className="flex items-center justify-between mb-4">
+		return (
+			<div className="px-3 py-4 sm:p-6 max-w-5xl mx-auto">
+				<div className="flex items-center justify-between mb-3 sm:mb-4">
 				<div className="flex items-center gap-4">
-					<h1 className="text-2xl font-semibold">달력</h1>
-					<div className="flex gap-1">
+						<h1 className="text-xl sm:text-2xl font-semibold">달력</h1>
+						<div className="flex gap-1">
 				<button
-					className={`px-3 py-1 rounded transition-colors cursor-pointer ${viewMode === "month" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
+						className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors cursor-pointer ${viewMode === "month" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
 					style={viewMode === "month" ? { backgroundColor: BRAND_COLOR, color: "#111" } : undefined}
 							onClick={() => setViewMode("month")}
 						>
 							월간
 						</button>
 				<button
-					className={`px-3 py-1 rounded transition-colors cursor-pointer ${viewMode === "notices" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
+						className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors cursor-pointer ${viewMode === "notices" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
 					style={viewMode === "notices" ? { backgroundColor: BRAND_COLOR, color: "#111" } : undefined}
 						onClick={() => setViewMode("notices")}
 					>
 						공지사항
 					</button>
 				<button
-					className={`px-3 py-1 rounded transition-colors cursor-pointer ${viewMode === "favorites" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
+						className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors cursor-pointer ${viewMode === "favorites" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
 					style={viewMode === "favorites" ? { backgroundColor: BRAND_COLOR, color: "#111" } : undefined}
 							onClick={() => setViewMode("favorites")}
 						>
@@ -192,15 +192,15 @@ export default function CalendarPage() {
 						</button>
 					</div>
 				</div>
-				<div className="flex gap-2 items-center">
+					<div className="flex gap-1.5 sm:gap-2 items-center">
 					<button
-						className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+							className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
 						onClick={() => setCurrent(addDays(current, -30))}
 					>
 						이전
 					</button>
-			<button
-				className="min-w-20 text-center px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+				<button
+					className="min-w-20 text-center px-2 py-1 text-sm rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
 				onClick={() => {
 					setPickerYear(current.getFullYear());
 					setPickerMonth(current.getMonth());
@@ -210,13 +210,13 @@ export default function CalendarPage() {
 						{format(current, "yyyy.MM")}
 			</button>
 					<button
-						className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+							className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
 						onClick={() => setCurrent(addDays(current, 30))}
 					>
 						다음
 					</button>
 					<button
-						className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-xl"
+							className="px-2 sm:px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-lg sm:text-xl"
 						onClick={() => setShowAdminAuth(true)}
 						title="관리자"
 					>
@@ -296,13 +296,13 @@ export default function CalendarPage() {
 				)}
 			</div>
 
-		{viewMode === "notices" ? (
+			{viewMode === "notices" ? (
 			// 공지사항 뷰: 갤러리 형태
 			<div className="space-y-4">
 				<div className="flex justify-between items-center">
-					<h2 className="text-lg font-semibold">공지사항</h2>
+					<h2 className="text-base sm:text-lg font-semibold">공지사항</h2>
 					<button
-						className="px-3 py-1 rounded text-black transition-colors cursor-pointer"
+						className="px-2 sm:px-3 py-1 text-sm rounded text-black transition-colors cursor-pointer"
 						style={{ backgroundColor: "#FDC205" }}
 						onClick={() => setShowAdminPasswordModal(true)}
 					>
@@ -348,11 +348,11 @@ export default function CalendarPage() {
 					))}
 				</div>
 
-					<div className="grid grid-cols-7 gap-2">
+					<div className="grid grid-cols-7 gap-1 sm:gap-2">
 						{days.map((d) => (
 						<div
 								key={d.toISOString()}
-							className={`border rounded p-2 min-h-24 border-zinc-200 dark:border-zinc-700 cursor-pointer transition-colors ${
+								className={`border rounded p-1 sm:p-2 min-h-20 sm:min-h-24 border-zinc-200 dark:border-zinc-700 cursor-pointer transition-colors ${
 								isToday(d)
 									? "ring-2"
 									: `${isSameMonth(d, current) ? "bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-800" : "bg-zinc-50 dark:bg-zinc-900/40 text-zinc-400 dark:text-zinc-500"}`
@@ -363,21 +363,21 @@ export default function CalendarPage() {
 									setShowCreateModal(true);
 								}}
 							>
-							<div className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
+								<div className="text-xs sm:text-sm font-medium text-zinc-800 dark:text-zinc-100">
 								{isToday(d) ? (
-									<span className="inline-flex items-center justify-center w-6 h-6 rounded-full" style={{ backgroundColor: BRAND_COLOR, color: "#111" }}>
+										<span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full" style={{ backgroundColor: BRAND_COLOR, color: "#111" }}>
 										{format(d, "d")}
 									</span>
 									) : (
 									<span>{format(d, "d")}</span>
 									)}
 								</div>
-								<div className="mt-1 space-y-1">
+									<div className="mt-1 space-y-1">
 								{events.filter((e) => isSameDay(new Date(e.startAt), d)).map((e) => (
 									<button
 										key={e.id}
 										onClick={() => setActiveEventId(e.id)}
-									className="w-full text-left text-xs rounded px-1 py-0.5 truncate transition-colors cursor-pointer"
+										className="w-full text-left text-[10px] sm:text-xs rounded px-1 py-0.5 truncate transition-colors cursor-pointer"
 										style={{ 
 											backgroundColor: e.color || "#93c5fd",
 											color: "#000"
