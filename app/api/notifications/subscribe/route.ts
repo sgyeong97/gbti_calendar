@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/app/lib/supabase-admin";
 
+export const runtime = "nodejs";
+
 // Table: PushSubscription (endpoint TEXT primary key, p256dh TEXT, auth TEXT, targets TEXT[], leads INT[], userAgent TEXT, timezone TEXT, createdAt TIMESTAMPTZ, updatedAt TIMESTAMPTZ)
 
 export async function POST(req: NextRequest) {
@@ -16,7 +18,8 @@ export async function POST(req: NextRequest) {
   }
 
   const userAgent = req.headers.get("user-agent") || "";
-  const tz = Intl.DateTimeFormat().resolvedOptions?.().timeZone || undefined;
+  let tz: string | undefined = undefined;
+  try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone as string; } catch {}
 
   const payload = {
     endpoint: subscription.endpoint,

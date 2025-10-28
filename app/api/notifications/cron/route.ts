@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/app/lib/supabase-admin";
 import webpush from "web-push";
 
+export const runtime = "nodejs"; // web-push는 Edge에서 동작하지 않음
+
 function minutes(ms: number) { return Math.floor(ms / 60000); }
 
 export async function GET(req: NextRequest) {
