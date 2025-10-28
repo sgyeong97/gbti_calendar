@@ -102,6 +102,91 @@ export default function CalendarPage() {
 	const [pickerYear, setPickerYear] = useState<number>(new Date().getFullYear());
 	const [pickerMonth, setPickerMonth] = useState<number>(new Date().getMonth());
 
+	// 알림 기능 상태 및 참조들
+	const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(false);
+	const swRegistrationRef = useRef<ServiceWorkerRegistration | null>(null);
+	const notifTimersRef = useRef<Map<string, number>>(new Map());
+
+	useEffect(() => {
+		// 저장된 설정 불러오기
+		const saved = localStorage.getItem("gbti_notifications_enabled");
+		setNotificationsEnabled(saved === "1");
+		// 서비스 워커 등록
+		if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+			navigator.serviceWorker.register("/sw.js").then((reg) => {
+				swRegistrationRef.current = reg;
+			}).catch(() => {});
+		}
+	}, []);
+
+	function clearAllNotificationTimers() {
+		notifTimersRef.current.forEach((id) => clearTimeout(id));
+		notifTimersRef.current.clear();
+	}
+
+	async function requestNotificationPermission() {
+		try {
+			const result = await Notification.requestPermission();
+			if (result === "granted") {
+				setNotificationsEnabled(true);
+				localStorage.setItem("gbti_notifications_enabled", "1");
+				return true;
+			}
+		} catch {}
+		setNotificationsEnabled(false);
+		localStorage.setItem("gbti_notifications_enabled", "0");
+		return false;
+	}
+
+	function showLocalNotification(title: string, options?: NotificationOptions) {
+		const reg = swRegistrationRef.current;
+		if (reg && reg.showNotification) {
+			reg.showNotification(title, options);
+		} else if (typeof Notification !== "undefined") {
+			new Notification(title, options);
+		}
+	}
+
+	// 즐겨찾기 일정 30분 전 알림 스케줄링 (탭이 열려 있는 동안 동작)
+	useEffect(() => {
+		if (!notificationsEnabled) {
+			clearAllNotificationTimers();
+			return;
+		}
+		if (typeof Notification === "undefined") return;
+		if (Notification.permission !== "granted") return;
+
+		clearAllNotificationTimers();
+
+		const favoriteNames = new Set(favoriteUsers.map((f) => f.name));
+		const now = Date.now();
+		const maxDelayMs = 24 * 60 * 60 * 1000; // 최대 24시간까지만 예약해 중복/장시간 타이머 방지
+
+		events.forEach((e) => {
+			if (!e.participants || e.participants.length === 0) return;
+			const hasFav = e.participants.some((p) => favoriteNames.has(p));
+			if (!hasFav) return;
+			const start = new Date(e.startAt).getTime();
+			const triggerAt = start - 30 * 60 * 1000; // 30분 전
+			const delay = triggerAt - now;
+			if (delay <= 0 || delay > maxDelayMs) return;
+
+			const timeoutId = window.setTimeout(() => {
+				showLocalNotification("곧 시작: " + e.title, {
+					body: "즐겨찾기 일정 30분 전입니다.",
+					badge: "/vercel.svg",
+					icon: "/globe.svg",
+				});
+				notifTimersRef.current.delete(e.id);
+			}, delay);
+			notifTimersRef.current.set(e.id, timeoutId);
+		});
+
+		return () => {
+			clearAllNotificationTimers();
+		};
+	}, [notificationsEnabled, events, favoriteUsers]);
+
 	// 모바일 제스처: 더블탭 / 롱프레스 감지
 	const lastTapRef = useRef<number>(0);
 	const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -267,6 +352,24 @@ export default function CalendarPage() {
 					>
 						다음
 					</button>
+						<button
+							className={`px-2 sm:px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-lg sm:text-xl ${notificationsEnabled ? "text-yellow-600" : "text-zinc-600"}`}
+							onClick={async () => {
+							if (Notification.permission !== "granted") {
+								const ok = await requestNotificationPermission();
+								if (!ok) return;
+							} else {
+								// 토글 비활성화
+								const next = !notificationsEnabled;
+								setNotificationsEnabled(next);
+								localStorage.setItem("gbti_notifications_enabled", next ? "1" : "0");
+								if (!next) clearAllNotificationTimers();
+							}
+							}}
+							title="즐겨찾기 알림"
+						>
+							{notificationsEnabled ? "🔔" : "🔕"}
+						</button>
 					<button
 							className="px-2 sm:px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-lg sm:text-xl"
 						onClick={() => setShowAdminAuth(true)}
