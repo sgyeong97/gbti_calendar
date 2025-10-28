@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import CreateEventModal from "@/app/calendar/CreateEventModal";
 import EventDetailModal from "@/app/calendar/EventDetailModal";
-import { addDays, addWeeks, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isToday, setHours, startOfMonth, startOfWeek, subWeeks } from "date-fns";
+import { addDays, addWeeks, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, isToday, setHours, startOfMonth, startOfWeek, subWeeks } from "date-fns";
 
 type Event = {
 	id: string;
@@ -90,6 +90,9 @@ export default function CalendarPage() {
 	const [activeEventId, setActiveEventId] = useState<string | null>(null);
 	const [showCreateModal, setShowCreateModal] = useState(false);
 	const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+	const [showMonthPicker, setShowMonthPicker] = useState(false);
+	const [pickerYear, setPickerYear] = useState<number>(new Date().getFullYear());
+	const [pickerMonth, setPickerMonth] = useState<number>(new Date().getMonth());
 
 	const fetchParticipants = async () => {
 		const res = await fetch("/api/participants");
@@ -178,12 +181,19 @@ export default function CalendarPage() {
 					>
 						이전
 					</button>
-					<div className="min-w-20 text-center">
+			<button
+				className="min-w-20 text-center px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+				onClick={() => {
+					setPickerYear(current.getFullYear());
+					setPickerMonth(current.getMonth());
+					setShowMonthPicker(true);
+				}}
+			>
 						{viewMode === "week"
 							? `${format(startOfWeek(current, { weekStartsOn: 1 }), "MM.dd")} - ${format(endOfWeek(current, { weekStartsOn: 1 }), "MM.dd")}`
 							: format(current, "yyyy.MM")
 						}
-					</div>
+			</button>
 					<button
 						className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
 						onClick={() => viewMode === "week" ? setCurrent(addWeeks(current, 1)) : setCurrent(addDays(current, 30))}
@@ -439,25 +449,25 @@ export default function CalendarPage() {
 
 					<div className="grid grid-cols-7 gap-2">
 						{days.map((d) => (
-							<div
+						<div
 								key={d.toISOString()}
-								className={`border rounded p-2 min-h-24 border-zinc-200 dark:border-zinc-700 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors ${
+							className={`border rounded p-2 min-h-24 border-zinc-200 dark:border-zinc-700 cursor-pointer transition-colors ${
 									isToday(d)
 										? "ring-2 ring-indigo-400 border-indigo-400 dark:border-indigo-400 bg-indigo-100 dark:bg-indigo-900/40"
-										: "bg-white dark:bg-zinc-950"
+									: `${isSameMonth(d, current) ? "bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-800" : "bg-zinc-50 dark:bg-zinc-900/40 text-zinc-400 dark:text-zinc-500"}`
 								}`}
 								onDoubleClick={() => {
 									setSelectedDate(d);
 									setShowCreateModal(true);
 								}}
 							>
-								<div className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
+							<div className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
 									{isToday(d) ? (
 										<span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-500 text-white dark:bg-indigo-400 dark:text-black">
 											{format(d, "d")}
 										</span>
 									) : (
-										<span>{format(d, "d")}</span>
+									<span>{format(d, "d")}</span>
 									)}
 								</div>
 								<div className="mt-1 space-y-1">
@@ -465,7 +475,7 @@ export default function CalendarPage() {
 									<button
 										key={e.id}
 										onClick={() => setActiveEventId(e.id)}
-										className="w-full text-left text-xs rounded px-1 py-0.5 truncate transition-colors cursor-pointer"
+									className="w-full text-left text-xs rounded px-1 py-0.5 truncate transition-colors cursor-pointer"
 										style={{ 
 											backgroundColor: e.color || "#93c5fd",
 											color: "#000"
@@ -582,6 +592,54 @@ export default function CalendarPage() {
 					setSelectedDate(null);
 				}}
 			/>
+		)}
+
+		{/* 연/월 선택 모달 */}
+		{showMonthPicker && (
+			<div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+				<div className="rounded p-4 w-full max-w-sm space-y-3" style={{ background: "var(--background)", color: "var(--foreground)" }}>
+					<h2 className="text-lg font-semibold">연/월 선택</h2>
+					<div className="flex gap-2">
+						<select
+							className="flex-1 border rounded px-2 py-1"
+							value={pickerYear}
+							onChange={(e) => setPickerYear(parseInt(e.target.value))}
+						>
+							{Array.from({ length: 31 }).map((_, i) => {
+								const y = new Date().getFullYear() - 15 + i; // 현재 기준 -15년 ~ +15년
+								return <option key={y} value={y}>{y}년</option>;
+							})}
+						</select>
+						<select
+							className="flex-1 border rounded px-2 py-1"
+							value={pickerMonth}
+							onChange={(e) => setPickerMonth(parseInt(e.target.value))}
+						>
+							{Array.from({ length: 12 }).map((_, m) => (
+								<option key={m} value={m}>{m + 1}월</option>
+							))}
+						</select>
+					</div>
+					<div className="flex justify-end gap-2">
+						<button
+							className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+							onClick={() => setShowMonthPicker(false)}
+						>
+							취소
+						</button>
+						<button
+							className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer"
+							onClick={() => {
+								const newDate = new Date(pickerYear, pickerMonth, 1);
+								setCurrent(newDate);
+								setShowMonthPicker(false);
+							}}
+						>
+							완료
+						</button>
+					</div>
+				</div>
+			</div>
 		)}
 
 		{/* 관리자 인증 모달 */}
