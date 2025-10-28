@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import CreateEventModal from "@/app/calendar/CreateEventModal";
 import EventDetailModal from "@/app/calendar/EventDetailModal";
 import CreateNoticeModal from "@/app/calendar/CreateNoticeModal";
+import NoticeDetailModal from "@/app/calendar/NoticeDetailModal";
 import AdminPasswordModal from "@/app/calendar/AdminPasswordModal";
 import { addDays, addWeeks, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, isToday, setHours, startOfMonth, startOfWeek, subWeeks } from "date-fns";
 const BRAND_COLOR = "#FDC205"; // rgb(253,194,5)
@@ -47,6 +48,7 @@ export default function CalendarPage() {
 	const [notices, setNotices] = useState<Notice[]>([]);
 	const [showCreateNoticeModal, setShowCreateNoticeModal] = useState(false);
 	const [showAdminPasswordModal, setShowAdminPasswordModal] = useState(false);
+    const [activeNotice, setActiveNotice] = useState<Notice | null>(null);
 	const days = useMemo(() => {
 		{
 			// 월간 뷰: 월 전체 표시 (이전/다음 달 일부 포함)
@@ -315,7 +317,7 @@ export default function CalendarPage() {
 				) : (
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 						{notices.map((notice) => (
-							<div key={notice.id} className="border rounded p-4 hover:shadow-md transition-shadow cursor-pointer">
+							<div key={notice.id} className="border rounded p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveNotice(notice)}>
 								{notice.imageUrl && (
 									<img 
 										src={notice.imageUrl} 
@@ -324,7 +326,7 @@ export default function CalendarPage() {
 									/>
 								)}
 								<h3 className="font-semibold text-lg mb-2">{notice.title}</h3>
-								<p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3 line-clamp-3">
+								<p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3 whitespace-pre-line break-words">
 									{notice.content}
 								</p>
 								<div className="flex justify-between items-center text-xs text-zinc-500 dark:text-zinc-400">
@@ -546,6 +548,13 @@ export default function CalendarPage() {
 					fetchNotices();
 					setShowCreateNoticeModal(false);
 				}}
+			/>
+		)}
+
+		{activeNotice && (
+			<NoticeDetailModal
+				notice={activeNotice}
+				onClose={() => setActiveNotice(null)}
 			/>
 		)}
 	</div>
