@@ -119,6 +119,9 @@ export async function POST(req: NextRequest) {
           daysUntilTarget += 7;
         }
         startsOn.setDate(startsOn.getDate() + daysUntilTarget);
+        // 날짜 경계 이슈 방지를 위해 로컬 자정으로 정규화 후 저장
+        const startsOnMidnight = new Date(startsOn);
+        startsOnMidnight.setHours(0, 0, 0, 0);
         
         const { error } = await supabaseAdmin
           .from('RecurringSlot')
@@ -127,7 +130,7 @@ export async function POST(req: NextRequest) {
             dayOfWeek: dow,
             startMinutes: body.repeat.startMinutes,
             endMinutes: body.repeat.endMinutes,
-            startsOn: startsOn.toISOString(),
+            startsOn: startsOnMidnight.toISOString(),
             eventTitle: body.title,
             eventStartDate: eventStartDate.toISOString(),
             participantNames: participantNamesStr,
