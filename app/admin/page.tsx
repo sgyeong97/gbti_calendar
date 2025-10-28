@@ -111,13 +111,20 @@ export default function AdminPage() {
 		if (!confirm(`선택한 ${selectedEvents.size}개의 이벤트를 삭제하시겠습니까?`)) return;
 
 		for (const id of selectedEvents) {
-			// 반복 이벤트인 경우 특별 처리
-			if (id.startsWith('recurring-')) {
-				const slotId = id.replace('recurring-', '');
-				// 슬롯 ID로 삭제 → 서버에서 같은 제목/시간대 전체 슬롯 삭제
-				await fetch(`/api/events/R-dummy-${slotId}`, { method: "DELETE" });
-			} else {
-				await fetch(`/api/events/${id}`, { method: "DELETE" });
+			try {
+				// 반복 이벤트인 경우 특별 처리
+				if (id.startsWith('recurring-')) {
+					// recurring-<slotId> 형식 그대로 사용
+					const res = await fetch(`/api/events/${id}`, { method: "DELETE" });
+					if (!res.ok) {
+						const error = await res.json();
+						console.error('Delete error:', error);
+					}
+				} else {
+					await fetch(`/api/events/${id}`, { method: "DELETE" });
+				}
+			} catch (err) {
+				console.error('Failed to delete event:', id, err);
 			}
 		}
 

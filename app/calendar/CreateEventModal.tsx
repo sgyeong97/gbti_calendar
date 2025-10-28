@@ -270,16 +270,21 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 						</label>
 						{repeat.enabled && (
 							<div className="flex items-center gap-2 text-sm">
-								{["일","월","화","수","목","금","토"].map((w, i) => (
-									<button
-										key={i}
-										type="button"
-										onClick={() => toggleDay(i)}
-										className={`px-2 py-1 rounded border transition-colors cursor-pointer ${repeat.days.has(i) ? "bg-indigo-600 text-white hover:bg-indigo-700" : "hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
-									>
-										{w}
-									</button>
-								))}
+								{["일","월","화","수","목","금","토"].map((w, i) => {
+									// JavaScript getDay(): 0=일, 1=월, ..., 6=토
+									const jsDayOfWeek = i === 0 ? 0 : i; // 일=0, 월=1, ..., 토=6
+									return (
+										<button
+											key={i}
+											type="button"
+											onClick={() => toggleDay(jsDayOfWeek)}
+											className={`px-2 py-1 rounded border transition-colors cursor-pointer ${repeat.days.has(jsDayOfWeek) ? "text-black" : "hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
+											style={repeat.days.has(jsDayOfWeek) ? { backgroundColor: "#FDC205" } : undefined}
+										>
+											{w}
+										</button>
+									);
+								})}
 							</div>
 						)}
 					</div>

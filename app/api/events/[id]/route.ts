@@ -178,33 +178,42 @@ export async function DELETE(_req: NextRequest, ctx: ParamsPromise) {
 	
 	try {
 		// 반복 이벤트 처리: 같은 이벤트의 모든 슬롯 삭제
-		if (id.startsWith('R-')) {
-			const parts = id.split('-');
-			if (parts.length >= 2) {
-				const slotId = parts[parts.length - 1];
-				
-				// 해당 슬롯 정보 가져오기
-                const { data: slot, error: slotError } = await supabase
-					.from('RecurringSlot')
-					.select('*')
-					.eq('id', slotId)
-					.single();
-				
-				if (slotError || !slot) {
-					return NextResponse.json({ error: "Slot not found" }, { status: 404 });
-				}
-				
-				// 같은 이벤트 제목, 시간대를 가진 모든 슬롯 삭제
-                await supabaseAdmin
-					.from('RecurringSlot')
-					.delete()
-					.eq('calendarId', slot.calendarId)
-					.eq('eventTitle', slot.eventTitle)
-					.eq('startMinutes', slot.startMinutes)
-					.eq('endMinutes', slot.endMinutes);
-				
-				return NextResponse.json({ ok: true });
+		if (id.startsWith('recurring-')) {
+			// recurring-<slotId> 형식
+			const slotId = id.replace('recurring-', '');
+			
+			// 해당 슬롯 정보 가져오기
+			const { data: slot, error: slotError } = await supabase
+				.from('RecurringSlot')
+				.select('*')
+				.eq('id', slotId)
+				.single();
+			
+			if (slotError || !slot) {
+				console.error('Slot fetch error:', slotError);
+				return NextResponse.json({ error: "Slot not found" }, { status: 404 });
 			}
+			
+			console.log('Deleting recurring slots for:', slot.eventTitle, slot.calendarId);
+			
+			// 같은 이벤트 제목, 시간대를 가진 모든 슬롯 삭제
+			const { error: deleteError } = await supabaseAdmin
+				.from('RecurringSlot')
+				.delete()
+				.eq('calendarId', slot.calendarId)
+				.eq('eventTitle', slot.eventTitle)
+				.eq('startMinutes', slot.startMinutes)
+				.eq('endMinutes', slot.endMinutes);
+			
+			if (deleteError) {
+				console.error('Delete error:', deleteError);
+				return NextResponse.json({ error: deleteError.message }, { status: 500 });
+			}
+			
+			return NextResponse.json({ ok: true });
+		} else if (id.startsWith('R-')) {
+			// R-calendarId-date-slotId 형식은 GET에서만 사용
+			return NextResponse.json({ error: "Invalid ID format for DELETE" }, { status: 400 });
 		}
 		
 		// 일반 이벤트 삭제
