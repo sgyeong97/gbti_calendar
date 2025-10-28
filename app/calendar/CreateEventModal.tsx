@@ -10,6 +10,7 @@ type Props = {
 };
 
 const PASTEL_COLORS = [
+	{ name: "메인 옐로", value: "#FDC205" },
 	{ name: "파랑", value: "#93c5fd" },
 	{ name: "연두", value: "#bef264" },
 	{ name: "분홍", value: "#f9a8d4" },
@@ -26,7 +27,7 @@ const PASTEL_COLORS = [
 
 export default function CreateEventModal({ selectedDate, onClose, onCreated }: Props) {
 	const [title, setTitle] = useState("");
-	const [color, setColor] = useState("#93c5fd");
+	const [color, setColor] = useState("#FDC205");
 
 	// 선택된 날짜에서 날짜와 시간 추출
 	const getInitialDateTime = () => {
@@ -246,10 +247,10 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 								key={c.value}
 								type="button"
 								onClick={() => setColor(c.value)}
-								className={`w-full aspect-square rounded border-2 transition-all ${
-									color === c.value ? "border-indigo-600 scale-110" : "border-zinc-300 hover:scale-105"
-								}`}
-								style={{ backgroundColor: c.value }}
+						className={`w-full aspect-square rounded border-2 transition-all ${
+							color === c.value ? "scale-110" : "hover:scale-105"
+						}`}
+						style={{ backgroundColor: c.value, borderColor: color === c.value ? "#FDC205" : "#d4d4d8" }}
 								title={c.name}
 							/>
 						))}

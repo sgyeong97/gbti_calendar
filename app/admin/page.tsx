@@ -154,7 +154,8 @@ export default function AdminPage() {
 			<div className="flex items-center justify-between mb-6">
 				<h1 className="text-2xl font-semibold">관리자 페이지</h1>
 				<button
-					className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer"
+					className="px-4 py-2 rounded text-black transition-colors cursor-pointer"
+					style={{ backgroundColor: "#FDC205" }}
 					onClick={() => router.push("/calendar")}
 				>
 					캘린더로 돌아가기
@@ -167,7 +168,8 @@ export default function AdminPage() {
 					<div className="flex items-center justify-between mb-4">
 						<h2 className="text-xl font-semibold">참여자 관리</h2>
 						<button
-							className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white transition-colors cursor-pointer disabled:opacity-50"
+					className="px-4 py-2 rounded text-black transition-colors cursor-pointer disabled:opacity-50"
+					style={{ backgroundColor: "#FDC205" }}
 							onClick={deleteParticipants}
 							disabled={selectedParticipants.size === 0}
 						>
@@ -198,7 +200,8 @@ export default function AdminPage() {
 					<div className="flex items-center justify-between mb-4">
 						<h2 className="text-xl font-semibold">이벤트 관리</h2>
 						<button
-							className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white transition-colors cursor-pointer disabled:opacity-50"
+					className="px-4 py-2 rounded text-black transition-colors cursor-pointer disabled:opacity-50"
+					style={{ backgroundColor: "#FDC205" }}
 							onClick={deleteEvents}
 							disabled={selectedEvents.size === 0}
 						>

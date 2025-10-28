@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/app/lib/supabase";
+import { supabaseAdmin } from "@/app/lib/supabase-admin";
 import { expandRecurringSlots } from "@/app/lib/supabase-helpers";
 
 function requireAdmin(req: NextRequest) {
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest) {
       .single();
     
     if (!existingCal) {
-      await supabase
+      await supabaseAdmin
         .from('Calendar')
         .insert({ id: calendarId, name: body.calendarName ?? "기본 캘린더", color: body.calendarColor ?? "#4f46e5" });
     }
@@ -119,7 +120,7 @@ export async function POST(req: NextRequest) {
         }
         startsOn.setDate(startsOn.getDate() + daysUntilTarget);
         
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
           .from('RecurringSlot')
           .insert({
             calendarId,

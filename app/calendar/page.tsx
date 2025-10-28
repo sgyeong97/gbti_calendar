@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import CreateEventModal from "@/app/calendar/CreateEventModal";
 import EventDetailModal from "@/app/calendar/EventDetailModal";
 import { addDays, addWeeks, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, isToday, setHours, startOfMonth, startOfWeek, subWeeks } from "date-fns";
+const BRAND_COLOR = "#FDC205"; // rgb(253,194,5)
 
 type Event = {
 	id: string;
@@ -154,20 +155,23 @@ export default function CalendarPage() {
 				<div className="flex items-center gap-4">
 					<h1 className="text-2xl font-semibold">달력</h1>
 					<div className="flex gap-1">
-						<button
-							className={`px-3 py-1 rounded transition-colors cursor-pointer ${viewMode === "month" ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
+				<button
+					className={`px-3 py-1 rounded transition-colors cursor-pointer ${viewMode === "month" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
+					style={viewMode === "month" ? { backgroundColor: BRAND_COLOR, color: "#111" } : undefined}
 							onClick={() => setViewMode("month")}
 						>
 							월간
 						</button>
-						<button
-							className={`px-3 py-1 rounded transition-colors cursor-pointer ${viewMode === "week" ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
+				<button
+					className={`px-3 py-1 rounded transition-colors cursor-pointer ${viewMode === "week" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
+					style={viewMode === "week" ? { backgroundColor: BRAND_COLOR, color: "#111" } : undefined}
 							onClick={() => setViewMode("week")}
 						>
 							주간
 						</button>
-						<button
-							className={`px-3 py-1 rounded transition-colors cursor-pointer ${viewMode === "favorites" ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
+				<button
+					className={`px-3 py-1 rounded transition-colors cursor-pointer ${viewMode === "favorites" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
+					style={viewMode === "favorites" ? { backgroundColor: BRAND_COLOR, color: "#111" } : undefined}
 							onClick={() => setViewMode("favorites")}
 						>
 							즐겨찾기
@@ -452,10 +456,11 @@ export default function CalendarPage() {
 						<div
 								key={d.toISOString()}
 							className={`border rounded p-2 min-h-24 border-zinc-200 dark:border-zinc-700 cursor-pointer transition-colors ${
-									isToday(d)
-										? "ring-2 ring-indigo-400 border-indigo-400 dark:border-indigo-400 bg-indigo-100 dark:bg-indigo-900/40"
+								isToday(d)
+									? "ring-2"
 									: `${isSameMonth(d, current) ? "bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-800" : "bg-zinc-50 dark:bg-zinc-900/40 text-zinc-400 dark:text-zinc-500"}`
 								}`}
+							style={isToday(d) ? { backgroundColor: "#FFF6D1", boxShadow: `0 0 0 2px ${BRAND_COLOR}`, borderColor: BRAND_COLOR } : undefined}
 								onDoubleClick={() => {
 									setSelectedDate(d);
 									setShowCreateModal(true);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/app/lib/supabase";
+import { supabaseAdmin } from "@/app/lib/supabase-admin";
 
 type ParamsPromise = { params: Promise<{ id: string }> };
 
@@ -183,7 +184,7 @@ export async function DELETE(_req: NextRequest, ctx: ParamsPromise) {
 				const slotId = parts[parts.length - 1];
 				
 				// 해당 슬롯 정보 가져오기
-				const { data: slot, error: slotError } = await supabase
+                const { data: slot, error: slotError } = await supabase
 					.from('RecurringSlot')
 					.select('*')
 					.eq('id', slotId)
@@ -194,7 +195,7 @@ export async function DELETE(_req: NextRequest, ctx: ParamsPromise) {
 				}
 				
 				// 같은 이벤트 제목, 시간대를 가진 모든 슬롯 삭제
-				await supabase
+                await supabaseAdmin
 					.from('RecurringSlot')
 					.delete()
 					.eq('calendarId', slot.calendarId)
@@ -234,7 +235,7 @@ export async function PATCH(req: NextRequest, ctx: ParamsPromise) {
 				const slotId = parts[parts.length - 1];
 				
 				// 해당 슬롯 정보 가져오기
-				const { data: slot, error: slotError } = await supabase
+                const { data: slot, error: slotError } = await supabase
 					.from('RecurringSlot')
 					.select('*')
 					.eq('id', slotId)
@@ -245,7 +246,7 @@ export async function PATCH(req: NextRequest, ctx: ParamsPromise) {
 				}
 				
 				// 같은 이벤트 제목, 시간대를 가진 모든 슬롯 업데이트
-				const { error: updateError } = await supabase
+                const { error: updateError } = await supabaseAdmin
 					.from('RecurringSlot')
 					.update({ endsOn: new Date(endsOn).toISOString() })
 					.eq('calendarId', slot.calendarId)
@@ -275,7 +276,7 @@ export async function PATCH(req: NextRequest, ctx: ParamsPromise) {
 		const startMinutes = new Date(event.startAt).getHours() * 60 + new Date(event.startAt).getMinutes();
 		const endMinutes = new Date(event.endAt).getHours() * 60 + new Date(event.endAt).getMinutes();
 
-		const { error: updateError } = await supabase
+        const { error: updateError } = await supabaseAdmin
 			.from('RecurringSlot')
 			.update({ endsOn: new Date(endsOn).toISOString() })
 			.eq('calendarId', event.calendarId)
