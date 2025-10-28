@@ -56,21 +56,24 @@ vercel --prod
 
 배포가 완료되면 Vercel Postgres에 스키마를 적용해야 합니다:
 
+#### 방법 1: Vercel 대시보드 터미널 사용
+1. Vercel 대시보드에서 프로젝트 클릭
+2. Deployments 탭 → 최신 배포 클릭
+3. 상단 메뉴에서 "Terminal" 탭 클릭
+4. 터미널에서 실행:
 ```bash
-# Vercel CLI로 터미널 접속
-vercel exec
-
-# Prisma 스키마 적용
 npx prisma db push
-
-# 또는 원격 실행
-vercel exec -- npx prisma db push
 ```
 
-**또는 Vercel 대시보드에서:**
-1. Deployments 페이지
-2. 최신 배포의 함수 선택
-3. 직접 `npx prisma db push` 실행
+#### 방법 2: Vercel CLI 사용 (대안)
+만약 CLI를 사용한다면:
+```bash
+# 프로젝트 연결 확인
+vercel link
+
+# 배포
+vercel --prod
+```
 
 ### 5. 확인
 
