@@ -71,6 +71,15 @@ export function expandRecurringSlots(slots: any[], start?: string, end?: string)
         participants = JSON.parse(slot.participantNames);
       }
       
+      // 동일 이벤트(제목+시간대)로 묶이는 모든 요일 수집
+      const siblingSlots = (slots || []).filter((s: any) =>
+        s.calendarId === slot.calendarId &&
+        s.eventTitle === slot.eventTitle &&
+        s.startMinutes === slot.startMinutes &&
+        s.endMinutes === slot.endMinutes
+      );
+      const recurringDays = Array.from(new Set(siblingSlots.map((s: any) => s.dayOfWeek))).sort();
+
       results.push({
         id: `R-${slot.calendarId}-${compareDay.toISOString()}-${slot.id}`,
         calendarId: slot.calendarId,
@@ -81,6 +90,12 @@ export function expandRecurringSlots(slots: any[], start?: string, end?: string)
         allDay: false,
         participants,
         color: slot.color,
+        // Admin UI가 대표로 묶을 수 있도록 메타데이터 제공
+        isRecurring: true,
+        recurringSlotId: slot.id,
+        recurringDays,
+        recurringStartMinutes: slot.startMinutes,
+        recurringEndMinutes: slot.endMinutes,
       });
     }
   }

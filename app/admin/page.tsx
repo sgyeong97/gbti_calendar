@@ -58,41 +58,39 @@ export default function AdminPage() {
 
 	// 반복 이벤트를 그룹화하는 함수
 	function groupRecurringEvents(events: Event[]): Event[] {
-		const recurringGroups = new Map<string, Event[]>();
+		const recurringGroups = new Map<string, { count: number; rep: Event }>();
 		const regularEvents: Event[] = [];
 
 		events.forEach(event => {
-			if (event.isRecurring && event.recurringSlotId) {
-				// 반복 이벤트는 슬롯 ID로 그룹화
-				const groupKey = `${event.title}-${event.recurringSlotId}`;
+			if (event.isRecurring && event.recurringSlotId !== undefined) {
+				// 제목 + 시간대 + 캘린더 기준으로 대표만 노출 (slotId 아님)
+				const startKey = event.recurringStartMinutes ?? new Date(event.startAt).getHours() * 60 + new Date(event.startAt).getMinutes();
+				const endKey = event.recurringEndMinutes ?? new Date(event.endAt).getHours() * 60 + new Date(event.endAt).getMinutes();
+				const groupKey = `${event.title}-${startKey}-${endKey}-${(event as any).calendarId ?? ''}`;
 				if (!recurringGroups.has(groupKey)) {
-					recurringGroups.set(groupKey, []);
+					recurringGroups.set(groupKey, { count: 1, rep: event });
+				} else {
+					const cur = recurringGroups.get(groupKey)!;
+					cur.count += 1;
 				}
-				recurringGroups.get(groupKey)!.push(event);
 			} else {
-				// 일반 이벤트는 그대로 추가
 				regularEvents.push(event);
 			}
 		});
 
-		// 반복 이벤트 그룹을 대표 이벤트로 변환
 		const groupedRecurringEvents: Event[] = [];
-		recurringGroups.forEach((groupEvents, groupKey) => {
-			if (groupEvents.length > 0) {
-				const representative = groupEvents[0];
-				// 반복 이벤트 정보 추가
-				const groupedEvent: Event = {
-					...representative,
-					id: `recurring-${representative.recurringSlotId}`, // 그룹 ID 사용
-					title: `${representative.title} (반복: ${groupEvents.length}회)`,
-					isRecurring: true,
-					recurringSlotId: representative.recurringSlotId,
-					recurringDays: representative.recurringDays,
-					recurringStartMinutes: representative.recurringStartMinutes,
-					recurringEndMinutes: representative.recurringEndMinutes,
-				};
-				groupedRecurringEvents.push(groupedEvent);
-			}
+		recurringGroups.forEach(({ count, rep }) => {
+			const groupedEvent: Event = {
+				...rep,
+				id: `recurring-${rep.recurringSlotId}`,
+				title: `${rep.title}`,
+				isRecurring: true,
+				recurringSlotId: rep.recurringSlotId,
+				recurringDays: rep.recurringDays,
+				recurringStartMinutes: rep.recurringStartMinutes,
+				recurringEndMinutes: rep.recurringEndMinutes,
+			};
+			groupedRecurringEvents.push(groupedEvent);
 		});
 
 		return [...regularEvents, ...groupedRecurringEvents];
@@ -116,7 +114,7 @@ export default function AdminPage() {
 			// 반복 이벤트인 경우 특별 처리
 			if (id.startsWith('recurring-')) {
 				const slotId = id.replace('recurring-', '');
-				// 슬롯 ID로 직접 삭제 (API에서 같은 슬롯의 모든 반복 이벤트 삭제)
+				// 슬롯 ID로 삭제 → 서버에서 같은 제목/시간대 전체 슬롯 삭제
 				await fetch(`/api/events/R-dummy-${slotId}`, { method: "DELETE" });
 			} else {
 				await fetch(`/api/events/${id}`, { method: "DELETE" });
