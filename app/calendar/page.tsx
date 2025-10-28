@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import CreateEventModal from "@/app/calendar/CreateEventModal";
 import EventDetailModal from "@/app/calendar/EventDetailModal";
+import CreateNoticeModal from "@/app/calendar/CreateNoticeModal";
+import AdminPasswordModal from "@/app/calendar/AdminPasswordModal";
 import { addDays, addWeeks, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, isToday, setHours, startOfMonth, startOfWeek, subWeeks } from "date-fns";
 const BRAND_COLOR = "#FDC205"; // rgb(253,194,5)
 
@@ -18,10 +20,19 @@ type Event = {
 	color?: string;
 };
 
-type ViewMode = "month" | "week" | "favorites";
+type ViewMode = "month" | "favorites" | "notices";
 
 type FavoriteUser = {
 	name: string;
+};
+
+type Notice = {
+	id: string;
+	title: string;
+	content: string;
+	imageUrl?: string;
+	author: string;
+	createdAt: string;
 };
 
 export default function CalendarPage() {
@@ -33,13 +44,11 @@ export default function CalendarPage() {
 	const [favoriteUsers, setFavoriteUsers] = useState<FavoriteUser[]>([]);
 	const [showFavorites, setShowFavorites] = useState(false);
 	const [showAdminAuth, setShowAdminAuth] = useState(false);
+	const [notices, setNotices] = useState<Notice[]>([]);
+	const [showCreateNoticeModal, setShowCreateNoticeModal] = useState(false);
+	const [showAdminPasswordModal, setShowAdminPasswordModal] = useState(false);
 	const days = useMemo(() => {
-		if (viewMode === "week") {
-			// 주간 뷰: 현재 주만 표시 (월요일부터 일요일)
-			const start = startOfWeek(current, { weekStartsOn: 1 });
-			const end = endOfWeek(current, { weekStartsOn: 1 });
-			return eachDayOfInterval({ start, end });
-		} else {
+		{
 			// 월간 뷰: 월 전체 표시 (이전/다음 달 일부 포함)
 			const start = startOfWeek(startOfMonth(current), { weekStartsOn: 1 });
 			const end = endOfWeek(endOfMonth(current), { weekStartsOn: 1 });
@@ -51,13 +60,7 @@ export default function CalendarPage() {
 		const fetchEvents = async () => {   
 			let startStr: string, endStr: string;
 
-            if (viewMode === "week") {
-                // 주간 뷰: 타임존 경계 안전을 위해 하루 여유를 두고 조회
-                const start = startOfWeek(current, { weekStartsOn: 1 });
-                const end = endOfWeek(current, { weekStartsOn: 1 });
-                startStr = format(addDays(start, -1), "yyyy-MM-dd");
-                endStr = format(addDays(end, 1), "yyyy-MM-dd");
-			} else {
+			{
 				// 월간 뷰: 월 전체 범위
 				startStr = format(startOfWeek(startOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
 				endStr = format(endOfWeek(endOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
@@ -103,8 +106,15 @@ export default function CalendarPage() {
 		setParticipantList((data.participants ?? []).map((p: any) => p.name));
 	};
 
+	const fetchNotices = async () => {
+		const res = await fetch("/api/notices");
+		const data = await res.json();
+		setNotices(data.notices ?? []);
+	};
+
 	useEffect(() => {
 		fetchParticipants();
+		fetchNotices();
 
 		// localStorage에서 즐겨찾기 로드
 		const savedFavorites = localStorage.getItem("gbti_favorites");
@@ -165,12 +175,12 @@ export default function CalendarPage() {
 							월간
 						</button>
 				<button
-					className={`px-3 py-1 rounded transition-colors cursor-pointer ${viewMode === "week" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
-					style={viewMode === "week" ? { backgroundColor: BRAND_COLOR, color: "#111" } : undefined}
-							onClick={() => setViewMode("week")}
-						>
-							주간
-						</button>
+					className={`px-3 py-1 rounded transition-colors cursor-pointer ${viewMode === "notices" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
+					style={viewMode === "notices" ? { backgroundColor: BRAND_COLOR, color: "#111" } : undefined}
+						onClick={() => setViewMode("notices")}
+					>
+						공지사항
+					</button>
 				<button
 					className={`px-3 py-1 rounded transition-colors cursor-pointer ${viewMode === "favorites" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
 					style={viewMode === "favorites" ? { backgroundColor: BRAND_COLOR, color: "#111" } : undefined}
@@ -183,7 +193,7 @@ export default function CalendarPage() {
 				<div className="flex gap-2 items-center">
 					<button
 						className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-						onClick={() => viewMode === "week" ? setCurrent(subWeeks(current, 1)) : setCurrent(addDays(current, -30))}
+						onClick={() => setCurrent(addDays(current, -30))}
 					>
 						이전
 					</button>
@@ -195,14 +205,11 @@ export default function CalendarPage() {
 					setShowMonthPicker(true);
 				}}
 			>
-						{viewMode === "week"
-							? `${format(startOfWeek(current, { weekStartsOn: 1 }), "MM.dd")} - ${format(endOfWeek(current, { weekStartsOn: 1 }), "MM.dd")}`
-							: format(current, "yyyy.MM")
-						}
+						{format(current, "yyyy.MM")}
 			</button>
 					<button
 						className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-						onClick={() => viewMode === "week" ? setCurrent(addWeeks(current, 1)) : setCurrent(addDays(current, 30))}
+						onClick={() => setCurrent(addDays(current, 30))}
 					>
 						다음
 					</button>
@@ -287,171 +294,57 @@ export default function CalendarPage() {
 				)}
 			</div>
 
-			{viewMode === "week" ? (
-				// 주간 뷰: 시간대별 타임라인
-				<div className="space-y-1">
-					{/* 요일 헤더 */}
-					<div className="grid grid-cols-8 gap-1 text-xs">
-						<div className="px-2 py-1 text-zinc-700 dark:text-zinc-300 font-medium">시간</div>
-						{["월", "화", "수", "목", "금", "토", "일"].map((w, i) => {
-							const day = days[i];
-							return (
-								<div
-									key={w}
-									className={`px-2 py-1 text-zinc-700 dark:text-zinc-300 font-medium text-center ${
-										day && isToday(day)
-											? "bg-indigo-100 dark:bg-indigo-900/40 rounded"
-											: ""
-									}`}
-								>
-									{w} {day ? format(day, "d") : ""}
-								</div>
-							);
-						})}
-					</div>
-
-					{/* 시간대별 타임라인 */}
-					{Array.from({ length: 14 }, (_, hour) => hour + 9).map((hour) => (
-						<div key={hour} className="grid grid-cols-8 gap-1">
-							<div className="px-2 py-1 text-xs text-zinc-600 dark:text-zinc-400 border-b">
-								{format(new Date().setHours(hour, 0, 0, 0), "HH:mm")}
-							</div>
-							{days.map((d, dayIndex) => {
-								// 해당 시간대에 이벤트가 있는지 확인
-								const slotStartMinutes = hour * 60;
-								const slotEndMinutes = (hour + 1) * 60;
-								const hasEventInThisSlot = events.some((e) => {
-									const eventStart = new Date(e.startAt);
-									const eventEnd = new Date(e.endAt);
-									const eventStartMinutes = eventStart.getHours() * 60 + eventStart.getMinutes();
-									const eventEndMinutes = eventEnd.getHours() * 60 + eventEnd.getMinutes();
-									return isSameDay(eventStart, d) &&
-										eventStartMinutes < slotEndMinutes &&
-										eventEndMinutes > slotStartMinutes;
-								});
-
-								return (
-									<div
-										key={d.toISOString()}
-										className={`border-b border-zinc-200 dark:border-zinc-700 min-h-16 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors relative ${
-											isToday(d)
-												? "bg-indigo-50 dark:bg-indigo-900/20"
-												: "bg-white dark:bg-zinc-950"
-										}`}
-										onDoubleClick={() => {
-											// 이벤트가 없는 시간대만 더블클릭으로 생성 가능
-											if (!hasEventInThisSlot) {
-												const selectedDateTime = setHours(d, hour);
-												setSelectedDate(selectedDateTime);
-												setShowCreateModal(true);
-											}
-										}}
-										onClick={(e) => {
-											// 이벤트가 있는 시간대는 클릭으로 상세보기
-											if (hasEventInThisSlot) {
-												// 해당 시간대의 첫 번째 이벤트 상세보기
-												const eventInSlot = events.find((ev) => {
-													const eventStart = new Date(ev.startAt);
-													const eventEnd = new Date(ev.endAt);
-													const eventStartMinutes = eventStart.getHours() * 60 + eventStart.getMinutes();
-													const eventEndMinutes = eventEnd.getHours() * 60 + eventEnd.getMinutes();
-													return isSameDay(eventStart, d) &&
-														eventStartMinutes < slotEndMinutes &&
-														eventEndMinutes > slotStartMinutes;
-												});
-												if (eventInSlot) {
-													setActiveEventId(eventInSlot.id);
-												}
-											}
-										}}
-									>
-									{/* 해당 시간대의 이벤트들 */}
-									{(() => {
-										const eventsInThisSlot = events.filter((e) => {
-											const eventStart = new Date(e.startAt);
-											const eventEnd = new Date(e.endAt);
-											const eventStartMinutes = eventStart.getHours() * 60 + eventStart.getMinutes();
-											const eventEndMinutes = eventEnd.getHours() * 60 + eventEnd.getMinutes();
-											const slotStartMinutes = hour * 60;
-											const slotEndMinutes = (hour + 1) * 60;
-											
-											return isSameDay(eventStart, d) &&
-												eventStartMinutes < slotEndMinutes &&
-												eventEndMinutes > slotStartMinutes;
-									});
-									
-									return eventsInThisSlot.map((e, index) => {
-											const eventStart = new Date(e.startAt);
-											const eventEnd = new Date(e.endAt);
-											
-											const eventStartMinutes = eventStart.getHours() * 60 + eventStart.getMinutes();
-											const eventEndMinutes = eventEnd.getHours() * 60 + eventEnd.getMinutes();
-											const slotStartMinutes = hour * 60;
-											const slotEndMinutes = (hour + 1) * 60;
-											
-											const isEventStart = eventStartMinutes >= slotStartMinutes && eventStartMinutes < slotEndMinutes;
-											const minutesFromStart = Math.max(0, eventStartMinutes - slotStartMinutes);
-											const minutesToEnd = Math.min(slotEndMinutes, eventEndMinutes) - slotStartMinutes;
-											
-											// 겹치는 이벤트들을 나란히 배치
-											const overlappingCount = eventsInThisSlot.length;
-											const gap = 1; // 각 이벤트 사이 간격 (px)
-											const totalGap = gap * (overlappingCount - 1);
-											const width = `calc((100% - ${totalGap}px) / ${overlappingCount})`;
-											const left = index * (100 / overlappingCount);
-											
-									// 이벤트 색상 사용 (저장된 색상이 없으면 기본 색상)
-									const eventColor = e.color || "#93c5fd";
-											
-											// 선택된 이벤트인지 확인
-											const isActiveEvent = activeEventId === e.id;
-											const isDimmed = activeEventId !== null && activeEventId !== e.id;
-
-											return (
-												<div
-													key={`${e.id}-${eventStart.getTime()}`}
-													className={`event-block absolute text-xs rounded px-1 py-0.5 truncate transition-all border-2 ${
-														isActiveEvent ? 'border-indigo-700 dark:border-indigo-400' : 'border-transparent'
-													} ${isDimmed ? 'opacity-30' : 'opacity-100'}`}
-													style={{
-														backgroundColor: eventColor,
-														color: '#000',
-														left: `${left}%`,
-														width: width,
-														top: `${minutesFromStart}px`,
-														height: `${Math.min(60, Math.max(20, minutesToEnd))}px`,
-														lineHeight: '1.1',
-														zIndex: isActiveEvent ? 20 : 10 + index,
-														marginRight: `${gap}px`,
-														transform: isActiveEvent ? 'scale(1.02)' : 'scale(1)',
-														boxShadow: isActiveEvent ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'
-													}}
-													onClick={(ev) => {
-														ev.stopPropagation();
-														setActiveEventId(e.id);
-													}}
-													title={`${e.title} (${format(eventStart, "HH:mm")} - ${format(eventEnd, "HH:mm")})`}
-												>
-													{isEventStart && e.title}
-												</div>
-											);
-										});
-									})()}
-									</div>
-								);
-							})}
-						</div>
-					))}
+		{viewMode === "notices" ? (
+			// 공지사항 뷰: 갤러리 형태
+			<div className="space-y-4">
+				<div className="flex justify-between items-center">
+					<h2 className="text-lg font-semibold">공지사항</h2>
+					<button
+						className="px-3 py-1 rounded text-black transition-colors cursor-pointer"
+						style={{ backgroundColor: "#FDC205" }}
+						onClick={() => setShowAdminPasswordModal(true)}
+					>
+						공지 작성
+					</button>
 				</div>
-			) : (
-				// 월간 뷰: 기존 날짜 그리드
-				<>
-					{/* 요일 헤더 (월~일) */}
-					<div className="grid grid-cols-7 gap-2 mb-1 text-xs">
-						{["월", "화", "수", "목", "금", "토", "일"].map((w) => (
-							<div key={w} className="px-2 py-1 text-zinc-700 dark:text-zinc-300 font-medium">{w}</div>
+				
+				{notices.length === 0 ? (
+					<div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
+						등록된 공지사항이 없습니다.
+					</div>
+				) : (
+					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+						{notices.map((notice) => (
+							<div key={notice.id} className="border rounded p-4 hover:shadow-md transition-shadow cursor-pointer">
+								{notice.imageUrl && (
+									<img 
+										src={notice.imageUrl} 
+										alt={notice.title}
+										className="w-full h-32 object-cover rounded mb-3"
+									/>
+								)}
+								<h3 className="font-semibold text-lg mb-2">{notice.title}</h3>
+								<p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3 line-clamp-3">
+									{notice.content}
+								</p>
+								<div className="flex justify-between items-center text-xs text-zinc-500 dark:text-zinc-400">
+									<span>{notice.author}</span>
+									<span>{format(new Date(notice.createdAt), "yyyy.MM.dd")}</span>
+								</div>
+							</div>
 						))}
 					</div>
+				)}
+			</div>
+		) : (
+			// 월간 뷰: 기존 날짜 그리드
+			<>
+				{/* 요일 헤더 (월~일) */}
+				<div className="grid grid-cols-7 gap-2 mb-1 text-xs">
+					{["월", "화", "수", "목", "금", "토", "일"].map((w) => (
+						<div key={w} className="px-2 py-1 text-zinc-700 dark:text-zinc-300 font-medium">{w}</div>
+					))}
+				</div>
 
 					<div className="grid grid-cols-7 gap-2">
 						{days.map((d) => (
@@ -552,18 +445,10 @@ export default function CalendarPage() {
 					// 참여자 목록 새로고침 (참여자가 추가/삭제되었을 수 있음)
 					fetchParticipants();
 					
-					// 뷰 모드에 따라 올바른 날짜 범위로 이벤트 새로고침
+					// 월간 범위로 이벤트 새로고침
 					let startStr: string, endStr: string;
-
-                    if (viewMode === "week") {
-                        const start = startOfWeek(current, { weekStartsOn: 1 });
-                        const end = endOfWeek(current, { weekStartsOn: 1 });
-                        startStr = format(addDays(start, -1), "yyyy-MM-dd");
-                        endStr = format(addDays(end, 1), "yyyy-MM-dd");
-					} else {
-						startStr = format(startOfWeek(startOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
-						endStr = format(endOfWeek(endOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
-					}
+					startStr = format(startOfWeek(startOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
+					endStr = format(endOfWeek(endOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
 
 					const qp = new URLSearchParams({ start: startStr, end: endStr });
 					if (selectedParticipant) qp.set("participantName", selectedParticipant);
@@ -582,18 +467,10 @@ export default function CalendarPage() {
 					// 참여자 목록 새로고침 (새 참여자가 추가되었을 수 있음)
 					fetchParticipants();
 					
-					// 뷰 모드에 따라 올바른 날짜 범위로 이벤트 새로고침
+					// 월간 범위로 이벤트 새로고침
 					let startStr: string, endStr: string;
-
-                    if (viewMode === "week") {
-                        const start = startOfWeek(current, { weekStartsOn: 1 });
-                        const end = endOfWeek(current, { weekStartsOn: 1 });
-                        startStr = format(addDays(start, -1), "yyyy-MM-dd");
-                        endStr = format(addDays(end, 1), "yyyy-MM-dd");
-					} else {
-						startStr = format(startOfWeek(startOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
-						endStr = format(endOfWeek(endOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
-					}
+					startStr = format(startOfWeek(startOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
+					endStr = format(endOfWeek(endOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
 
 					const qp = new URLSearchParams({ start: startStr, end: endStr });
 					if (selectedParticipant) qp.set("participantName", selectedParticipant);
@@ -603,9 +480,9 @@ export default function CalendarPage() {
 					setSelectedDate(null);
 				}}
 			/>
-		)}
+			)}
 
-		{/* 연/월 선택 모달 */}
+			{/* 연/월 선택 모달 */}
 		{showMonthPicker && (
 			<div className="fixed inset-0 bg-black/40 flex items-center justify-center">
 				<div className="rounded p-4 w-full max-w-sm space-y-3" style={{ background: "var(--background)", color: "var(--foreground)" }}>
@@ -655,17 +532,24 @@ export default function CalendarPage() {
 		)}
 
 		{/* 관리자 인증 모달 */}
-		{showAdminAuth && (
-			<AdminAuthModal
-				onClose={() => setShowAdminAuth(false)}
-				onSuccess={() => {
-					setShowAdminAuth(false);
-					window.location.href = "/admin";
+		{showAdminPasswordModal && (
+			<AdminPasswordModal
+				onClose={() => setShowAdminPasswordModal(false)}
+				onSuccess={() => setShowCreateNoticeModal(true)}
+			/>
+		)}
+
+		{showCreateNoticeModal && (
+			<CreateNoticeModal
+				onClose={() => setShowCreateNoticeModal(false)}
+				onCreated={() => {
+					fetchNotices();
+					setShowCreateNoticeModal(false);
 				}}
 			/>
 		)}
-		</div>
-	);
+	</div>
+);
 }
 
 function AdminAuthModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
