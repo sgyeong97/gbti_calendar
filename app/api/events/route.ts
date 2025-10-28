@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   // body: { title, startAt, endAt, allDay, calendarId, participants?: string[], repeat?: { daysOfWeek:number[], startMinutes:number, endMinutes:number } }
   const participantNames: string[] = body.participants ?? [];
-  const event = await prisma.$transaction(async (tx) => {
+  const event = await prisma.$transaction(async (tx: any) => {
     // 캘린더 보장: 전달된 calendarId가 없거나 존재하지 않으면 기본 캘린더를 생성/유지
     const calendarId: string = body.calendarId ?? "default";
     await tx.calendar.upsert({

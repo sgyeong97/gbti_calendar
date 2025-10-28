@@ -65,7 +65,7 @@ export async function GET(_req: NextRequest, ctx: ParamsPromise) {
 			isRecurring: true,
 			recurringSlotId: slot.id,
 			recurringSlots: allSlots,
-			recurringDays: allSlots.map(s => s.dayOfWeek),
+			recurringDays: allSlots.map((s: any) => s.dayOfWeek),
 			recurringStartMinutes: slot.startMinutes,
 			recurringEndMinutes: slot.endMinutes
 		};
@@ -96,7 +96,7 @@ export async function PUT(req: NextRequest, ctx: ParamsPromise) {
 	const { id } = await ctx.params;
 	const { title, participants, ...otherData } = await req.json();
 	
-	const event = await prisma.$transaction(async (tx) => {
+	const event = await prisma.$transaction(async (tx: any) => {
 		// 이벤트 기본 정보 업데이트
 		const updated = await tx.event.update({ 
 			where: { id }, 
