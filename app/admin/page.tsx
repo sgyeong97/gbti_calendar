@@ -14,6 +14,11 @@ type Event = {
 	startAt: string;
 	endAt: string;
 	participants?: string[];
+	isRecurring?: boolean;
+	recurringSlotId?: string;
+	recurringDays?: number[];
+	recurringStartMinutes?: number;
+	recurringEndMinutes?: number;
 };
 
 export default function AdminPage() {
@@ -40,12 +45,57 @@ export default function AdminPage() {
 			const eventsData = await eventsRes.json();
 
 			setParticipants(participantsData.participants || []);
-			setEvents(eventsData.events || []);
+			
+			// 반복 이벤트 그룹화
+			const groupedEvents = groupRecurringEvents(eventsData.events || []);
+			setEvents(groupedEvents);
 		} catch (err) {
 			console.error("데이터 로딩 실패:", err);
 		} finally {
 			setLoading(false);
 		}
+	}
+
+	// 반복 이벤트를 그룹화하는 함수
+	function groupRecurringEvents(events: Event[]): Event[] {
+		const recurringGroups = new Map<string, Event[]>();
+		const regularEvents: Event[] = [];
+
+		events.forEach(event => {
+			if (event.isRecurring && event.recurringSlotId) {
+				// 반복 이벤트는 슬롯 ID로 그룹화
+				const groupKey = `${event.title}-${event.recurringSlotId}`;
+				if (!recurringGroups.has(groupKey)) {
+					recurringGroups.set(groupKey, []);
+				}
+				recurringGroups.get(groupKey)!.push(event);
+			} else {
+				// 일반 이벤트는 그대로 추가
+				regularEvents.push(event);
+			}
+		});
+
+		// 반복 이벤트 그룹을 대표 이벤트로 변환
+		const groupedRecurringEvents: Event[] = [];
+		recurringGroups.forEach((groupEvents, groupKey) => {
+			if (groupEvents.length > 0) {
+				const representative = groupEvents[0];
+				// 반복 이벤트 정보 추가
+				const groupedEvent: Event = {
+					...representative,
+					id: `recurring-${representative.recurringSlotId}`, // 그룹 ID 사용
+					title: `${representative.title} (반복: ${groupEvents.length}회)`,
+					isRecurring: true,
+					recurringSlotId: representative.recurringSlotId,
+					recurringDays: representative.recurringDays,
+					recurringStartMinutes: representative.recurringStartMinutes,
+					recurringEndMinutes: representative.recurringEndMinutes,
+				};
+				groupedRecurringEvents.push(groupedEvent);
+			}
+		});
+
+		return [...regularEvents, ...groupedRecurringEvents];
 	}
 
 	async function deleteParticipants() {
@@ -63,7 +113,14 @@ export default function AdminPage() {
 		if (!confirm(`선택한 ${selectedEvents.size}개의 이벤트를 삭제하시겠습니까?`)) return;
 
 		for (const id of selectedEvents) {
-			await fetch(`/api/events/${id}`, { method: "DELETE" });
+			// 반복 이벤트인 경우 특별 처리
+			if (id.startsWith('recurring-')) {
+				const slotId = id.replace('recurring-', '');
+				// 슬롯 ID로 직접 삭제 (API에서 같은 슬롯의 모든 반복 이벤트 삭제)
+				await fetch(`/api/events/R-dummy-${slotId}`, { method: "DELETE" });
+			} else {
+				await fetch(`/api/events/${id}`, { method: "DELETE" });
+			}
 		}
 
 		setSelectedEvents(new Set());
@@ -164,9 +221,17 @@ export default function AdminPage() {
 									/>
 									<div className="flex-1">
 										<div className="font-medium">{e.title}</div>
-										<div className="text-sm text-zinc-500">
-											{new Date(e.startAt).toLocaleString()} - {new Date(e.endAt).toLocaleString()}
-										</div>
+										{e.isRecurring ? (
+											<div className="text-sm text-zinc-500">
+												반복 이벤트 - 요일: {e.recurringDays?.map(d => ['일', '월', '화', '수', '목', '금', '토'][d]).join(', ')}
+												<br />
+												시간: {Math.floor((e.recurringStartMinutes || 0) / 60)}:{(e.recurringStartMinutes || 0) % 60 < 10 ? '0' : ''}{(e.recurringStartMinutes || 0) % 60} - {Math.floor((e.recurringEndMinutes || 0) / 60)}:{(e.recurringEndMinutes || 0) % 60 < 10 ? '0' : ''}{(e.recurringEndMinutes || 0) % 60}
+											</div>
+										) : (
+											<div className="text-sm text-zinc-500">
+												{new Date(e.startAt).toLocaleString()} - {new Date(e.endAt).toLocaleString()}
+											</div>
+										)}
 										{e.participants && e.participants.length > 0 && (
 											<div className="text-xs text-zinc-400">
 												참여자: {e.participants.join(", ")}

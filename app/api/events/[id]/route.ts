@@ -8,11 +8,16 @@ export async function GET(_req: NextRequest, ctx: ParamsPromise) {
 	
 	// 반복 이벤트(R- 으로 시작하는 가상 ID) 처리
 	if (id.startsWith('R-')) {
+		// R-calendarId-date-slotId 형식에서 날짜에 :가 포함될 수 있음
+		// 마지막 - 이후가 slotId이므로 역순으로 파싱
 		const parts = id.split('-');
 		if (parts.length >= 4) {
 			const calendarId = parts[1];
+			const slotId = parts[parts.length - 1]; // 마지막 부분이 slotId
+			// 중간 부분들을 합쳐서 날짜 문자열 복원
 			const dateStr = parts.slice(2, -1).join('-');
-			const slotId = parts[parts.length - 1];
+			
+			console.log('Parsed recurring event:', { calendarId, dateStr, slotId });
 			
 			const { data: calendar, error: calError } = await supabase
 				.from('Calendar')
@@ -25,14 +30,17 @@ export async function GET(_req: NextRequest, ctx: ParamsPromise) {
 				.single();
 			
 			if (calError) {
+				console.error('Calendar fetch error:', calError);
 				return NextResponse.json({ error: calError.message }, { status: 500 });
 			}
 			if (!calendar) {
-				return NextResponse.json({ error: "Not found" }, { status: 404 });
+				console.error('Calendar not found:', calendarId);
+				return NextResponse.json({ error: "Calendar not found" }, { status: 404 });
 			}
 			
 			const slot = calendar.recurringSlots?.find((s: any) => s.id === slotId);
 			if (!slot) {
+				console.error('Slot not found:', slotId, 'in calendar:', calendarId);
 				return NextResponse.json({ error: "Slot not found" }, { status: 404 });
 			}
 			
@@ -171,7 +179,7 @@ export async function DELETE(_req: NextRequest, ctx: ParamsPromise) {
 		// 반복 이벤트 처리: 같은 이벤트의 모든 슬롯 삭제
 		if (id.startsWith('R-')) {
 			const parts = id.split('-');
-			if (parts.length >= 4) {
+			if (parts.length >= 2) {
 				const slotId = parts[parts.length - 1];
 				
 				// 해당 슬롯 정보 가져오기
