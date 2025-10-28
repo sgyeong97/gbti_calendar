@@ -2,8 +2,5 @@
 	"version": 2,
 	"buildCommand": "npx prisma generate && npm run build",
 	"installCommand": "npm ci",
-	"framework": "nextjs",
-	"env": {
-		"DATABASE_URL": "@database_url"
-	}
+	"framework": "nextjs"
 }
