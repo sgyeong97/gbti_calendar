@@ -551,6 +551,22 @@ const [showNotificationSettings, setShowNotificationSettings] = useState<boolean
 						</div>
 
 						<div className="flex justify-end gap-2">
+							<button
+								className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
+								onClick={() => {
+									if (Notification.permission !== "granted") {
+										requestNotificationPermission();
+										return;
+									}
+									showLocalNotification("테스트 알림", {
+										body: "알림이 정상 동작합니다.",
+										badge: "/vercel.svg",
+										icon: "/globe.svg",
+									});
+								}}
+							>
+								테스트 알림
+							</button>
 							<button className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800" onClick={() => setShowNotificationSettings(false)}>닫기</button>
 						</div>
 					</div>
