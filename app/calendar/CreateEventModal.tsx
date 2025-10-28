@@ -261,7 +261,8 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 							<div className="flex items-center gap-2 text-sm">
 								{["월","화","수","목","금","토","일"].map((w, i) => {
 									// Monday-first UI → JS getDay
-									const mapping = [1, 2, 3, 4, 5, 6, 0];
+                  // 이부분 0,1,2,3,4,5,6 이여야함
+									const mapping = [0,1,2,3,4,5,6];
 									const jsDayOfWeek = mapping[i];
 									return (
 										<button
