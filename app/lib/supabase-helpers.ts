@@ -68,7 +68,13 @@ export function expandRecurringSlots(slots: any[], start?: string, end?: string)
       
       let participants: string[] = [];
       if (slot.participantNames) {
-        participants = JSON.parse(slot.participantNames);
+        try {
+          const parsed = typeof slot.participantNames === 'string' ? JSON.parse(slot.participantNames) : slot.participantNames;
+          participants = Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          console.warn('Failed to parse participantNames:', slot.participantNames, e);
+          participants = [];
+        }
       }
       
       // 동일 이벤트(제목+시간대)로 묶이는 모든 요일 수집

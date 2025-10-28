@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
       all = all.filter((e) => e.participants?.some((p: string) => p === participantName));
     }
     all.sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
-    return NextResponse.json({ events: all });
+    return NextResponse.json({ events: all }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
