@@ -203,10 +203,34 @@ export async function DELETE(_req: NextRequest, ctx: ParamsPromise) {
 			}
 			
 			return NextResponse.json({ ok: true });
-		} else if (id.startsWith('R-')) {
-			// R-calendarId-date-slotId 형식은 GET에서만 사용
-			return NextResponse.json({ error: "Invalid ID format for DELETE" }, { status: 400 });
-		}
+        } else if (id.startsWith('R-')) {
+            // R-<calendarId>-<iso>-<uuid(5 parts)>
+            const parts = id.split('-');
+            if (parts.length >= 8) {
+                const slotId = parts.slice(-5).join('-');
+                const { data: slot, error: slotError } = await supabase
+                    .from('RecurringSlot')
+                    .select('*')
+                    .eq('id', slotId)
+                    .single();
+                if (slotError || !slot) {
+                    return NextResponse.json({ error: "Slot not found" }, { status: 404 });
+                }
+                const { error: deleteError } = await supabaseAdmin
+                    .from('RecurringSlot')
+                    .delete()
+                    .eq('calendarId', slot.calendarId)
+                    .eq('eventTitle', slot.eventTitle)
+                    .eq('startMinutes', slot.startMinutes)
+                    .eq('endMinutes', slot.endMinutes);
+                if (deleteError) {
+                    return NextResponse.json({ error: deleteError.message }, { status: 500 });
+                }
+                return NextResponse.json({ ok: true });
+            } else {
+                return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+            }
+        }
 		
 		// 일반 이벤트 삭제
 		const { error } = await supabase
