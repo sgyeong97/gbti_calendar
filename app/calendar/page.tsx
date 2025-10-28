@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import CreateEventModal from "@/app/calendar/CreateEventModal";
 import EventDetailModal from "@/app/calendar/EventDetailModal";
 import CreateNoticeModal from "@/app/calendar/CreateNoticeModal";
@@ -101,6 +101,58 @@ export default function CalendarPage() {
 	const [showMonthPicker, setShowMonthPicker] = useState(false);
 	const [pickerYear, setPickerYear] = useState<number>(new Date().getFullYear());
 	const [pickerMonth, setPickerMonth] = useState<number>(new Date().getMonth());
+
+	// 모바일 제스처: 더블탭 / 롱프레스 감지
+	const lastTapRef = useRef<number>(0);
+	const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const longPressTriggeredRef = useRef<boolean>(false);
+	const touchStartXYRef = useRef<{ x: number; y: number } | null>(null);
+
+	function getDayTouchHandlers(day: Date) {
+		return {
+			onDoubleClick: () => {
+				setSelectedDate(day);
+				setShowCreateModal(true);
+			},
+			onTouchStart: (e: React.TouchEvent) => {
+				longPressTriggeredRef.current = false;
+				const t = e.touches[0];
+				touchStartXYRef.current = { x: t.clientX, y: t.clientY };
+				if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+				longPressTimerRef.current = setTimeout(() => {
+					longPressTriggeredRef.current = true;
+					setSelectedDate(day);
+					setShowCreateModal(true);
+				}, 450);
+			},
+			onTouchMove: (e: React.TouchEvent) => {
+				const start = touchStartXYRef.current;
+				if (!start) return;
+				const t = e.touches[0];
+				if (Math.abs(t.clientX - start.x) > 10 || Math.abs(t.clientY - start.y) > 10) {
+					if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+					longPressTimerRef.current = null;
+				}
+			},
+			onTouchEnd: () => {
+				if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+				longPressTimerRef.current = null;
+				if (longPressTriggeredRef.current) return; // 롱프레스가 이미 실행됨
+				const now = Date.now();
+				if (now - lastTapRef.current < 300) {
+					setSelectedDate(day);
+					setShowCreateModal(true);
+					lastTapRef.current = 0;
+				} else {
+					lastTapRef.current = now;
+				}
+			},
+			onTouchCancel: () => {
+				if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+				longPressTimerRef.current = null;
+			},
+		};
+	}
 
 	const fetchParticipants = async () => {
 		const res = await fetch("/api/participants");
@@ -350,7 +402,7 @@ export default function CalendarPage() {
 
 					<div className="grid grid-cols-7 gap-1 sm:gap-2">
 						{days.map((d) => (
-						<div
+							<div
 								key={d.toISOString()}
 								className={`border rounded p-1 sm:p-2 min-h-20 sm:min-h-24 border-zinc-200 dark:border-zinc-700 cursor-pointer transition-colors ${
 								isToday(d)
@@ -358,10 +410,7 @@ export default function CalendarPage() {
 									: `${isSameMonth(d, current) ? "bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-800" : "bg-zinc-50 dark:bg-zinc-900/40 text-zinc-400 dark:text-zinc-500"}`
 								}`}
 							style={isToday(d) ? { backgroundColor: "#FFF6D1", boxShadow: `0 0 0 2px ${BRAND_COLOR}`, borderColor: BRAND_COLOR } : undefined}
-								onDoubleClick={() => {
-									setSelectedDate(d);
-									setShowCreateModal(true);
-								}}
+									{...getDayTouchHandlers(d)}
 							>
 								<div className="text-xs sm:text-sm font-medium text-zinc-800 dark:text-zinc-100">
 								{isToday(d) ? (
