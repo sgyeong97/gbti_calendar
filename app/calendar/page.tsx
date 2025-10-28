@@ -120,6 +120,7 @@ export default function CalendarPage() {
 	const bellBtnRef = useRef<HTMLButtonElement | null>(null);
 	const [notificationTargets, setNotificationTargets] = useState<string[]>([]);
 	const [showNotificationSettings, setShowNotificationSettings] = useState<boolean>(false);
+	const [showSaveToast, setShowSaveToast] = useState<boolean>(false);
 
 	useEffect(() => {
 		// 저장된 설정 불러오기
@@ -566,6 +567,10 @@ export default function CalendarPage() {
 									setNotificationsEnabled(next);
 									localStorage.setItem("gbti_notifications_enabled", next ? "1" : "0");
 									if (!next) clearAllNotificationTimers();
+									else {
+										// 권한이 이미 있는 경우 즉시 서버 구독 업데이트
+										if (Notification.permission === "granted") ensurePushSubscription();
+									}
 								}}
 							>
 								{notificationsEnabled ? "ON" : "OFF"}
@@ -629,6 +634,17 @@ export default function CalendarPage() {
 						<div className="flex justify-end gap-2">
 							<button
 								className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
+								onClick={async () => {
+									await ensurePushSubscription();
+									setShowNotificationSettings(false);
+									setShowSaveToast(true);
+									setTimeout(() => setShowSaveToast(false), 2000);
+								}}
+							>
+								저장
+							</button>
+							<button
+								className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
 								onClick={() => {
 									const run = () => showLocalNotification("테스트 알림", {
 										body: "알림이 정상 동작합니다.",
@@ -644,15 +660,23 @@ export default function CalendarPage() {
 							>
 								테스트 알림
 							</button>
-								<button
-									className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
-									onClick={() => {
-										setShowNotificationSettings(false);
-										ensurePushSubscription();
-									}}
-								>닫기</button>
+							<button
+								className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
+								onClick={() => {
+									setShowNotificationSettings(false);
+									ensurePushSubscription();
+								}}
+							>닫기</button>
 						</div>
 					</div>
+				</div>
+			)}
+
+			{/* 저장 토스트 */}
+			{showSaveToast && (
+				<div className="fixed top-4 right-4 z-[60] px-3 py-2 rounded border text-sm"
+					style={{ background: "var(--background)", color: "var(--foreground)" }}>
+					설정이 저장되었습니다
 				</div>
 			)}
 			{viewMode === "notices" ? (
@@ -840,9 +864,9 @@ export default function CalendarPage() {
 			)}
 
 			{/* 연/월 선택 모달 */}
-		{showMonthPicker && (
-			<div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-				<div className="rounded p-4 w-full max-w-sm mx-4 sm:mx-0 space-y-3 max-h-[85vh] overflow-y-auto" style={{ background: "var(--background)", color: "var(--foreground)" }}>
+			{showMonthPicker && (
+				<div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+					<div className="rounded p-4 w-full max-w-sm mx-4 sm:mx-0 space-y-3 max-h-[85vh] overflow-y-auto" style={{ background: "var(--background)", color: "var(--foreground)" }}>
 						<h2 className="text-lg font-semibold">연/월 선택</h2>
 						<div className="flex gap-2">
 							<select
