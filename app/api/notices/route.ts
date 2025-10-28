@@ -12,12 +12,22 @@ function requireAdmin(req: NextRequest) {
 
 export async function GET() {
   try {
-    const { data: notices, error } = await supabase
-      .from('Notice')
+    // DB 스키마: table notice, columns imageurl, createdat
+    const { data, error } = await supabase
+      .from('notice')
       .select('*')
-      .order('createdAt', { ascending: false });
+      .order('createdat', { ascending: false });
 
     if (error) throw error;
+
+    const notices = (data || []).map((n: any) => ({
+      id: n.id,
+      title: n.title,
+      content: n.content,
+      imageUrl: n.imageurl ?? null,
+      author: n.author,
+      createdAt: n.createdat,
+    }));
 
     return NextResponse.json({ notices });
   } catch (error: any) {
@@ -33,18 +43,29 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   
   try {
-    const { data: created, error } = await supabaseAdmin
-      .from('Notice')
+    const { data, error } = await supabaseAdmin
+      .from('notice')
       .insert({
         title: body.title,
         content: body.content,
-        imageUrl: body.imageUrl || null,
+        imageurl: body.imageUrl || null,
         author: body.author || "관리자"
       })
       .select()
       .single();
 
     if (error) throw error;
+
+    const created = data
+      ? {
+          id: data.id,
+          title: data.title,
+          content: data.content,
+          imageUrl: data.imageurl ?? null,
+          author: data.author,
+          createdAt: data.createdat,
+        }
+      : null;
 
     return NextResponse.json({ notice: created }, { status: 201 });
   } catch (error: any) {
