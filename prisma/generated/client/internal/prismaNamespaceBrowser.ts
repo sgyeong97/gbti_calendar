@@ -151,13 +151,12 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
-export const CalendarOrderByRelevanceFieldEnum = {
-  id: 'id',
-  name: 'name',
-  color: 'color'
+export const QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
 } as const
 
-export type CalendarOrderByRelevanceFieldEnum = (typeof CalendarOrderByRelevanceFieldEnum)[keyof typeof CalendarOrderByRelevanceFieldEnum]
+export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
 
 
 export const NullsOrder = {
@@ -166,52 +165,4 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
-
-
-export const EventOrderByRelevanceFieldEnum = {
-  id: 'id',
-  calendarId: 'calendarId',
-  title: 'title',
-  description: 'description',
-  color: 'color'
-} as const
-
-export type EventOrderByRelevanceFieldEnum = (typeof EventOrderByRelevanceFieldEnum)[keyof typeof EventOrderByRelevanceFieldEnum]
-
-
-export const ParticipantOrderByRelevanceFieldEnum = {
-  id: 'id',
-  name: 'name'
-} as const
-
-export type ParticipantOrderByRelevanceFieldEnum = (typeof ParticipantOrderByRelevanceFieldEnum)[keyof typeof ParticipantOrderByRelevanceFieldEnum]
-
-
-export const CalendarParticipantOrderByRelevanceFieldEnum = {
-  id: 'id',
-  calendarId: 'calendarId',
-  participantId: 'participantId'
-} as const
-
-export type CalendarParticipantOrderByRelevanceFieldEnum = (typeof CalendarParticipantOrderByRelevanceFieldEnum)[keyof typeof CalendarParticipantOrderByRelevanceFieldEnum]
-
-
-export const RecurringSlotOrderByRelevanceFieldEnum = {
-  id: 'id',
-  calendarId: 'calendarId',
-  eventTitle: 'eventTitle',
-  participantNames: 'participantNames',
-  color: 'color'
-} as const
-
-export type RecurringSlotOrderByRelevanceFieldEnum = (typeof RecurringSlotOrderByRelevanceFieldEnum)[keyof typeof RecurringSlotOrderByRelevanceFieldEnum]
-
-
-export const EventParticipantOrderByRelevanceFieldEnum = {
-  id: 'id',
-  eventId: 'eventId',
-  participantId: 'participantId'
-} as const
-
-export type EventParticipantOrderByRelevanceFieldEnum = (typeof EventParticipantOrderByRelevanceFieldEnum)[keyof typeof EventParticipantOrderByRelevanceFieldEnum]
 

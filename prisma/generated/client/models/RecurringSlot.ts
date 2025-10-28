@@ -287,7 +287,6 @@ export type RecurringSlotOrderByWithRelationInput = {
   participantNames?: Prisma.SortOrderInput | Prisma.SortOrder
   color?: Prisma.SortOrder
   calendar?: Prisma.CalendarOrderByWithRelationInput
-  _relevance?: Prisma.RecurringSlotOrderByRelevanceInput
 }
 
 export type RecurringSlotWhereUniqueInput = Prisma.AtLeast<{
@@ -449,12 +448,6 @@ export type RecurringSlotListRelationFilter = {
 
 export type RecurringSlotOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
-}
-
-export type RecurringSlotOrderByRelevanceInput = {
-  fields: Prisma.RecurringSlotOrderByRelevanceFieldEnum | Prisma.RecurringSlotOrderByRelevanceFieldEnum[]
-  sort: Prisma.SortOrder
-  search: string
 }
 
 export type RecurringSlotCountOrderByAggregateInput = {
@@ -703,7 +696,35 @@ export type RecurringSlotSelect<ExtArgs extends runtime.Types.Extensions.Interna
   calendar?: boolean | Prisma.CalendarDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["recurringSlot"]>
 
+export type RecurringSlotSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  id?: boolean
+  calendarId?: boolean
+  dayOfWeek?: boolean
+  startMinutes?: boolean
+  endMinutes?: boolean
+  startsOn?: boolean
+  endsOn?: boolean
+  eventTitle?: boolean
+  eventStartDate?: boolean
+  participantNames?: boolean
+  color?: boolean
+  calendar?: boolean | Prisma.CalendarDefaultArgs<ExtArgs>
+}, ExtArgs["result"]["recurringSlot"]>
 
+export type RecurringSlotSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  id?: boolean
+  calendarId?: boolean
+  dayOfWeek?: boolean
+  startMinutes?: boolean
+  endMinutes?: boolean
+  startsOn?: boolean
+  endsOn?: boolean
+  eventTitle?: boolean
+  eventStartDate?: boolean
+  participantNames?: boolean
+  color?: boolean
+  calendar?: boolean | Prisma.CalendarDefaultArgs<ExtArgs>
+}, ExtArgs["result"]["recurringSlot"]>
 
 export type RecurringSlotSelectScalar = {
   id?: boolean
@@ -721,6 +742,12 @@ export type RecurringSlotSelectScalar = {
 
 export type RecurringSlotOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "calendarId" | "dayOfWeek" | "startMinutes" | "endMinutes" | "startsOn" | "endsOn" | "eventTitle" | "eventStartDate" | "participantNames" | "color", ExtArgs["result"]["recurringSlot"]>
 export type RecurringSlotInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  calendar?: boolean | Prisma.CalendarDefaultArgs<ExtArgs>
+}
+export type RecurringSlotIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  calendar?: boolean | Prisma.CalendarDefaultArgs<ExtArgs>
+}
+export type RecurringSlotIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   calendar?: boolean | Prisma.CalendarDefaultArgs<ExtArgs>
 }
 
@@ -859,6 +886,30 @@ export interface RecurringSlotDelegate<ExtArgs extends runtime.Types.Extensions.
   createMany<T extends RecurringSlotCreateManyArgs>(args?: Prisma.SelectSubset<T, RecurringSlotCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
 
   /**
+   * Create many RecurringSlots and returns the data saved in the database.
+   * @param {RecurringSlotCreateManyAndReturnArgs} args - Arguments to create many RecurringSlots.
+   * @example
+   * // Create many RecurringSlots
+   * const recurringSlot = await prisma.recurringSlot.createManyAndReturn({
+   *   data: [
+   *     // ... provide data here
+   *   ]
+   * })
+   * 
+   * // Create many RecurringSlots and only return the `id`
+   * const recurringSlotWithIdOnly = await prisma.recurringSlot.createManyAndReturn({
+   *   select: { id: true },
+   *   data: [
+   *     // ... provide data here
+   *   ]
+   * })
+   * Note, that providing `undefined` is treated as the value not being there.
+   * Read more here: https://pris.ly/d/null-undefined
+   * 
+   */
+  createManyAndReturn<T extends RecurringSlotCreateManyAndReturnArgs>(args?: Prisma.SelectSubset<T, RecurringSlotCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RecurringSlotPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+  /**
    * Delete a RecurringSlot.
    * @param {RecurringSlotDeleteArgs} args - Arguments to delete one RecurringSlot.
    * @example
@@ -921,6 +972,36 @@ export interface RecurringSlotDelegate<ExtArgs extends runtime.Types.Extensions.
    * 
    */
   updateMany<T extends RecurringSlotUpdateManyArgs>(args: Prisma.SelectSubset<T, RecurringSlotUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
+
+  /**
+   * Update zero or more RecurringSlots and returns the data updated in the database.
+   * @param {RecurringSlotUpdateManyAndReturnArgs} args - Arguments to update many RecurringSlots.
+   * @example
+   * // Update many RecurringSlots
+   * const recurringSlot = await prisma.recurringSlot.updateManyAndReturn({
+   *   where: {
+   *     // ... provide filter here
+   *   },
+   *   data: [
+   *     // ... provide data here
+   *   ]
+   * })
+   * 
+   * // Update zero or more RecurringSlots and only return the `id`
+   * const recurringSlotWithIdOnly = await prisma.recurringSlot.updateManyAndReturn({
+   *   select: { id: true },
+   *   where: {
+   *     // ... provide filter here
+   *   },
+   *   data: [
+   *     // ... provide data here
+   *   ]
+   * })
+   * Note, that providing `undefined` is treated as the value not being there.
+   * Read more here: https://pris.ly/d/null-undefined
+   * 
+   */
+  updateManyAndReturn<T extends RecurringSlotUpdateManyAndReturnArgs>(args: Prisma.SelectSubset<T, RecurringSlotUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RecurringSlotPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
 
   /**
    * Create or update one RecurringSlot.
@@ -1355,6 +1436,29 @@ export type RecurringSlotCreateManyArgs<ExtArgs extends runtime.Types.Extensions
 }
 
 /**
+ * RecurringSlot createManyAndReturn
+ */
+export type RecurringSlotCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the RecurringSlot
+   */
+  select?: Prisma.RecurringSlotSelectCreateManyAndReturn<ExtArgs> | null
+  /**
+   * Omit specific fields from the RecurringSlot
+   */
+  omit?: Prisma.RecurringSlotOmit<ExtArgs> | null
+  /**
+   * The data used to create many RecurringSlots.
+   */
+  data: Prisma.RecurringSlotCreateManyInput | Prisma.RecurringSlotCreateManyInput[]
+  skipDuplicates?: boolean
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RecurringSlotIncludeCreateManyAndReturn<ExtArgs> | null
+}
+
+/**
  * RecurringSlot update
  */
 export type RecurringSlotUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1396,6 +1500,36 @@ export type RecurringSlotUpdateManyArgs<ExtArgs extends runtime.Types.Extensions
    * Limit how many RecurringSlots to update.
    */
   limit?: number
+}
+
+/**
+ * RecurringSlot updateManyAndReturn
+ */
+export type RecurringSlotUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the RecurringSlot
+   */
+  select?: Prisma.RecurringSlotSelectUpdateManyAndReturn<ExtArgs> | null
+  /**
+   * Omit specific fields from the RecurringSlot
+   */
+  omit?: Prisma.RecurringSlotOmit<ExtArgs> | null
+  /**
+   * The data used to update RecurringSlots.
+   */
+  data: Prisma.XOR<Prisma.RecurringSlotUpdateManyMutationInput, Prisma.RecurringSlotUncheckedUpdateManyInput>
+  /**
+   * Filter which RecurringSlots to update
+   */
+  where?: Prisma.RecurringSlotWhereInput
+  /**
+   * Limit how many RecurringSlots to update.
+   */
+  limit?: number
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RecurringSlotIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**

@@ -195,7 +195,6 @@ export type CalendarOrderByWithRelationInput = {
   events?: Prisma.EventOrderByRelationAggregateInput
   members?: Prisma.CalendarParticipantOrderByRelationAggregateInput
   recurringSlots?: Prisma.RecurringSlotOrderByRelationAggregateInput
-  _relevance?: Prisma.CalendarOrderByRelevanceInput
 }
 
 export type CalendarWhereUniqueInput = Prisma.AtLeast<{
@@ -300,12 +299,6 @@ export type CalendarUncheckedUpdateManyInput = {
   color?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-}
-
-export type CalendarOrderByRelevanceInput = {
-  fields: Prisma.CalendarOrderByRelevanceFieldEnum | Prisma.CalendarOrderByRelevanceFieldEnum[]
-  sort: Prisma.SortOrder
-  search: string
 }
 
 export type CalendarCountOrderByAggregateInput = {
@@ -616,7 +609,21 @@ export type CalendarSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   _count?: boolean | Prisma.CalendarCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["calendar"]>
 
+export type CalendarSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  id?: boolean
+  name?: boolean
+  color?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
+}, ExtArgs["result"]["calendar"]>
 
+export type CalendarSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  id?: boolean
+  name?: boolean
+  color?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
+}, ExtArgs["result"]["calendar"]>
 
 export type CalendarSelectScalar = {
   id?: boolean
@@ -633,6 +640,8 @@ export type CalendarInclude<ExtArgs extends runtime.Types.Extensions.InternalArg
   recurringSlots?: boolean | Prisma.Calendar$recurringSlotsArgs<ExtArgs>
   _count?: boolean | Prisma.CalendarCountOutputTypeDefaultArgs<ExtArgs>
 }
+export type CalendarIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
+export type CalendarIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
 
 export type $CalendarPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Calendar"
@@ -765,6 +774,30 @@ export interface CalendarDelegate<ExtArgs extends runtime.Types.Extensions.Inter
   createMany<T extends CalendarCreateManyArgs>(args?: Prisma.SelectSubset<T, CalendarCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
 
   /**
+   * Create many Calendars and returns the data saved in the database.
+   * @param {CalendarCreateManyAndReturnArgs} args - Arguments to create many Calendars.
+   * @example
+   * // Create many Calendars
+   * const calendar = await prisma.calendar.createManyAndReturn({
+   *   data: [
+   *     // ... provide data here
+   *   ]
+   * })
+   * 
+   * // Create many Calendars and only return the `id`
+   * const calendarWithIdOnly = await prisma.calendar.createManyAndReturn({
+   *   select: { id: true },
+   *   data: [
+   *     // ... provide data here
+   *   ]
+   * })
+   * Note, that providing `undefined` is treated as the value not being there.
+   * Read more here: https://pris.ly/d/null-undefined
+   * 
+   */
+  createManyAndReturn<T extends CalendarCreateManyAndReturnArgs>(args?: Prisma.SelectSubset<T, CalendarCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CalendarPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+  /**
    * Delete a Calendar.
    * @param {CalendarDeleteArgs} args - Arguments to delete one Calendar.
    * @example
@@ -827,6 +860,36 @@ export interface CalendarDelegate<ExtArgs extends runtime.Types.Extensions.Inter
    * 
    */
   updateMany<T extends CalendarUpdateManyArgs>(args: Prisma.SelectSubset<T, CalendarUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<Prisma.BatchPayload>
+
+  /**
+   * Update zero or more Calendars and returns the data updated in the database.
+   * @param {CalendarUpdateManyAndReturnArgs} args - Arguments to update many Calendars.
+   * @example
+   * // Update many Calendars
+   * const calendar = await prisma.calendar.updateManyAndReturn({
+   *   where: {
+   *     // ... provide filter here
+   *   },
+   *   data: [
+   *     // ... provide data here
+   *   ]
+   * })
+   * 
+   * // Update zero or more Calendars and only return the `id`
+   * const calendarWithIdOnly = await prisma.calendar.updateManyAndReturn({
+   *   select: { id: true },
+   *   where: {
+   *     // ... provide filter here
+   *   },
+   *   data: [
+   *     // ... provide data here
+   *   ]
+   * })
+   * Note, that providing `undefined` is treated as the value not being there.
+   * Read more here: https://pris.ly/d/null-undefined
+   * 
+   */
+  updateManyAndReturn<T extends CalendarUpdateManyAndReturnArgs>(args: Prisma.SelectSubset<T, CalendarUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CalendarPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
 
   /**
    * Create or update one Calendar.
@@ -1257,6 +1320,25 @@ export type CalendarCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Inte
 }
 
 /**
+ * Calendar createManyAndReturn
+ */
+export type CalendarCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Calendar
+   */
+  select?: Prisma.CalendarSelectCreateManyAndReturn<ExtArgs> | null
+  /**
+   * Omit specific fields from the Calendar
+   */
+  omit?: Prisma.CalendarOmit<ExtArgs> | null
+  /**
+   * The data used to create many Calendars.
+   */
+  data: Prisma.CalendarCreateManyInput | Prisma.CalendarCreateManyInput[]
+  skipDuplicates?: boolean
+}
+
+/**
  * Calendar update
  */
 export type CalendarUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1286,6 +1368,32 @@ export type CalendarUpdateArgs<ExtArgs extends runtime.Types.Extensions.Internal
  * Calendar updateMany
  */
 export type CalendarUpdateManyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * The data used to update Calendars.
+   */
+  data: Prisma.XOR<Prisma.CalendarUpdateManyMutationInput, Prisma.CalendarUncheckedUpdateManyInput>
+  /**
+   * Filter which Calendars to update
+   */
+  where?: Prisma.CalendarWhereInput
+  /**
+   * Limit how many Calendars to update.
+   */
+  limit?: number
+}
+
+/**
+ * Calendar updateManyAndReturn
+ */
+export type CalendarUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Calendar
+   */
+  select?: Prisma.CalendarSelectUpdateManyAndReturn<ExtArgs> | null
+  /**
+   * Omit specific fields from the Calendar
+   */
+  omit?: Prisma.CalendarOmit<ExtArgs> | null
   /**
    * The data used to update Calendars.
    */
