@@ -9,6 +9,8 @@ import NoticeDetailModal from "./NoticeDetailModal";
 import AdminPasswordModal from "@/app/calendar/AdminPasswordModal";
 import { addDays, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, isToday, startOfMonth, startOfWeek } from "date-fns";
 const BRAND_COLOR = "#FDC205"; // rgb(253,194,5)
+const NOTIF_ICON = "/gbti_small.jpg"; // public 경로의 아이콘
+const NOTIF_BADGE = "/gbti_small.jpg";  // 작은 배지 아이콘(없으면 아이콘과 동일하게 사용)
 
 type Event = {
 	id: string;
@@ -38,7 +40,7 @@ type Notice = {
 };
 
 export default function CalendarPage() {
-    const router = useRouter();
+	const router = useRouter();
 	const [current, setCurrent] = useState<Date>(new Date());
 	const [events, setEvents] = useState<Event[]>([]);
 	const [selectedParticipant, setSelectedParticipant] = useState<string>("");
@@ -46,11 +48,11 @@ export default function CalendarPage() {
 	const [viewMode, setViewMode] = useState<ViewMode>("month");
 	const [favoriteUsers, setFavoriteUsers] = useState<FavoriteUser[]>([]);
 	const [showFavorites, setShowFavorites] = useState(false);
-    // 관리자 버튼은 라우팅으로 대체
+	// 관리자 버튼은 라우팅으로 대체
 	const [notices, setNotices] = useState<Notice[]>([]);
 	const [showCreateNoticeModal, setShowCreateNoticeModal] = useState(false);
 	const [showAdminPasswordModal, setShowAdminPasswordModal] = useState(false);
-    const [activeNotice, setActiveNotice] = useState<Notice | null>(null);
+	const [activeNotice, setActiveNotice] = useState<Notice | null>(null);
 	const days = useMemo(() => {
 		{
 			// 월간 뷰: 월 전체 표시 (이전/다음 달 일부 포함)
@@ -61,7 +63,7 @@ export default function CalendarPage() {
 	}, [current, viewMode]);
 
 	useEffect(() => {
-		const fetchEvents = async () => {   
+		const fetchEvents = async () => {
 			let startStr: string, endStr: string;
 
 			{
@@ -74,7 +76,7 @@ export default function CalendarPage() {
 			const res = await fetch(`/api/events?${qp.toString()}`);
 			const json = await res.json();
 			let fetchedEvents = json.events ?? [];
-			
+
 			// 필터링: 참가자 선택 시 해당 참가자가 포함된 이벤트만 표시
 			if (selectedParticipant && selectedParticipant !== "") {
 				// 참가자 필터링: 선택된 참가자가 participants 배열에 포함된 이벤트만
@@ -90,7 +92,7 @@ export default function CalendarPage() {
 					return event.participants.some(p => selectedParticipants.has(p));
 				});
 			}
-			
+
 			setEvents(fetchedEvents);
 		};
 		fetchEvents();
@@ -106,18 +108,18 @@ export default function CalendarPage() {
 
 	// 알림 기능 상태 및 참조들
 	const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(false);
-const [notificationLeadMinutes, setNotificationLeadMinutes] = useState<number>(30);
-const [notificationLeadMinutesList, setNotificationLeadMinutesList] = useState<number[]>([30]);
+	const [notificationLeadMinutes, setNotificationLeadMinutes] = useState<number>(30);
+	const [notificationLeadMinutesList, setNotificationLeadMinutesList] = useState<number[]>([30]);
 	const swRegistrationRef = useRef<ServiceWorkerRegistration | null>(null);
-const notifTimersRef = useRef<Map<string, number>>(new Map());
+	const notifTimersRef = useRef<Map<string, number>>(new Map());
 	const notifMenuOpenRef = useRef<boolean>(false);
-const [notifMenuOpen, setNotifMenuOpen] = useState<boolean>(false);
+	const [notifMenuOpen, setNotifMenuOpen] = useState<boolean>(false);
 	const [notifMenuPos, setNotifMenuPos] = useState<{ x: number; y: number } | null>(null);
 	const bellLongPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const bellLongPressedRef = useRef<boolean>(false);
-const bellBtnRef = useRef<HTMLButtonElement | null>(null);
-const [notificationTargets, setNotificationTargets] = useState<string[]>([]);
-const [showNotificationSettings, setShowNotificationSettings] = useState<boolean>(false);
+	const bellBtnRef = useRef<HTMLButtonElement | null>(null);
+	const [notificationTargets, setNotificationTargets] = useState<string[]>([]);
+	const [showNotificationSettings, setShowNotificationSettings] = useState<boolean>(false);
 
 	useEffect(() => {
 		// 저장된 설정 불러오기
@@ -136,16 +138,16 @@ const [showNotificationSettings, setShowNotificationSettings] = useState<boolean
 			} else if (!isNaN(savedLead)) {
 				setNotificationLeadMinutesList([savedLead]);
 			}
-		} catch {}
+		} catch { }
 		try {
 			const savedTargets = JSON.parse(localStorage.getItem("gbti_notifications_targets") || "[]");
 			if (Array.isArray(savedTargets)) setNotificationTargets(savedTargets.slice(0, 3));
-		} catch {}
+		} catch { }
 		// 서비스 워커 등록
 		if (typeof window !== "undefined" && "serviceWorker" in navigator) {
 			navigator.serviceWorker.register("/sw.js").then((reg) => {
 				swRegistrationRef.current = reg;
-			}).catch(() => {});
+			}).catch(() => { });
 		}
 	}, []);
 
@@ -162,27 +164,27 @@ const [showNotificationSettings, setShowNotificationSettings] = useState<boolean
 				localStorage.setItem("gbti_notifications_enabled", "1");
 				return true;
 			}
-		} catch {}
+		} catch { }
 		setNotificationsEnabled(false);
 		localStorage.setItem("gbti_notifications_enabled", "0");
 		return false;
 	}
 
-function showLocalNotification(title: string, options?: NotificationOptions) {
-    const reg = swRegistrationRef.current;
-    try {
-        if (reg && reg.showNotification) {
-            reg.showNotification(title, options);
-            return;
-        }
-    } catch {}
-    try {
-        if (typeof Notification !== "undefined") {
-            // eslint-disable-next-line no-new
-            new Notification(title, options);
-        }
-    } catch {}
-}
+	function showLocalNotification(title: string, options?: NotificationOptions) {
+		const reg = swRegistrationRef.current;
+		try {
+			if (reg && reg.showNotification) {
+				reg.showNotification(title, options);
+				return;
+			}
+		} catch { }
+		try {
+			if (typeof Notification !== "undefined") {
+				// eslint-disable-next-line no-new
+				new Notification(title, options);
+			}
+		} catch { }
+	}
 
 	// 선택 대상 일정의 알림 스케줄링 (탭이 열려 있는 동안 동작)
 	useEffect(() => {
@@ -211,7 +213,7 @@ function showLocalNotification(title: string, options?: NotificationOptions) {
 
 			const leads = (notificationLeadMinutesList.length > 0 ? notificationLeadMinutesList : [notificationLeadMinutes])
 				.filter((m, idx, arr) => arr.indexOf(m) === idx)
-				.sort((a,b) => a - b);
+				.sort((a, b) => a - b);
 
 			leads.forEach((m) => {
 				const triggerAt = startMs - m * 60 * 1000;
@@ -221,8 +223,8 @@ function showLocalNotification(title: string, options?: NotificationOptions) {
 				const timeoutId = window.setTimeout(() => {
 					showLocalNotification(`${e.title} (${startTimeText})`, {
 						body: `${m}분 후 시작합니다`,
-						badge: "/vercel.svg",
-						icon: "/globe.svg",
+						badge: NOTIF_BADGE,
+						icon: NOTIF_ICON,
 					});
 					notifTimersRef.current.delete(key);
 				}, delay);
@@ -346,103 +348,103 @@ function showLocalNotification(title: string, options?: NotificationOptions) {
 		setSelectedParticipants(newSelected);
 	};
 
-// 하단 입력 폼 제거로 인한 잔여 함수 삭제
+	// 하단 입력 폼 제거로 인한 잔여 함수 삭제
 
-		return (
-			<div className="px-3 py-4 sm:p-6 max-w-5xl mx-auto">
-				<div className="flex items-center justify-between mb-3 sm:mb-4">
+	return (
+		<div className="px-3 py-4 sm:p-6 max-w-5xl mx-auto">
+			<div className="flex items-center justify-between mb-3 sm:mb-4">
 				<div className="flex items-center gap-4">
-						<h1 className="text-xl sm:text-2xl font-semibold">달력</h1>
-						<div className="flex gap-1">
-				<button
-						className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors cursor-pointer ${viewMode === "month" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
-					style={viewMode === "month" ? { backgroundColor: BRAND_COLOR, color: "#111" } : undefined}
+					<h1 className="text-xl sm:text-2xl font-semibold">달력</h1>
+					<div className="flex gap-1">
+						<button
+							className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors cursor-pointer ${viewMode === "month" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
+							style={viewMode === "month" ? { backgroundColor: BRAND_COLOR, color: "#111" } : undefined}
 							onClick={() => setViewMode("month")}
 						>
 							월간
 						</button>
-				<button
-						className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors cursor-pointer ${viewMode === "notices" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
-					style={viewMode === "notices" ? { backgroundColor: BRAND_COLOR, color: "#111" } : undefined}
-						onClick={() => setViewMode("notices")}
-					>
-						공지사항
-					</button>
-				<button
-						className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors cursor-pointer ${viewMode === "favorites" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
-					style={viewMode === "favorites" ? { backgroundColor: BRAND_COLOR, color: "#111" } : undefined}
+						<button
+							className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors cursor-pointer ${viewMode === "notices" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
+							style={viewMode === "notices" ? { backgroundColor: BRAND_COLOR, color: "#111" } : undefined}
+							onClick={() => setViewMode("notices")}
+						>
+							공지사항
+						</button>
+						<button
+							className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors cursor-pointer ${viewMode === "favorites" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
+							style={viewMode === "favorites" ? { backgroundColor: BRAND_COLOR, color: "#111" } : undefined}
 							onClick={() => setViewMode("favorites")}
 						>
 							즐겨찾기
 						</button>
 					</div>
 				</div>
-					<div className="flex gap-1.5 sm:gap-2 items-center">
-						<button
-							className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+				<div className="flex gap-1.5 sm:gap-2 items-center">
+					<button
+						className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
 						onClick={() => setCurrent(addDays(current, -30))}
 					>
 						이전
 					</button>
-				<button
-					className="min-w-20 text-center px-2 py-1 text-sm rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-				onClick={() => {
-					setPickerYear(current.getFullYear());
-					setPickerMonth(current.getMonth());
-					setShowMonthPicker(true);
-				}}
-			>
+					<button
+						className="min-w-20 text-center px-2 py-1 text-sm rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+						onClick={() => {
+							setPickerYear(current.getFullYear());
+							setPickerMonth(current.getMonth());
+							setShowMonthPicker(true);
+						}}
+					>
 						{format(current, "yyyy.MM")}
-			</button>
-						<button
-							className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+					</button>
+					<button
+						className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
 						onClick={() => setCurrent(addDays(current, 30))}
 					>
 						다음
 					</button>
-						<button
-							ref={bellBtnRef}
-							className={`px-2 sm:px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-lg sm:text-xl ${notificationsEnabled ? "text-yellow-600" : "text-zinc-600"}`}
-							onClick={async () => {
+					<button
+						ref={bellBtnRef}
+						className={`px-2 sm:px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-lg sm:text-xl ${notificationsEnabled ? "text-yellow-600" : "text-zinc-600"}`}
+						onClick={async () => {
 							if (bellLongPressedRef.current) { bellLongPressedRef.current = false; return; }
 							if (Notification.permission !== "granted") {
 								const ok = await requestNotificationPermission();
 								if (!ok) return;
 							}
 							setShowNotificationSettings(true);
-							}}
-							onContextMenu={(e) => {
-								// 우클릭으로 리드타임 메뉴
-								e.preventDefault();
+						}}
+						onContextMenu={(e) => {
+							// 우클릭으로 리드타임 메뉴
+							e.preventDefault();
+							setNotifMenuOpen(true);
+							notifMenuOpenRef.current = true;
+							setNotifMenuPos({ x: e.clientX, y: e.clientY });
+						}}
+						onTouchStart={(e) => {
+							bellLongPressedRef.current = false;
+							if (bellLongPressTimerRef.current) clearTimeout(bellLongPressTimerRef.current);
+							bellLongPressTimerRef.current = setTimeout(() => {
+								bellLongPressedRef.current = true;
+								// 아이콘 기준 위치에 메뉴 표시
+								const rect = bellBtnRef.current?.getBoundingClientRect();
+								setNotifMenuPos(rect ? { x: rect.left, y: rect.bottom + 6 } : { x: 12, y: 12 });
 								setNotifMenuOpen(true);
 								notifMenuOpenRef.current = true;
-								setNotifMenuPos({ x: e.clientX, y: e.clientY });
-							}}
-							onTouchStart={(e) => {
-								bellLongPressedRef.current = false;
-								if (bellLongPressTimerRef.current) clearTimeout(bellLongPressTimerRef.current);
-								bellLongPressTimerRef.current = setTimeout(() => {
-									bellLongPressedRef.current = true;
-									// 아이콘 기준 위치에 메뉴 표시
-									const rect = bellBtnRef.current?.getBoundingClientRect();
-									setNotifMenuPos(rect ? { x: rect.left, y: rect.bottom + 6 } : { x: 12, y: 12 });
-									setNotifMenuOpen(true);
-									notifMenuOpenRef.current = true;
-								}, 500);
-							}}
-							onTouchEnd={() => { if (bellLongPressTimerRef.current) clearTimeout(bellLongPressTimerRef.current); }}
-							onTouchCancel={() => { if (bellLongPressTimerRef.current) clearTimeout(bellLongPressTimerRef.current); }}
-							title="즐겨찾기 알림"
-						>
-							{notificationsEnabled ? "🔔" : "🔕"}
-						</button>
-                        <button
-                            className="px-2 sm:px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-lg sm:text-xl"
-                            onClick={() => router.push("/admin")}
-                            title="관리자 페이지"
-                        >
-                            🔒
-                        </button>
+							}, 500);
+						}}
+						onTouchEnd={() => { if (bellLongPressTimerRef.current) clearTimeout(bellLongPressTimerRef.current); }}
+						onTouchCancel={() => { if (bellLongPressTimerRef.current) clearTimeout(bellLongPressTimerRef.current); }}
+						title="즐겨찾기 알림"
+					>
+						{notificationsEnabled ? "🔔" : "🔕"}
+					</button>
+					<button
+						className="px-2 sm:px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-lg sm:text-xl"
+						onClick={() => router.push("/admin")}
+						title="관리자 페이지"
+					>
+						🔒
+					</button>
 				</div>
 			</div>
 
@@ -567,7 +569,7 @@ function showLocalNotification(title: string, options?: NotificationOptions) {
 						<div>
 							<div className="text-sm mb-1">알림 시점(복수 선택 가능)</div>
 							<div className="flex gap-2 flex-wrap">
-								{[5,10,15,30,60,120].map((m) => {
+								{[5, 10, 15, 30, 60, 120].map((m) => {
 									const selected = notificationLeadMinutesList.includes(m);
 									return (
 										<button
@@ -595,16 +597,16 @@ function showLocalNotification(title: string, options?: NotificationOptions) {
 							<button
 								className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
 								onClick={() => {
-								const run = () => showLocalNotification("테스트 알림", {
+									const run = () => showLocalNotification("테스트 알림", {
 										body: "알림이 정상 동작합니다.",
-										badge: "/vercel.svg",
-										icon: "/globe.svg",
-								});
-								if (Notification.permission !== "granted") {
-									requestNotificationPermission().then((ok) => { if (ok) run(); });
-								} else {
-									run();
-								}
+										badge: NOTIF_BADGE,
+										icon: NOTIF_ICON,
+									});
+									if (Notification.permission !== "granted") {
+										requestNotificationPermission().then((ok) => { if (ok) run(); });
+									} else {
+										run();
+									}
 								}}
 							>
 								테스트 알림
@@ -615,97 +617,96 @@ function showLocalNotification(title: string, options?: NotificationOptions) {
 				</div>
 			)}
 			{viewMode === "notices" ? (
-			// 공지사항 뷰: 갤러리 형태
-			<div className="space-y-4">
-				<div className="flex justify-between items-center">
-					<h2 className="text-base sm:text-lg font-semibold">공지사항</h2>
-					<button
-						className="px-2 sm:px-3 py-1 text-sm rounded text-black transition-colors cursor-pointer"
-						style={{ backgroundColor: "#FDC205" }}
-						onClick={() => setShowAdminPasswordModal(true)}
-					>
-						공지 작성
-					</button>
-				</div>
-				
-				{notices.length === 0 ? (
-					<div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
-						등록된 공지사항이 없습니다.
+				// 공지사항 뷰: 갤러리 형태
+				<div className="space-y-4">
+					<div className="flex justify-between items-center">
+						<h2 className="text-base sm:text-lg font-semibold">공지사항</h2>
+						<button
+							className="px-2 sm:px-3 py-1 text-sm rounded text-black transition-colors cursor-pointer"
+							style={{ backgroundColor: "#FDC205" }}
+							onClick={() => setShowAdminPasswordModal(true)}
+						>
+							공지 작성
+						</button>
 					</div>
-				) : (
-					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-						{notices.map((notice) => (
-							<div key={notice.id} className="border rounded p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveNotice(notice)}>
-								{notice.imageUrl && (
-									<img 
-										src={notice.imageUrl} 
-										alt={notice.title}
-										className="w-full h-32 object-cover rounded mb-3"
-									/>
-								)}
-								<h3 className="font-semibold text-lg mb-2">{notice.title}</h3>
-								<p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3 whitespace-pre-line break-words">
-									{notice.content}
-								</p>
-								<div className="flex justify-between items-center text-xs text-zinc-500 dark:text-zinc-400">
-									<span>{notice.author}</span>
-									<span>{format(new Date(notice.createdAt), "yyyy.MM.dd")}</span>
+
+					{notices.length === 0 ? (
+						<div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
+							등록된 공지사항이 없습니다.
+						</div>
+					) : (
+						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+							{notices.map((notice) => (
+								<div key={notice.id} className="border rounded p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveNotice(notice)}>
+									{notice.imageUrl && (
+										<img
+											src={notice.imageUrl}
+											alt={notice.title}
+											className="w-full h-32 object-cover rounded mb-3"
+										/>
+									)}
+									<h3 className="font-semibold text-lg mb-2">{notice.title}</h3>
+									<p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3 whitespace-pre-line break-words">
+										{notice.content}
+									</p>
+									<div className="flex justify-between items-center text-xs text-zinc-500 dark:text-zinc-400">
+										<span>{notice.author}</span>
+										<span>{format(new Date(notice.createdAt), "yyyy.MM.dd")}</span>
+									</div>
 								</div>
-							</div>
+							))}
+						</div>
+					)}
+				</div>
+			) : (
+				// 월간 뷰: 기존 날짜 그리드
+				<>
+					{/* 요일 헤더 (월~일) */}
+					<div className="grid grid-cols-7 gap-2 mb-1 text-xs">
+						{["월", "화", "수", "목", "금", "토", "일"].map((w) => (
+							<div key={w} className="px-2 py-1 text-zinc-700 dark:text-zinc-300 font-medium">{w}</div>
 						))}
 					</div>
-				)}
-			</div>
-		) : (
-			// 월간 뷰: 기존 날짜 그리드
-			<>
-				{/* 요일 헤더 (월~일) */}
-				<div className="grid grid-cols-7 gap-2 mb-1 text-xs">
-					{["월", "화", "수", "목", "금", "토", "일"].map((w) => (
-						<div key={w} className="px-2 py-1 text-zinc-700 dark:text-zinc-300 font-medium">{w}</div>
-					))}
-				</div>
 
 					<div className="grid grid-cols-7 gap-1 sm:gap-2">
 						{days.map((d) => (
 							<div
 								key={d.toISOString()}
-								className={`border rounded p-1 sm:p-2 min-h-20 sm:min-h-24 border-zinc-200 dark:border-zinc-700 cursor-pointer transition-colors ${
-								isToday(d)
-									? "ring-2"
-									: `${isSameMonth(d, current) ? "bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-800" : "bg-zinc-50 dark:bg-zinc-900/40 text-zinc-400 dark:text-zinc-500"}`
-								}`}
-							style={isToday(d) ? { backgroundColor: "#FFF6D1", boxShadow: `0 0 0 2px ${BRAND_COLOR}`, borderColor: BRAND_COLOR } : undefined}
-									{...getDayTouchHandlers(d)}
+								className={`border rounded p-1 sm:p-2 min-h-20 sm:min-h-24 border-zinc-200 dark:border-zinc-700 cursor-pointer transition-colors ${isToday(d)
+										? "ring-2"
+										: `${isSameMonth(d, current) ? "bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-800" : "bg-zinc-50 dark:bg-zinc-900/40 text-zinc-400 dark:text-zinc-500"}`
+									}`}
+								style={isToday(d) ? { backgroundColor: "#FFF6D1", boxShadow: `0 0 0 2px ${BRAND_COLOR}`, borderColor: BRAND_COLOR } : undefined}
+								{...getDayTouchHandlers(d)}
 							>
 								<div className="text-xs sm:text-sm font-medium text-zinc-800 dark:text-zinc-100">
-								{isToday(d) ? (
+									{isToday(d) ? (
 										<span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full" style={{ backgroundColor: BRAND_COLOR, color: "#111" }}>
-										{format(d, "d")}
-									</span>
+											{format(d, "d")}
+										</span>
 									) : (
-									<span>{format(d, "d")}</span>
+										<span>{format(d, "d")}</span>
 									)}
 								</div>
-									<div className="mt-1 space-y-1">
-								{events.filter((e) => isSameDay(new Date(e.startAt), d)).map((e) => (
-									<button
-										key={e.id}
-										onClick={() => setActiveEventId(e.id)}
-										className="w-full text-left text-[10px] sm:text-xs rounded px-1 py-0.5 truncate transition-colors cursor-pointer"
-										style={{ 
-											backgroundColor: e.color || "#93c5fd",
-											color: "#000"
-										}}
-									>
-										{e.title}
-									</button>
-								))}
+								<div className="mt-1 space-y-1">
+									{events.filter((e) => isSameDay(new Date(e.startAt), d)).map((e) => (
+										<button
+											key={e.id}
+											onClick={() => setActiveEventId(e.id)}
+											className="w-full text-left text-[10px] sm:text-xs rounded px-1 py-0.5 truncate transition-colors cursor-pointer"
+											style={{
+												backgroundColor: e.color || "#93c5fd",
+												color: "#000"
+											}}
+										>
+											{e.title}
+										</button>
+									))}
 								</div>
 							</div>
 						))}
 					</div>
-					
+
 					{/* 오늘의 파티 목록 */}
 					<div className="mt-6">
 						<h2 className="text-lg font-semibold mb-3">오늘의 파티 ({format(new Date(), "MM월 dd일")})</h2>
@@ -753,157 +754,157 @@ function showLocalNotification(title: string, options?: NotificationOptions) {
 				</>
 			)}
 
-            {/* 하단 인라인 추가 폼 제거 (관리자 팝업으로 대체) */}
+			{/* 하단 인라인 추가 폼 제거 (관리자 팝업으로 대체) */}
 			{activeEventId && (
-			<EventDetailModal
-				eventId={activeEventId}
-				onClose={() => setActiveEventId(null)}
-				onChanged={() => {
-					// 참여자 목록 새로고침 (참여자가 추가/삭제되었을 수 있음)
-					fetchParticipants();
-					
-					// 월간 범위로 이벤트 새로고침
-					let startStr: string, endStr: string;
-					startStr = format(startOfWeek(startOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
-					endStr = format(endOfWeek(endOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
+				<EventDetailModal
+					eventId={activeEventId}
+					onClose={() => setActiveEventId(null)}
+					onChanged={() => {
+						// 참여자 목록 새로고침 (참여자가 추가/삭제되었을 수 있음)
+						fetchParticipants();
 
-					const qp = new URLSearchParams({ start: startStr, end: endStr });
-					if (selectedParticipant) qp.set("participantName", selectedParticipant);
-					fetch(`/api/events?${qp.toString()}`).then((r) => r.json()).then((json) => setEvents(json.events ?? []));
-				}}
-			/>
-		)}
-		{showCreateModal && selectedDate && (
-			<CreateEventModal
-				selectedDate={selectedDate}
-				onClose={() => {
-					setShowCreateModal(false);
-					setSelectedDate(null);
-				}}
-				onCreated={() => {
-					// 참여자 목록 새로고침 (새 참여자가 추가되었을 수 있음)
-					fetchParticipants();
-					
-					// 월간 범위로 이벤트 새로고침
-					let startStr: string, endStr: string;
-					startStr = format(startOfWeek(startOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
-					endStr = format(endOfWeek(endOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
+						// 월간 범위로 이벤트 새로고침
+						let startStr: string, endStr: string;
+						startStr = format(startOfWeek(startOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
+						endStr = format(endOfWeek(endOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
 
-					const qp = new URLSearchParams({ start: startStr, end: endStr });
-					if (selectedParticipant) qp.set("participantName", selectedParticipant);
-					fetch(`/api/events?${qp.toString()}`).then((r) => r.json()).then((json) => setEvents(json.events ?? []));
+						const qp = new URLSearchParams({ start: startStr, end: endStr });
+						if (selectedParticipant) qp.set("participantName", selectedParticipant);
+						fetch(`/api/events?${qp.toString()}`).then((r) => r.json()).then((json) => setEvents(json.events ?? []));
+					}}
+				/>
+			)}
+			{showCreateModal && selectedDate && (
+				<CreateEventModal
+					selectedDate={selectedDate}
+					onClose={() => {
+						setShowCreateModal(false);
+						setSelectedDate(null);
+					}}
+					onCreated={() => {
+						// 참여자 목록 새로고침 (새 참여자가 추가되었을 수 있음)
+						fetchParticipants();
 
-					setShowCreateModal(false);
-					setSelectedDate(null);
-				}}
-			/>
+						// 월간 범위로 이벤트 새로고침
+						let startStr: string, endStr: string;
+						startStr = format(startOfWeek(startOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
+						endStr = format(endOfWeek(endOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
+
+						const qp = new URLSearchParams({ start: startStr, end: endStr });
+						if (selectedParticipant) qp.set("participantName", selectedParticipant);
+						fetch(`/api/events?${qp.toString()}`).then((r) => r.json()).then((json) => setEvents(json.events ?? []));
+
+						setShowCreateModal(false);
+						setSelectedDate(null);
+					}}
+				/>
 			)}
 
 			{/* 연/월 선택 모달 */}
-		{showMonthPicker && (
-			<div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-				<div className="rounded p-4 w-full max-w-sm space-y-3" style={{ background: "var(--background)", color: "var(--foreground)" }}>
-					<h2 className="text-lg font-semibold">연/월 선택</h2>
-					<div className="flex gap-2">
-						<select
-							className="flex-1 border rounded px-2 py-1"
-							value={pickerYear}
-							onChange={(e) => setPickerYear(parseInt(e.target.value))}
-						>
-							{Array.from({ length: 31 }).map((_, i) => {
-								const y = new Date().getFullYear() - 15 + i; // 현재 기준 -15년 ~ +15년
-								return <option key={y} value={y}>{y}년</option>;
-							})}
-						</select>
-						<select
-							className="flex-1 border rounded px-2 py-1"
-							value={pickerMonth}
-							onChange={(e) => setPickerMonth(parseInt(e.target.value))}
-						>
-							{Array.from({ length: 12 }).map((_, m) => (
-								<option key={m} value={m}>{m + 1}월</option>
-							))}
-						</select>
-					</div>
-					<div className="flex justify-end gap-2">
-						<button
-							className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-							onClick={() => setShowMonthPicker(false)}
-						>
-							취소
-						</button>
-						<button
-							className="px-3 py-1 rounded text-black transition-colors cursor-pointer"
-							style={{ backgroundColor: BRAND_COLOR }}
-							onClick={() => {
-								const newDate = new Date(pickerYear, pickerMonth, 1);
-								setCurrent(newDate);
-								setShowMonthPicker(false);
-							}}
-						>
-							완료
-						</button>
-					</div>
-				</div>
-
-				{/* 알림 리드타임 설정 메뉴 */}
-				{notifMenuOpen && (
-					<div className="fixed inset-0 z-50" onClick={() => { setNotifMenuOpen(false); notifMenuOpenRef.current = false; }}>
-						<div
-							className="absolute rounded border bg-white dark:bg-zinc-900 text-sm shadow-md"
-							style={{ left: (notifMenuPos?.x ?? 12), top: (notifMenuPos?.y ?? 12) }}
-							onClick={(e) => e.stopPropagation()}
-						>
-							<div className="px-3 py-2 border-b dark:border-zinc-700">알림 시간 선택</div>
-							{[5,10,15,30,60].map((m) => (
-								<button
-									key={m}
-									className={`block w-full text-left px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 ${notificationLeadMinutes === m ? "font-semibold" : ""}`}
-									onClick={() => {
-										setNotificationLeadMinutes(m);
-										localStorage.setItem("gbti_notifications_minutes", String(m));
-										setNotifMenuOpen(false);
-										notifMenuOpenRef.current = false;
-									}}
-								>
-									{m}분 전
-								</button>
-							))}
-							<div className="px-3 py-2 border-t dark:border-zinc-700 text-xs text-zinc-500">우클릭/롱프레스로 열기</div>
+			{showMonthPicker && (
+				<div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+					<div className="rounded p-4 w-full max-w-sm space-y-3" style={{ background: "var(--background)", color: "var(--foreground)" }}>
+						<h2 className="text-lg font-semibold">연/월 선택</h2>
+						<div className="flex gap-2">
+							<select
+								className="flex-1 border rounded px-2 py-1"
+								value={pickerYear}
+								onChange={(e) => setPickerYear(parseInt(e.target.value))}
+							>
+								{Array.from({ length: 31 }).map((_, i) => {
+									const y = new Date().getFullYear() - 15 + i; // 현재 기준 -15년 ~ +15년
+									return <option key={y} value={y}>{y}년</option>;
+								})}
+							</select>
+							<select
+								className="flex-1 border rounded px-2 py-1"
+								value={pickerMonth}
+								onChange={(e) => setPickerMonth(parseInt(e.target.value))}
+							>
+								{Array.from({ length: 12 }).map((_, m) => (
+									<option key={m} value={m}>{m + 1}월</option>
+								))}
+							</select>
+						</div>
+						<div className="flex justify-end gap-2">
+							<button
+								className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+								onClick={() => setShowMonthPicker(false)}
+							>
+								취소
+							</button>
+							<button
+								className="px-3 py-1 rounded text-black transition-colors cursor-pointer"
+								style={{ backgroundColor: BRAND_COLOR }}
+								onClick={() => {
+									const newDate = new Date(pickerYear, pickerMonth, 1);
+									setCurrent(newDate);
+									setShowMonthPicker(false);
+								}}
+							>
+								완료
+							</button>
 						</div>
 					</div>
-				)}
-			</div>
-		)}
 
-		{/* 관리자 인증 모달 */}
-		{showAdminPasswordModal && (
-			<AdminPasswordModal
-				onClose={() => setShowAdminPasswordModal(false)}
-				onSuccess={() => setShowCreateNoticeModal(true)}
-			/>
-		)}
+					{/* 알림 리드타임 설정 메뉴 */}
+					{notifMenuOpen && (
+						<div className="fixed inset-0 z-50" onClick={() => { setNotifMenuOpen(false); notifMenuOpenRef.current = false; }}>
+							<div
+								className="absolute rounded border bg-white dark:bg-zinc-900 text-sm shadow-md"
+								style={{ left: (notifMenuPos?.x ?? 12), top: (notifMenuPos?.y ?? 12) }}
+								onClick={(e) => e.stopPropagation()}
+							>
+								<div className="px-3 py-2 border-b dark:border-zinc-700">알림 시간 선택</div>
+								{[5, 10, 15, 30, 60].map((m) => (
+									<button
+										key={m}
+										className={`block w-full text-left px-3 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 ${notificationLeadMinutes === m ? "font-semibold" : ""}`}
+										onClick={() => {
+											setNotificationLeadMinutes(m);
+											localStorage.setItem("gbti_notifications_minutes", String(m));
+											setNotifMenuOpen(false);
+											notifMenuOpenRef.current = false;
+										}}
+									>
+										{m}분 전
+									</button>
+								))}
+								<div className="px-3 py-2 border-t dark:border-zinc-700 text-xs text-zinc-500">우클릭/롱프레스로 열기</div>
+							</div>
+						</div>
+					)}
+				</div>
+			)}
 
-		{showCreateNoticeModal && (
-			<CreateNoticeModal
-				onClose={() => setShowCreateNoticeModal(false)}
-				onCreated={() => {
-					fetchNotices();
-					setShowCreateNoticeModal(false);
-				}}
-			/>
-		)}
+			{/* 관리자 인증 모달 */}
+			{showAdminPasswordModal && (
+				<AdminPasswordModal
+					onClose={() => setShowAdminPasswordModal(false)}
+					onSuccess={() => setShowCreateNoticeModal(true)}
+				/>
+			)}
+
+			{showCreateNoticeModal && (
+				<CreateNoticeModal
+					onClose={() => setShowCreateNoticeModal(false)}
+					onCreated={() => {
+						fetchNotices();
+						setShowCreateNoticeModal(false);
+					}}
+				/>
+			)}
 
 
-		{activeNotice && (
-			<NoticeDetailModal
-				notice={activeNotice}
-				onClose={() => setActiveNotice(null)}
-				onDeleted={() => fetchNotices()}
-			/>
-		)}
-	</div>
-);
+			{activeNotice && (
+				<NoticeDetailModal
+					notice={activeNotice}
+					onClose={() => setActiveNotice(null)}
+					onDeleted={() => fetchNotices()}
+				/>
+			)}
+		</div>
+	);
 }
 
 function AdminAuthModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
