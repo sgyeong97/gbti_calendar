@@ -59,7 +59,7 @@ export async function GET(_req: NextRequest, ctx: ParamsPromise) {
 			endAt: endAt.toISOString(),
 			allDay: false,
 			calendar: calendar,
-			attendees: participantRecords.map(p => ({
+			attendees: participantRecords.map((p: { id: string; name: string }) => ({
 				participant: p
 			})),
 			isRecurring: true,
