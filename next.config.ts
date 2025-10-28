@@ -5,6 +5,16 @@ const nextConfig: NextConfig = {
   experimental: {
     serverComponentsExternalPackages: ["@prisma/client"],
   },
+  // Include Prisma engines in the server bundle for Vercel/Next
+  webpack: (config) => {
+    config.externals = config.externals || [];
+    // Ensure Prisma engines are bundled/copied
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      "@prisma/client/runtime/library": require.resolve("@prisma/client/runtime/library"),
+    };
+    return config;
+  },
 };
 
 export default nextConfig;
