@@ -1,8 +1,8 @@
 # Vercel 배포 가이드
 
 ## 현재 상태
-✅ Postgres 데이터베이스 생성 완료
-✅ 환경 변수 준비 완료
+✅ Supabase 프로젝트 생성 완료
+✅ 환경 변수 준비 완료 (Supabase)
 
 ## 배포 순서
 
@@ -13,7 +13,8 @@
 2. 프로젝트 선택
 3. Settings > Environment Variables
 4. 다음 변수 추가:
-   - `DATABASE_URL` = `postgres://204872992555d6f610cd2163ae9524828c1c9a34869c49583a2460563be1dcea:sk_ME8CovMbrWIRb4altj_9d@db.prisma.io:5432/postgres?sslmode=require`
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 **옵션 B: Vercel CLI로 설정**
 ```bash
@@ -33,10 +34,8 @@ vercel env add DATABASE_URL
 
 ```bash
 # 환경 변수 설정 (.env.production 파일 생성 또는 export)
-export DATABASE_URL="postgres://204872992555d6f610cd2163ae9524828c1c9a34869c49583a2460563be1dcea:sk_ME8CovMbrWIRb4altj_9d@db.prisma.io:5432/postgres?sslmode=require"
-
-# Prisma 클라이언트 생성
-npx prisma generate --schema=prisma/schema.prisma
+export NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+export NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
 ```
 
 ### 3. Vercel에 배포
@@ -47,14 +46,13 @@ git add .
 git commit -m "Add participantNames to RecurringSlot"
 git push origin main
 
-# Vercel 자동 배포 (GitHub 연동시 자동)
-# 또는 수동 배포:
+# Vercel 자동 배포 (GitHub 연동시 자동) 또는 수동 배포:
 vercel --prod
 ```
 
 ### 4. 배포 후 스키마 적용
 
-배포가 완료되면 Vercel Postgres에 스키마를 적용해야 합니다:
+배포가 완료되면 Supabase에 스키마를 적용해야 합니다:
 
 #### 방법 1: Vercel 대시보드 터미널 사용
 1. Vercel 대시보드에서 프로젝트 클릭
@@ -62,7 +60,7 @@ vercel --prod
 3. 상단 메뉴에서 "Terminal" 탭 클릭
 4. 터미널에서 실행:
 ```bash
-npx prisma db push
+# Supabase SQL Editor에서 `supabase/schema.sql` 실행
 ```
 
 #### 방법 2: Vercel CLI 사용 (대안)
