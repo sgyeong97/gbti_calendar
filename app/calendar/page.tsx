@@ -151,6 +151,39 @@ export default function CalendarPage() {
 		}
 	}, []);
 
+	// Web Push 구독/업데이트 (서버 푸시용)
+	async function ensurePushSubscription() {
+		if (!swRegistrationRef.current) return;
+		try {
+			const keyRes = await fetch("/api/notifications/vapid-key");
+			const { publicKey } = await keyRes.json();
+			if (!publicKey) return;
+			const existing = await swRegistrationRef.current.pushManager.getSubscription();
+			const sub = existing || await swRegistrationRef.current.pushManager.subscribe({
+				userVisibleOnly: true,
+				applicationServerKey: urlBase64ToUint8Array(publicKey),
+			});
+			await fetch("/api/notifications/subscribe", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					subscription: sub.toJSON(),
+					targets: notificationTargets,
+					leads: notificationLeadMinutesList.length ? notificationLeadMinutesList : [notificationLeadMinutes],
+				}),
+			});
+		} catch { }
+	}
+
+	function urlBase64ToUint8Array(base64String: string) {
+		const padding = '='.repeat((4 - base64String.length % 4) % 4);
+		const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+		const rawData = atob(base64);
+		const outputArray = new Uint8Array(rawData.length);
+		for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+		return outputArray;
+	}
+
 	function clearAllNotificationTimers() {
 		notifTimersRef.current.forEach((id) => clearTimeout(id));
 		notifTimersRef.current.clear();
@@ -611,7 +644,13 @@ export default function CalendarPage() {
 							>
 								테스트 알림
 							</button>
-							<button className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800" onClick={() => setShowNotificationSettings(false)}>닫기</button>
+								<button
+									className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
+									onClick={() => {
+										setShowNotificationSettings(false);
+										ensurePushSubscription();
+									}}
+								>닫기</button>
 						</div>
 					</div>
 				</div>
