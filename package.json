@@ -4,28 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:sqlite": "DOTENV_CONFIG_PATH=.env.local prisma generate --schema=prisma/schema.sqlite.prisma && DOTENV_CONFIG_PATH=.env.local next dev",
-    "dev:mysql": "DOTENV_CONFIG_PATH=.env.local prisma generate --schema=prisma/schema.mysql.prisma && DOTENV_CONFIG_PATH=.env.local next dev",
-    "build": "prisma generate && next build",
-    "build:sqlite": "DOTENV_CONFIG_PATH=.env.local prisma generate --schema=prisma/schema.sqlite.prisma && DOTENV_CONFIG_PATH=.env.local next build",
-    "build:mysql": "DOTENV_CONFIG_PATH=.env.local prisma generate --schema=prisma/schema.mysql.prisma && DOTENV_CONFIG_PATH=.env.local next build",
+    "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "postinstall": "prisma generate",
-    "vercel-build": "prisma generate && next build",
-    "db:push": "prisma db push",
-    "db:push:sqlite": "DOTENV_CONFIG_PATH=.env.local prisma db push --schema=prisma/schema.sqlite.prisma",
-    "db:push:mysql": "DOTENV_CONFIG_PATH=.env.local prisma db push --schema=prisma/schema.mysql.prisma",
-    "db:studio": "prisma studio",
-    "db:studio:sqlite": "DOTENV_CONFIG_PATH=.env.local prisma studio --schema=prisma/schema.sqlite.prisma"
+    "lint": "eslint"
   },
   "dependencies": {
-    "@prisma/client": "^6.18.0",
     "@supabase/supabase-js": "^2.76.1",
-    "@vercel/postgres": "^0.10.0",
     "date-fns": "^4.1.0",
     "next": "16.0.0",
-    "prisma": "^6.18.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "zod": "^4.1.12"
