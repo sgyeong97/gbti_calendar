@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/app/lib/supabase-admin";
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+type ParamsPromise = { params: Promise<{ id: string }> };
+
+export async function DELETE(req: NextRequest, ctx: ParamsPromise) {
   const role = req.cookies.get("gbti_role")?.value;
   if (role !== "admin") return NextResponse.json({ error: "Admin only" }, { status: 403 });
 
-  const id = params.id;
+  const { id } = await ctx.params;
 
   try {
     const { error } = await supabaseAdmin
