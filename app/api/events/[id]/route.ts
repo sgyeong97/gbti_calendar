@@ -9,97 +9,88 @@ export async function GET(_req: NextRequest, ctx: ParamsPromise) {
 	
 	// 반복 이벤트(R- 으로 시작하는 가상 ID) 처리
 	if (id.startsWith('R-')) {
-		// R-calendarId-date-slotId 형식에서 날짜에 :가 포함될 수 있음
-		// 마지막 - 이후가 slotId이므로 역순으로 파싱
-		const parts = id.split('-');
-		if (parts.length >= 4) {
-			const calendarId = parts[1];
-			const slotId = parts[parts.length - 1]; // 마지막 부분이 slotId
-			// 중간 부분들을 합쳐서 날짜 문자열 복원
-			const dateStr = parts.slice(2, -1).join('-');
-			
-			console.log('Parsed recurring event:', { calendarId, dateStr, slotId });
-			
-			const { data: calendar, error: calError } = await supabase
-				.from('Calendar')
-				.select(`
-					*,
-					members:CalendarParticipant(participant:Participant(*)),
-					recurringSlots:RecurringSlot(id,eventTitle,startMinutes,endMinutes,participantNames,color)
-				`)
-				.eq('id', calendarId)
-				.single();
-			
-			if (calError) {
-				console.error('Calendar fetch error:', calError);
-				return NextResponse.json({ error: calError.message }, { status: 500 });
-			}
-			if (!calendar) {
-				console.error('Calendar not found:', calendarId);
-				return NextResponse.json({ error: "Calendar not found" }, { status: 404 });
-			}
-			
-			const slot = calendar.recurringSlots?.find((s: any) => s.id === slotId);
-			if (!slot) {
-				console.error('Slot not found:', slotId, 'in calendar:', calendarId);
-				return NextResponse.json({ error: "Slot not found" }, { status: 404 });
-			}
-			
-			const day = new Date(dateStr);
-			const startAt = new Date(day);
-			startAt.setHours(0, slot.startMinutes, 0, 0);
-			const endAt = new Date(day);
-			endAt.setHours(0, slot.endMinutes, 0, 0);
-			
-			// 해당 캘린더의 모든 반복 슬롯 가져오기
-			const { data: allSlots, error: slotsError } = await supabase
-				.from('RecurringSlot')
-				.select('*')
-				.eq('calendarId', calendar.id)
-				.order('dayOfWeek', { ascending: true });
-			
-			if (slotsError) {
-				return NextResponse.json({ error: slotsError.message }, { status: 500 });
-			}
-			
-			// 슬롯에 저장된 참석자 정보 사용
-			let participants: string[] = [];
-			if (slot.participantNames) {
-				participants = JSON.parse(slot.participantNames);
-			}
-			
-			// 참석자 이름으로 Participant 객체 찾기
-			const participantNamesList = participants.length > 0 ? participants : 
-				(calendar.members || []).map((m: any) => m.participant.name);
-			
-			const { data: participantRecords, error: participantsError } = await supabase
-				.from('Participant')
-				.select('*')
-				.in('name', participantNamesList);
-			if (participantsError) {
-				return NextResponse.json({ error: participantsError.message }, { status: 500 });
-			}
-			
-			const virtualEvent = {
-				id,
-				calendarId: calendar.id,
-				title: slot.eventTitle,
-				description: null,
-				startAt: startAt.toISOString(),
-				endAt: endAt.toISOString(),
-				allDay: false,
-				calendar: calendar,
-				attendees: (participantRecords || []).map((p: any) => ({ participant: p })),
-				isRecurring: true,
-				recurringSlotId: slot.id,
-				recurringSlots: allSlots,
-				recurringDays: allSlots?.map((s: any) => s.dayOfWeek) || [],
-				recurringStartMinutes: slot.startMinutes,
-				recurringEndMinutes: slot.endMinutes
-			};
-			
-			return NextResponse.json({ event: virtualEvent }, { headers: { 'Cache-Control': 'no-cache' } });
-		}
+        // R-calendarId-date-slotId 형식에서 날짜에 :가 포함될 수 있음
+        // 마지막 - 이후가 slotId이므로 역순으로 파싱
+        const parts = id.split('-');
+        if (parts.length >= 4) {
+            const calendarId = parts[1];
+            const slotId = parts[parts.length - 1]; // 마지막 부분이 slotId
+            const dateStr = parts.slice(2, -1).join('-');
+
+            // 1) 슬롯을 우선 조회 (더 견고)
+            const { data: slot, error: slotErr } = await supabase
+                .from('RecurringSlot')
+                .select('*')
+                .eq('id', slotId)
+                .single();
+            if (slotErr || !slot) {
+                console.error('Slot not found or error:', slotId, slotErr);
+                return NextResponse.json({ error: "Slot not found" }, { status: 404 });
+            }
+
+            // 2) 캘린더 및 멤버 조회 (없어도 진행 가능)
+            const { data: calendar, error: calError } = await supabase
+                .from('Calendar')
+                .select(`
+                    *,
+                    members:CalendarParticipant(participant:Participant(*))
+                `)
+                .eq('id', slot.calendarId ?? calendarId)
+                .single();
+            if (calError) {
+                console.warn('Calendar fetch error (continuing without calendar):', calError);
+            }
+
+            // 3) 같은 캘린더의 모든 슬롯 (반복 요일 계산용)
+            const { data: allSlots } = await supabase
+                .from('RecurringSlot')
+                .select('*')
+                .eq('calendarId', slot.calendarId ?? calendarId)
+                .order('dayOfWeek', { ascending: true });
+
+            const day = new Date(dateStr);
+            const startAt = new Date(day);
+            startAt.setHours(0, slot.startMinutes, 0, 0);
+            const endAt = new Date(day);
+            endAt.setHours(0, slot.endMinutes, 0, 0);
+
+            // 참석자
+            let participants: string[] = [];
+            if (slot.participantNames) {
+                try { participants = JSON.parse(slot.participantNames); } catch {}
+            }
+            const participantNamesList = participants.length > 0
+                ? participants
+                : ((calendar?.members || []).map((m: any) => m.participant.name));
+            let participantRecords: any[] = [];
+            if (participantNamesList && participantNamesList.length > 0) {
+                const pr = await supabase
+                    .from('Participant')
+                    .select('*')
+                    .in('name', participantNamesList);
+                participantRecords = pr.data || [];
+            }
+
+            const virtualEvent = {
+                id,
+                calendarId: slot.calendarId ?? calendarId,
+                title: slot.eventTitle,
+                description: null,
+                startAt: startAt.toISOString(),
+                endAt: endAt.toISOString(),
+                allDay: false,
+                calendar: calendar ?? null,
+                attendees: (participantRecords || []).map((p: any) => ({ participant: p })),
+                isRecurring: true,
+                recurringSlotId: slot.id,
+                recurringSlots: allSlots || [],
+                recurringDays: (allSlots || []).map((s: any) => s.dayOfWeek) || [],
+                recurringStartMinutes: slot.startMinutes,
+                recurringEndMinutes: slot.endMinutes
+            };
+
+            return NextResponse.json({ event: virtualEvent }, { headers: { 'Cache-Control': 'no-cache' } });
+        }
 	}
 	
 	// 일반 이벤트 처리
