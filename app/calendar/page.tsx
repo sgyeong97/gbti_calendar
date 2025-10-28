@@ -551,10 +551,12 @@ export default function CalendarPage() {
 			/>
 		)}
 
+
 		{activeNotice && (
 			<NoticeDetailModal
 				notice={activeNotice}
 				onClose={() => setActiveNotice(null)}
+				onDeleted={() => fetchNotices()}
 			/>
 		)}
 	</div>

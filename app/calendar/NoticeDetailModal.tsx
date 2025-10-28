@@ -11,18 +11,41 @@ type Notice = {
   createdAt: string;
 };
 
-export default function NoticeDetailModal({ notice, onClose }: { notice: Notice; onClose: () => void }) {
+export default function NoticeDetailModal({ notice, onClose, onDeleted }: { notice: Notice; onClose: () => void; onDeleted?: () => void }) {
+  async function handleDelete() {
+    if (!confirm('해당 공지를 삭제하시겠습니까?')) return;
+    try {
+      const res = await fetch(`/api/notices/${notice.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        onDeleted && onDeleted();
+        onClose();
+      } else {
+        const err = await res.json();
+        alert(err.error || '삭제에 실패했습니다.');
+      }
+    } catch (e) {
+      alert('네트워크 오류로 삭제에 실패했습니다.');
+    }
+  }
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="rounded p-4 w-full max-w-2xl space-y-3" style={{ background: "var(--background)", color: "var(--foreground)" }}>
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-2">
           <h2 className="text-lg font-semibold">{notice.title}</h2>
-          <button
-            className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-            onClick={onClose}
-          >
-            닫기
-          </button>
+          <div className="flex gap-2">
+            <button
+              className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              onClick={handleDelete}
+            >
+              삭제
+            </button>
+            <button
+              className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              onClick={onClose}
+            >
+              닫기
+            </button>
+          </div>
         </div>
 
         {notice.imageUrl && (
