@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import CreateEventModal from "@/app/calendar/CreateEventModal";
 import EventDetailModal from "@/app/calendar/EventDetailModal";
 import CreateNoticeModal from "@/app/calendar/CreateNoticeModal";
-import NoticeDetailModal from "@/app/calendar/NoticeDetailModal";
+import NoticeDetailModal from "./NoticeDetailModal";
 import AdminPasswordModal from "@/app/calendar/AdminPasswordModal";
-import { addDays, addWeeks, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, isToday, setHours, startOfMonth, startOfWeek, subWeeks } from "date-fns";
+import { addDays, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, isToday, startOfMonth, startOfWeek } from "date-fns";
 const BRAND_COLOR = "#FDC205"; // rgb(253,194,5)
 
 type Event = {
