@@ -149,13 +149,13 @@ export default function MemberManagementPage() {
 			const platformCount = Object.values(m.platforms).filter(Boolean).length;
 			return platformCount > 0 && platformCount < 3; // 일부 플랫폼에만 있는 경우
 		});
-		// 추가: 누락 체크 내 플랫폼 필터 (다중 선택 - OR 조건)
+		// 추가: 누락 체크 내 플랫폼 필터 (다중 선택 - AND 조건)
 		if (missingFilter.size > 0) {
 			filtered = filtered.filter(m => {
 				for (const p of missingFilter) {
-					if (m.platforms[p]) return true;
+					if (!m.platforms[p]) return false;
 				}
-				return false;
+				return true;
 			});
 		}
 		break;
