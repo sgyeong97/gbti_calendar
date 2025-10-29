@@ -44,90 +44,24 @@ export default function MemberManagementPage() {
 		"missing": { name: "누락 체크", icon: "⚠️", description: "일부 플랫폼에서 누락된 멤버" }
 	};
 
-	// 실제 인원 데이터
-	const mockMembers: Member[] = [
-		// 단톡방 인원들 (디코 + 공지방 + 채팅방)
-		{ id: "1", name: "디프", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1996, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1391819081967206411" },
-		{ id: "2", name: "루아", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1996, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1423572078337982464" },
-		{ id: "3", name: "여름", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1996, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1417888962810482749" },
-		{ id: "4", name: "하이안", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1996, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1427958074538201179" },
-		{ id: "5", name: "까망", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1997, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1429815110896976025" },
-		{ id: "6", name: "부릉", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1997, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1432330792444362754" },
-		{ id: "7", name: "산이", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1997, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1393023543255634021" },
-		{ id: "8", name: "새로", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1997, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1425102828929679472" },
-		{ id: "9", name: "죠르디", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1997, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1430813166702690377" },
-		{ id: "10", name: "초르", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1997, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1389657982354329600" },
-		{ id: "11", name: "허성", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1997, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1432755595282354176" },
-		{ id: "12", name: "링크", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1998, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1416314996563902494" },
-		{ id: "13", name: "앵귀", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1998, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1430456143909617768" },
-		{ id: "14", name: "여우", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1998, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1432206326158590134" },
-		{ id: "15", name: "재웅", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1998, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1390311511280582717" },
-		{ id: "16", name: "주누", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1998, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1431159226113331210" },
-		{ id: "17", name: "콩콩", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1991, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1411574168809635840" },
-		{ id: "18", name: "하늘", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1998, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1429181648355725504" },
-		{ id: "19", name: "함니", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1998, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1389764417184333865" },
-		{ id: "20", name: "홍이", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1998, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1430764323730620517" },
-		{ id: "21", name: "도비", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1999, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1432880125128605828" },
-		{ id: "22", name: "뱅", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1999, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1419899879353880657" },
-		{ id: "23", name: "사나이", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1999, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1425550833155703006" },
-		{ id: "24", name: "한국산", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1999, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1432763700074254378" },
-		{ id: "25", name: "딩고", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1997, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1411579484536176770" },
-		{ id: "26", name: "아로", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1991, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1389615658354081793" },
-		{ id: "27", name: "밀리", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1993, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1389859230101667920" },
-		{ id: "28", name: "설탕", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 2000, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1395721741849853982" },
-		{ id: "29", name: "냐하", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 2001, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1409531629004918835" },
-		{ id: "30", name: "미정", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 2001, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1422565173725499473" },
-		{ id: "31", name: "키미", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 2001, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1415978328074092554" },
-		{ id: "32", name: "그림", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1990, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1429873584746135796" },
-		{ id: "33", name: "용이", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1990, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1424777078712303636" },
-		{ id: "34", name: "박준", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1991, discordLink: "https://discord.com/users/박준ID" },
-		{ id: "35", name: "코난", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1991, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1418828834882588692" },
-		{ id: "36", name: "콩", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1991, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1426874580282380362" },
-		{ id: "37", name: "타이슨", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1991, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1416756869896339506" },
-		{ id: "38", name: "꼬기", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1992, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1395355263954976808" },
-		{ id: "39", name: "낭낭", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1992, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1403925472743653508" },
-		{ id: "40", name: "도도", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1992, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1429146692699029554" },
-		{ id: "41", name: "푸들", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1992, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1431088284418969691" },
-		{ id: "42", name: "혀니앙", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1995, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1431603294383378482" },
-		{ id: "43", name: "복희", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1993, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1389750003400048650" },
-		{ id: "44", name: "기류", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1994, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1412031160741003334" },
-		{ id: "45", name: "벼리", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1994, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1432350415495761960" },
-		{ id: "46", name: "장산", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1994, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1432356102585978953" },
-		{ id: "47", name: "히리", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1994, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1395565900098175057" },
-		{ id: "48", name: "가지", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1995, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1431843322095341599" },
-		{ id: "49", name: "노린재", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1995, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1398348242164383828" },
-		{ id: "50", name: "독자", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1995, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1426459124719161417" },
-		{ id: "51", name: "숑숑", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1995, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1406684402163122248" },
-		{ id: "52", name: "갱이", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1996, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1416771760963059977" },
-		{ id: "53", name: "냥구", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1996, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1410867806148362250" },
-		{ id: "54", name: "담", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1996, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1426201767204622449" },
-
-		// 공지방에만 있는 사람들
-		{ id: "55", name: "저스트", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1997, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1407977092695593060" },
-		{ id: "56", name: "츄잉", platforms: { discord: true, notice: true, chat: false }, status: "active", lastSeen: "2025-01-15", birthYear: 1997, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1426823296359596172" },
-		{ id: "57", name: "만두", platforms: { discord: true, notice: true, chat: false }, status: "active", lastSeen: "2025-01-15", birthYear: 1998, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1424758824815824970" },
-		{ id: "58", name: "도현", platforms: { discord: true, notice: true, chat: false }, status: "active", lastSeen: "2025-01-15", birthYear: 2001, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1425364472825905272" },
-		{ id: "59", name: "보라", platforms: { discord: true, notice: true, chat: false }, status: "active", lastSeen: "2025-01-15", birthYear: 1991, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1389772773987192853" },
-		{ id: "60", name: "어피치", platforms: { discord: true, notice: true, chat: false }, status: "active", lastSeen: "2025-01-15", birthYear: 1997 },
-		{ id: "61", name: "양치", platforms: { discord: true, notice: true, chat: false }, status: "active", lastSeen: "2025-01-15", birthYear: 1997, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1417138790979338250" },
-		{ id: "62", name: "깨", platforms: { discord: true, notice: true, chat: false }, status: "active", lastSeen: "2025-01-15", birthYear: 1993, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1404515939378004048" },
-		{ id: "63", name: "뀨름", platforms: { discord: true, notice: true, chat: false }, status: "active", lastSeen: "2025-01-15", birthYear: 1995 },
-
-		// 디코에만 있는 게스트들
-		{ id: "64", name: "퐝건", platforms: { discord: true, notice: false, chat: false }, status: "active", lastSeen: "2025-01-15", birthYear: 1992},
-		{ id: "65", name: "이라", platforms: { discord: true, notice: false, chat: false }, status: "active", lastSeen: "2025-01-15", birthYear: 1996},
-		{ id: "66", name: "영리", platforms: { discord: true, notice: false, chat: false }, status: "active", lastSeen: "2025-01-15", birthYear: 1991},
-		{ id: "67", name: "아이폰", platforms: { discord: true, notice: false, chat: false }, status: "active", lastSeen: "2025-01-15", birthYear: 1993},
-		{ id: "68", name: "류비아", platforms: { discord: true, notice: false, chat: false }, status: "active", lastSeen: "2025-01-15", birthYear: 1997},
-		{ id: "69", name: "동동", platforms: { discord: true, notice: false, chat: false }, status: "active", lastSeen: "2025-01-15", birthYear: 1993},
-		{ id: "70", name: "도장", platforms: { discord: true, notice: false, chat: false }, status: "active", lastSeen: "2025-01-15", birthYear: 1991},
-		{ id: "71", name: "집사", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1997, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1432693432718983280" },
-		{ id: "72", name: "웅", platforms: { discord: true, notice: true, chat: true }, status: "active", lastSeen: "2025-01-15", birthYear: 1997, discordLink: "https://discord.com/channels/1373916592294985828/1373948962569977986/1432060590276345899" },
-	];
-
+	// 서버의 JSON 파일과 동기화
 	useEffect(() => {
-		setMembers(mockMembers);
+		fetchMembers();
 	}, []);
+
+	async function fetchMembers() {
+		setLoading(true);
+		try {
+			const res = await fetch("/api/members", { cache: "no-store" });
+			if (!res.ok) throw new Error("failed to load");
+			const data: Member[] = await res.json();
+			setMembers(data);
+		} catch (err) {
+			alert("멤버 목록을 불러오지 못했습니다.");
+		} finally {
+			setLoading(false);
+		}
+	}
 
 	useEffect(() => {
 		let filtered = members;
@@ -214,17 +148,14 @@ export default function MemberManagementPage() {
 
 		setLoading(true);
 		try {
-			// 실제로는 API 호출
-			const newMember: Member = {
-				id: Date.now().toString(),
-				name: newMemberName.trim(),
-				platforms: { discord: false, notice: false, chat: false },
-				status: "active",
-				lastSeen: new Date().toISOString().split('T')[0],
-				discordLink: undefined
-			};
-			
-			setMembers([...members, newMember]);
+			const res = await fetch("/api/members", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ name: newMemberName.trim() })
+			});
+			if (!res.ok) throw new Error("failed to add");
+			const created: Member = await res.json();
+			setMembers([...members, created]);
 			setNewMemberName("");
 		} catch (err) {
 			alert("멤버 추가에 실패했습니다.");
@@ -234,17 +165,21 @@ export default function MemberManagementPage() {
 	}
 
 	async function togglePlatform(memberId: string, platform: Platform) {
-		setMembers(members.map(m => 
-			m.id === memberId 
-				? { ...m, platforms: { ...m.platforms, [platform]: !m.platforms[platform] } }
-				: m
-		));
+		const target = members.find(m => m.id === memberId);
+		if (!target) return;
+		const nextPlatforms = { ...target.platforms, [platform]: !target.platforms[platform] };
+		await updateMember(memberId, { platforms: nextPlatforms });
 	}
 
 	async function deleteMember(memberId: string) {
 		if (!confirm("이 멤버를 삭제하시겠습니까?")) return;
-		
+		try {
+			const res = await fetch(`/api/members/${memberId}`, { method: "DELETE" });
+			if (!res.ok) throw new Error("failed to delete");
 		setMembers(members.filter(m => m.id !== memberId));
+		} catch {
+			alert("삭제에 실패했습니다.");
+		}
 	}
 
 function startEditDiscordLink(member: Member) {
@@ -253,15 +188,29 @@ function startEditDiscordLink(member: Member) {
 	setEditingDiscordLink(member.discordLink || "");
 }
 
-function saveDiscordLink() {
+	async function updateMember(memberId: string, patch: any) {
+		try {
+			const res = await fetch(`/api/members/${memberId}`, {
+				method: "PUT",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(patch),
+			});
+			if (!res.ok) throw new Error("failed to update");
+			const updated: Member = await res.json();
+			setMembers(prev => prev.map(m => m.id === memberId ? updated : m));
+		} catch {
+			alert("저장에 실패했습니다.");
+		}
+	}
+
+	function removeDiscordLink(memberId: string) {
+		// 사용되지 않지만, 이전 호환 목적: 비우기 동작은 saveDiscordLink에서 처리
+		void updateMember(memberId, { discordLink: "" });
+	}
+
+	async function saveDiscordLink() {
 	if (!editingMemberId) return;
-
-	setMembers(members.map(m => 
-		m.id === editingMemberId 
-			? { ...m, discordLink: (editingDiscordLink.trim() || undefined) }
-			: m
-	));
-
+		await updateMember(editingMemberId, { discordLink: editingDiscordLink.trim() });
 	setEditingMemberId(null);
 	setEditingField(null);
 	setEditingDiscordLink("");
@@ -273,13 +222,7 @@ function cancelEditDiscordLink() {
 	setEditingDiscordLink("");
 }
 
-	function removeDiscordLink(memberId: string) {
-		setMembers(members.map(m => 
-			m.id === memberId 
-				? { ...m, discordLink: undefined }
-				: m
-		));
-	}
+
 
 function startEditBirthYear(member: Member) {
 	setEditingMemberId(member.id);
@@ -287,15 +230,9 @@ function startEditBirthYear(member: Member) {
 	setEditingBirthYear(member.birthYear || null);
 }
 
-function saveBirthYear() {
+	async function saveBirthYear() {
 	if (!editingMemberId) return;
-
-	setMembers(members.map(m => 
-		m.id === editingMemberId 
-			? { ...m, birthYear: editingBirthYear || undefined }
-			: m
-	));
-
+		await updateMember(editingMemberId, { birthYear: editingBirthYear ?? null });
 	setEditingMemberId(null);
 	setEditingField(null);
 	setEditingBirthYear(null);
