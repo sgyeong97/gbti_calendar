@@ -144,21 +144,27 @@ export default function MemberManagementPage() {
 					m.platforms.discord && m.platforms.notice && !m.platforms.chat
 				);
 				break;
-	case "missing":
-		filtered = members.filter(m => {
-			const platformCount = Object.values(m.platforms).filter(Boolean).length;
-			return platformCount > 0 && platformCount < 3; // 일부 플랫폼에만 있는 경우
-		});
-		// 추가: 누락 체크 내 플랫폼 필터 (다중 선택 - AND 조건)
-		if (missingFilter.size > 0) {
-			filtered = filtered.filter(m => {
-				for (const p of missingFilter) {
-					if (!m.platforms[p]) return false;
+		case "missing":
+			filtered = members.filter(m => {
+				// 누락 체크: 모든 플랫폼을 가진 멤버는 제외
+				const platformCount = Object.values(m.platforms).filter(Boolean).length;
+				if (platformCount === 3) return false;
+				
+				// 필터가 설정된 경우: 정확히 선택된 플랫폼만 있는 멤버만 표시
+				if (missingFilter.size > 0) {
+					// 선택된 플랫폼을 모두 가져야 함
+					for (const p of missingFilter) {
+						if (!m.platforms[p]) return false;
+					}
+					// 선택되지 않은 플랫폼은 가져서는 안 됨
+					for (const p of ["discord", "notice", "chat"] as Platform[]) {
+						if (!missingFilter.has(p) && m.platforms[p]) return false;
+					}
 				}
+				
 				return true;
 			});
-		}
-		break;
+			break;
 			default:
 				filtered = members;
 		}
