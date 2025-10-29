@@ -34,7 +34,7 @@ export default function MemberManagementPage() {
 	const [sortBy, setSortBy] = useState<"name" | "birthYear">("name");
 	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 	const [filterBirthYear, setFilterBirthYear] = useState<number | null>(null);
-	const [missingFilter, setMissingFilter] = useState<"discord" | "notice" | "chat" | "">("");
+	const [missingFilter, setMissingFilter] = useState<Set<Platform>>(new Set());
 	const [exportFormat, setExportFormat] = useState<"excel" | "csv" | "text">("csv");
 
 	const tabTypes = {
@@ -149,9 +149,14 @@ export default function MemberManagementPage() {
 			const platformCount = Object.values(m.platforms).filter(Boolean).length;
 			return platformCount > 0 && platformCount < 3; // 일부 플랫폼에만 있는 경우
 		});
-		// 추가: 누락 체크 내 플랫폼 필터
-		if (missingFilter) {
-			filtered = filtered.filter(m => m.platforms[missingFilter]);
+		// 추가: 누락 체크 내 플랫폼 필터 (다중 선택 - OR 조건)
+		if (missingFilter.size > 0) {
+			filtered = filtered.filter(m => {
+				for (const p of missingFilter) {
+					if (m.platforms[p]) return true;
+				}
+				return false;
+			});
 		}
 		break;
 			default:
@@ -196,7 +201,7 @@ export default function MemberManagementPage() {
 		});
 
 		setFilteredMembers(filtered);
-	}, [activeTab, members, searchTerm, sortBy, sortOrder, filterBirthYear]);
+	}, [activeTab, members, searchTerm, sortBy, sortOrder, filterBirthYear, missingFilter]);
 
 	async function addMember() {
 		if (!newMemberName.trim()) return;
@@ -499,30 +504,42 @@ function cancelEditBirthYear() {
 
 						{/* 누락 체크 전용 플랫폼 필터 */}
 						{activeTab === "missing" && (
-							<div className="flex items-center gap-2">
+						<div className="flex items-center gap-2">
 								<span className="text-sm text-zinc-600">플랫폼 필터:</span>
-								<button
-									className={`px-3 py-2 rounded text-sm border ${missingFilter === "" ? "bg-zinc-100" : ""}`}
-									onClick={() => setMissingFilter("")}
-								>
+							<button
+								className={`px-3 py-2 rounded text-sm border ${missingFilter.size === 0 ? "bg-zinc-100" : ""}`}
+								onClick={() => setMissingFilter(new Set())}
+							>
 									전체
 								</button>
-								<button
-									className={`px-3 py-2 rounded text-sm border ${missingFilter === "discord" ? "bg-blue-100" : ""}`}
-									onClick={() => setMissingFilter("discord")}
-								>
+							<button
+								className={`px-3 py-2 rounded text-sm border ${missingFilter.has("discord") ? "bg-blue-100" : ""}`}
+								onClick={() => {
+									const next = new Set(missingFilter);
+									if (next.has("discord")) next.delete("discord"); else next.add("discord");
+									setMissingFilter(next);
+								}}
+							>
 									디코
 								</button>
-								<button
-									className={`px-3 py-2 rounded text-sm border ${missingFilter === "notice" ? "bg-green-100" : ""}`}
-									onClick={() => setMissingFilter("notice")}
-								>
+							<button
+								className={`px-3 py-2 rounded text-sm border ${missingFilter.has("notice") ? "bg-green-100" : ""}`}
+								onClick={() => {
+									const next = new Set(missingFilter);
+									if (next.has("notice")) next.delete("notice"); else next.add("notice");
+									setMissingFilter(next);
+								}}
+							>
 									공지방
 								</button>
-								<button
-									className={`px-3 py-2 rounded text-sm border ${missingFilter === "chat" ? "bg-purple-100" : ""}`}
-									onClick={() => setMissingFilter("chat")}
-								>
+							<button
+								className={`px-3 py-2 rounded text-sm border ${missingFilter.has("chat") ? "bg-purple-100" : ""}`}
+								onClick={() => {
+									const next = new Set(missingFilter);
+									if (next.has("chat")) next.delete("chat"); else next.add("chat");
+									setMissingFilter(next);
+								}}
+							>
 									채팅방
 								</button>
 							</div>
