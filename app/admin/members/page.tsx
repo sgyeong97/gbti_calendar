@@ -28,11 +28,14 @@ export default function MemberManagementPage() {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+	const [editingField, setEditingField] = useState<null | "discordLink" | "birthYear">(null);
 	const [editingDiscordLink, setEditingDiscordLink] = useState("");
 	const [editingBirthYear, setEditingBirthYear] = useState<number | null>(null);
-	const [sortBy, setSortBy] = useState<"name" | "birthYear" | "lastSeen">("name");
+	const [sortBy, setSortBy] = useState<"name" | "birthYear">("name");
 	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 	const [filterBirthYear, setFilterBirthYear] = useState<number | null>(null);
+	const [missingFilter, setMissingFilter] = useState<"discord" | "notice" | "chat" | "">("");
+	const [exportFormat, setExportFormat] = useState<"excel" | "csv" | "text">("csv");
 
 	const tabTypes = {
 		all: { name: "전체 멤버", icon: "👥", description: "모든 플랫폼 멤버 현황" },
@@ -141,12 +144,16 @@ export default function MemberManagementPage() {
 					m.platforms.discord && m.platforms.notice && !m.platforms.chat
 				);
 				break;
-			case "missing":
-				filtered = members.filter(m => {
-					const platformCount = Object.values(m.platforms).filter(Boolean).length;
-					return platformCount > 0 && platformCount < 3; // 일부 플랫폼에만 있는 경우
-				});
-				break;
+	case "missing":
+		filtered = members.filter(m => {
+			const platformCount = Object.values(m.platforms).filter(Boolean).length;
+			return platformCount > 0 && platformCount < 3; // 일부 플랫폼에만 있는 경우
+		});
+		// 추가: 누락 체크 내 플랫폼 필터
+		if (missingFilter) {
+			filtered = filtered.filter(m => m.platforms[missingFilter]);
+		}
+		break;
 			default:
 				filtered = members;
 		}
@@ -175,10 +182,6 @@ export default function MemberManagementPage() {
 				case "birthYear":
 					aValue = a.birthYear || 0;
 					bValue = b.birthYear || 0;
-					break;
-				case "lastSeen":
-					aValue = new Date(a.lastSeen);
-					bValue = new Date(b.lastSeen);
 					break;
 				default:
 					aValue = a.name;
@@ -233,28 +236,31 @@ export default function MemberManagementPage() {
 		setMembers(members.filter(m => m.id !== memberId));
 	}
 
-	function startEditDiscordLink(member: Member) {
-		setEditingMemberId(member.id);
-		setEditingDiscordLink(member.discordLink || "");
-	}
+function startEditDiscordLink(member: Member) {
+	setEditingMemberId(member.id);
+	setEditingField("discordLink");
+	setEditingDiscordLink(member.discordLink || "");
+}
 
-	function saveDiscordLink() {
-		if (!editingMemberId) return;
+function saveDiscordLink() {
+	if (!editingMemberId) return;
 
-		setMembers(members.map(m => 
-			m.id === editingMemberId 
-				? { ...m, discordLink: editingDiscordLink.trim() || undefined }
-				: m
-		));
+	setMembers(members.map(m => 
+		m.id === editingMemberId 
+			? { ...m, discordLink: (editingDiscordLink.trim() || undefined) }
+			: m
+	));
 
-		setEditingMemberId(null);
-		setEditingDiscordLink("");
-	}
+	setEditingMemberId(null);
+	setEditingField(null);
+	setEditingDiscordLink("");
+}
 
-	function cancelEditDiscordLink() {
-		setEditingMemberId(null);
-		setEditingDiscordLink("");
-	}
+function cancelEditDiscordLink() {
+	setEditingMemberId(null);
+	setEditingField(null);
+	setEditingDiscordLink("");
+}
 
 	function removeDiscordLink(memberId: string) {
 		setMembers(members.map(m => 
@@ -264,28 +270,31 @@ export default function MemberManagementPage() {
 		));
 	}
 
-	function startEditBirthYear(member: Member) {
-		setEditingMemberId(member.id);
-		setEditingBirthYear(member.birthYear || null);
-	}
+function startEditBirthYear(member: Member) {
+	setEditingMemberId(member.id);
+	setEditingField("birthYear");
+	setEditingBirthYear(member.birthYear || null);
+}
 
-	function saveBirthYear() {
-		if (!editingMemberId) return;
+function saveBirthYear() {
+	if (!editingMemberId) return;
 
-		setMembers(members.map(m => 
-			m.id === editingMemberId 
-				? { ...m, birthYear: editingBirthYear || undefined }
-				: m
-		));
+	setMembers(members.map(m => 
+		m.id === editingMemberId 
+			? { ...m, birthYear: editingBirthYear || undefined }
+			: m
+	));
 
-		setEditingMemberId(null);
-		setEditingBirthYear(null);
-	}
+	setEditingMemberId(null);
+	setEditingField(null);
+	setEditingBirthYear(null);
+}
 
-	function cancelEditBirthYear() {
-		setEditingMemberId(null);
-		setEditingBirthYear(null);
-	}
+function cancelEditBirthYear() {
+	setEditingMemberId(null);
+	setEditingField(null);
+	setEditingBirthYear(null);
+}
 
 	function getPlatformStatus(member: Member) {
 		const platforms = [];
@@ -310,6 +319,79 @@ export default function MemberManagementPage() {
 			min: Math.min(...years),
 			max: Math.max(...years)
 		};
+	}
+
+	function formatDateForFilename(d: Date) {
+		const yyyy = d.getFullYear();
+		const mm = String(d.getMonth() + 1).padStart(2, "0");
+		const dd = String(d.getDate()).padStart(2, "0");
+		return `${yyyy}${mm}${dd}`;
+	}
+
+	function downloadBlob(content: string, mime: string, ext: string) {
+		const dateStr = formatDateForFilename(new Date());
+		const filename = `GBTI_${dateStr}.${ext}`;
+		const blob = new Blob([content], { type: mime });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = filename;
+		document.body.appendChild(a);
+		a.click();
+		a.remove();
+		URL.revokeObjectURL(url);
+	}
+
+	function toCsvRow(values: (string | number | undefined)[]) {
+		return values
+			.map((v) => {
+				if (v === undefined || v === null) return "";
+				const s = String(v);
+				// CSV escape
+				if (/[",\n]/.test(s)) {
+					return '"' + s.replaceAll('"', '""') + '"';
+				}
+				return s;
+			})
+			.join(",");
+	}
+
+	function handleDownload() {
+		// 현재 화면의 필터 결과를 기준으로 내보냄
+		const rows = filteredMembers.map((m) => ({
+			name: m.name,
+			discord: m.platforms.discord ? "Y" : "",
+			notice: m.platforms.notice ? "Y" : "",
+			chat: m.platforms.chat ? "Y" : "",
+			birthYear: m.birthYear ?? "",
+			discordLink: m.discordLink ?? "",
+		}));
+
+		if (exportFormat === "csv") {
+			const header = toCsvRow(["이름", "디코", "공지", "채팅", "탄생년도", "디코링크"]);
+			const body = rows.map(r => toCsvRow([r.name, r.discord, r.notice, r.chat, r.birthYear, r.discordLink])).join("\n");
+			const csv = header + "\n" + body + "\n";
+			downloadBlob(csv, "text/csv;charset=utf-8", "csv");
+			return;
+		}
+
+		if (exportFormat === "text") {
+			const lines = [
+				"이름\t디코\t공지\t채팅\t탄생년도\t디코링크",
+				...rows.map(r => `${r.name}\t${r.discord}\t${r.notice}\t${r.chat}\t${r.birthYear}\t${r.discordLink}`)
+			];
+			const txt = lines.join("\n") + "\n";
+			downloadBlob(txt, "text/plain;charset=utf-8", "txt");
+			return;
+		}
+
+		// excel: 탭-구분 텍스트를 .xls로 저장 (Excel에서 바로 열기 가능)
+		const xlsLines = [
+			"이름\t디코\t공지\t채팅\t탄생년도\t디코링크",
+			...rows.map(r => `${r.name}\t${r.discord}\t${r.notice}\t${r.chat}\t${r.birthYear}\t${r.discordLink}`)
+		];
+		const xls = xlsLines.join("\n") + "\n";
+		downloadBlob(xls, "application/vnd.ms-excel;charset=utf-8", "xls");
 	}
 
 	return (
@@ -355,7 +437,7 @@ export default function MemberManagementPage() {
 
 				{/* 검색 및 멤버 추가 */}
 				<div className="space-y-3">
-					{/* 검색 */}
+						{/* 검색 */}
 					<div className="flex gap-2">
 						<input
 							type="text"
@@ -375,16 +457,15 @@ export default function MemberManagementPage() {
 					</div>
 
 					{/* 정렬 및 필터링 */}
-					<div className="flex gap-2 flex-wrap">
-						{/* 정렬 기준 */}
+					<div className="flex gap-2 flex-wrap items-center">
+					{/* 정렬 기준 */}
 						<select
-							value={sortBy}
-							onChange={(e) => setSortBy(e.target.value as "name" | "birthYear" | "lastSeen")}
+						value={sortBy}
+						onChange={(e) => setSortBy(e.target.value as "name" | "birthYear")}
 							className="border rounded px-3 py-2"
 						>
 							<option value="name">이름순</option>
 							<option value="birthYear">탄생년도순</option>
-							<option value="lastSeen">마지막 활동순</option>
 						</select>
 
 						{/* 정렬 순서 */}
@@ -416,6 +497,37 @@ export default function MemberManagementPage() {
 							})()}
 						</select>
 
+						{/* 누락 체크 전용 플랫폼 필터 */}
+						{activeTab === "missing" && (
+							<div className="flex items-center gap-2">
+								<span className="text-sm text-zinc-600">플랫폼 필터:</span>
+								<button
+									className={`px-3 py-2 rounded text-sm border ${missingFilter === "" ? "bg-zinc-100" : ""}`}
+									onClick={() => setMissingFilter("")}
+								>
+									전체
+								</button>
+								<button
+									className={`px-3 py-2 rounded text-sm border ${missingFilter === "discord" ? "bg-blue-100" : ""}`}
+									onClick={() => setMissingFilter("discord")}
+								>
+									디코
+								</button>
+								<button
+									className={`px-3 py-2 rounded text-sm border ${missingFilter === "notice" ? "bg-green-100" : ""}`}
+									onClick={() => setMissingFilter("notice")}
+								>
+									공지방
+								</button>
+								<button
+									className={`px-3 py-2 rounded text-sm border ${missingFilter === "chat" ? "bg-purple-100" : ""}`}
+									onClick={() => setMissingFilter("chat")}
+								>
+									채팅방
+								</button>
+							</div>
+						)}
+
 						{/* 필터 초기화 */}
 						{(filterBirthYear !== null || searchTerm) && (
 							<button
@@ -428,6 +540,26 @@ export default function MemberManagementPage() {
 								필터 초기화
 							</button>
 						)}
+
+						{/* 내보내기 */}
+						<div className="flex items-center gap-2 ml-auto">
+							<select
+								value={exportFormat}
+								onChange={(e) => setExportFormat(e.target.value as any)}
+								className="border rounded px-3 py-2"
+							>
+								<option value="excel">엑셀(.xls)</option>
+								<option value="csv">CSV(.csv)</option>
+								<option value="text">Text(.txt)</option>
+							</select>
+							<button
+								className="px-4 py-2 rounded text-black transition-colors cursor-pointer"
+								style={{ backgroundColor: "#FDC205" }}
+								onClick={handleDownload}
+							>
+								다운로드
+							</button>
+						</div>
 					</div>
 
 					{/* 멤버 추가 */}
@@ -481,7 +613,6 @@ export default function MemberManagementPage() {
 									<div className="text-sm text-zinc-500">
 										플랫폼: {getPlatformStatus(member)} | 
 										{member.birthYear && `탄생년도: ${member.birthYear}년 | `}
-										마지막 활동: {member.lastSeen} | 
 										상태: <span className={member.status === "active" ? "text-green-600" : "text-red-600"}>
 											{member.status === "active" ? "활성" : "비활성"}
 										</span>
@@ -490,9 +621,9 @@ export default function MemberManagementPage() {
 									{/* 디코 링크 및 탄생년도 편집 */}
 									<div className="mt-2 space-y-2">
 										{/* 디코 링크 편집 */}
-										{member.platforms.discord && (
+									{member.platforms.discord && (
 											<div>
-												{editingMemberId === member.id && editingDiscordLink !== undefined ? (
+											{editingMemberId === member.id && editingField === "discordLink" ? (
 													<div className="flex gap-2">
 														<input
 															type="text"
@@ -527,14 +658,7 @@ export default function MemberManagementPage() {
 														>
 															{member.discordLink ? "링크 수정" : "링크 추가"}
 														</button>
-														{member.discordLink && (
-															<button
-																className="px-2 py-1 rounded text-xs bg-red-100 text-red-700 hover:bg-red-200"
-																onClick={() => removeDiscordLink(member.id)}
-															>
-																링크 삭제
-															</button>
-														)}
+													{/* 삭제 버튼 제거: 빈칸 저장으로 삭제 */}
 													</div>
 												)}
 											</div>
