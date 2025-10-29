@@ -626,7 +626,7 @@ function cancelEditBirthYear() {
 
 										{/* 탄생년도 편집 */}
 										<div>
-											{editingMemberId === member.id && editingBirthYear !== null ? (
+						{editingMemberId === member.id && editingField === "birthYear" ? (
 												<div className="flex gap-2">
 													<input
 														type="number"
