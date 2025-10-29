@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/app/lib/supabase";
 
 export async function GET() {
@@ -12,6 +12,29 @@ export async function GET() {
 	}
 
 	return NextResponse.json({ participants });
+}
+
+export async function POST(req: NextRequest) {
+	const role = req.cookies.get("gbti_role")?.value;
+	if (role !== "admin") return NextResponse.json({ error: "Admin only" }, { status: 403 });
+
+	const { name } = await req.json();
+	
+	if (!name || !name.trim()) {
+		return NextResponse.json({ error: "Name is required" }, { status: 400 });
+	}
+
+	const { data: participant, error } = await supabase
+		.from('Participant')
+		.insert({ name: name.trim() })
+		.select()
+		.single();
+
+	if (error) {
+		return NextResponse.json({ error: error.message }, { status: 500 });
+	}
+
+	return NextResponse.json({ participant }, { status: 201 });
 }
 
 

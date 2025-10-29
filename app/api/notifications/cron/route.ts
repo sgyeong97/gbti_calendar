@@ -1,78 +1,115 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/app/lib/supabase-admin";
-import webpush from "web-push";
-
-export const runtime = "nodejs"; // web-push는 Edge에서 동작하지 않음
-
-function minutes(ms: number) { return Math.floor(ms / 60000); }
+import { supabase } from "@/app/lib/supabase";
+import { sendPushNotificationToUser } from "@/app/lib/push-notifications";
 
 export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const origin = `${url.protocol}//${url.host}`;
+  console.log("Cron job started at:", new Date().toISOString());
+  
+  try {
+    // 30분 후 시작하는 이벤트 찾기
+    const now = new Date();
+    const thirtyMinutesLater = new Date(now.getTime() + 30 * 60 * 1000);
+    
+    // 현재 시간부터 5분 후까지의 범위에서 이벤트 조회
+    const startTime = now.toISOString();
+    const endTime = new Date(now.getTime() + 5 * 60 * 1000).toISOString();
+    
+    const { data: events, error: eventsError } = await supabase
+      .from('Event')
+      .select('*, attendees:EventParticipant(participant:Participant(*))')
+      .gte('startAt', startTime)
+      .lte('startAt', endTime)
+      .order('startAt', { ascending: true });
 
-  const pub = process.env.VAPID_PUBLIC_KEY || process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  const priv = process.env.VAPID_PRIVATE_KEY;
-  if (!pub || !priv) return NextResponse.json({ error: "VAPID keys missing" }, { status: 500 });
+    if (eventsError) {
+      console.error('Error fetching events:', eventsError);
+      return NextResponse.json({ error: eventsError.message }, { status: 500 });
+    }
 
-  webpush.setVapidDetails(`mailto:no-reply@${url.host}`, pub, priv!);
+    // 반복 이벤트도 확인
+    const { data: recurringSlots, error: slotsError } = await supabase
+      .from('RecurringSlot')
+      .select('*')
+      .gte('startsOn', startTime)
+      .lte('startsOn', endTime);
 
-  const now = new Date();
-  const windowMin = 5; // send notifications for triggers in next 5 minutes
-  const nowMs = now.getTime();
+    if (slotsError) {
+      console.error('Error fetching recurring slots:', slotsError);
+    }
 
-  // Load subscriptions
-  const { data: subs, error } = await supabaseAdmin.from("PushSubscription").select("endpoint,p256dh,auth,targets,leads");
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  if (!subs || subs.length === 0) return NextResponse.json({ ok: true, sent: 0 });
+    let notificationsSent = 0;
+    const errors = [];
 
-  // Fetch events for today+1 day (rough window)
-  const startStr = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().slice(0,10);
-  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1);
-  const endStr = end.toISOString().slice(0,10);
-  const eventsRes = await fetch(`${origin}/api/events?start=${startStr}&end=${endStr}`);
-  const eventsJson = await eventsRes.json();
-  const events = (eventsJson.events || []) as Array<{ id:string; title:string; startAt:string; participants?:string[] }>; 
-
-  let sent = 0;
-  for (const sub of subs) {
-    const targets = new Set((sub.targets || []) as string[]);
-    const leads = ((sub.leads || [30]) as number[]).filter((m) => m > 0).slice(0, 6);
-    if (targets.size === 0 || leads.length === 0) continue;
-
-    for (const ev of events) {
-      if (!ev.participants || ev.participants.length === 0) continue;
-      const has = ev.participants.some((p) => targets.has(p));
-      if (!has) continue;
-      const startMs = new Date(ev.startAt).getTime();
-      for (const m of leads) {
-        const triggerMs = startMs - m * 60000;
-        const diffMin = minutes(triggerMs - nowMs);
-        if (diffMin >= 0 && diffMin < windowMin) {
-          try {
-            await webpush.sendNotification(
-              {
-                endpoint: sub.endpoint,
-                keys: { p256dh: sub.p256dh, auth: sub.auth },
-              } as any,
-              JSON.stringify({
-                title: `${ev.title} (${new Date(ev.startAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})})`,
-                body: `${m}분 후 시작합니다`,
-                url: `${origin}/calendar`,
-              })
-            );
-            sent++;
-          } catch (err) {
-            // On gone subscriptions, delete
-            if ((err as any)?.statusCode === 410 || (err as any)?.statusCode === 404) {
-              await supabaseAdmin.from("PushSubscription").delete().eq("endpoint", sub.endpoint);
-            }
+    // 일반 이벤트 알림 발송
+    for (const event of events || []) {
+      const participants = (event.attendees || []).map((a: any) => a.participant.name);
+      
+      for (const participantName of participants) {
+        try {
+          const result = await sendPushNotificationToUser(participantName, {
+            title: "이벤트 알림",
+            body: `${event.title}이(가) 곧 시작됩니다!`,
+            icon: "/favicon.ico",
+            url: "/calendar"
+          });
+          
+          if (result.success) {
+            notificationsSent++;
+            console.log(`Notification sent to ${participantName} for event ${event.title}`);
+          } else {
+            errors.push(`Failed to send to ${participantName}: ${result.error}`);
           }
+        } catch (error: any) {
+          errors.push(`Error sending to ${participantName}: ${error.message}`);
         }
       }
     }
+
+    // 반복 이벤트 알림 발송
+    for (const slot of recurringSlots || []) {
+      try {
+        const participantNames = slot.participantNames ? JSON.parse(slot.participantNames) : [];
+        
+        for (const participantName of participantNames) {
+          try {
+            const result = await sendPushNotificationToUser(participantName, {
+              title: "반복 이벤트 알림",
+              body: `${slot.eventTitle}이(가) 곧 시작됩니다!`,
+              icon: "/favicon.ico",
+              url: "/calendar"
+            });
+            
+            if (result.success) {
+              notificationsSent++;
+              console.log(`Notification sent to ${participantName} for recurring event ${slot.eventTitle}`);
+            } else {
+              errors.push(`Failed to send to ${participantName}: ${result.error}`);
+            }
+          } catch (error: any) {
+            errors.push(`Error sending to ${participantName}: ${error.message}`);
+          }
+        }
+      } catch (error: any) {
+        console.error('Error parsing participantNames:', error);
+      }
+    }
+
+    console.log(`Cron job completed. Notifications sent: ${notificationsSent}, Errors: ${errors.length}`);
+    
+    return NextResponse.json({ 
+      success: true, 
+      timestamp: new Date().toISOString(),
+      notificationsSent,
+      errors: errors.slice(0, 10), // 최대 10개 에러만 반환
+      eventsProcessed: (events || []).length,
+      recurringSlotsProcessed: (recurringSlots || []).length
+    });
+    
+  } catch (error: any) {
+    console.error('Cron job failed:', error);
+    return NextResponse.json({ 
+      error: error.message,
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
   }
-
-  return NextResponse.json({ ok: true, sent });
 }
-
-
