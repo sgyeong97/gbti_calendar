@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { readMembers, writeMembers, Member } from "@/app/lib/members-store";
 
-type RouteContext = { params: { id: string } };
+type RouteContext = { params: Promise<{ id: string }> };
 
-export async function PUT(req: Request, ctx: RouteContext) {
-	const id = ctx.params.id;
+export async function PUT(req: NextRequest, ctx: RouteContext) {
+    const { id } = await ctx.params;
 	if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 	try {
 		const patch = await req.json();
@@ -35,8 +35,8 @@ export async function PUT(req: Request, ctx: RouteContext) {
 	}
 }
 
-export async function DELETE(_req: Request, ctx: RouteContext) {
-	const id = ctx.params.id;
+export async function DELETE(_req: NextRequest, ctx: RouteContext) {
+    const { id } = await ctx.params;
 	if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
 	const members = await readMembers();

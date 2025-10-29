@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { readMembers, writeMembers, Member } from "@/app/lib/members-store";
 
 export async function GET() {
@@ -6,7 +6,7 @@ export async function GET() {
 	return NextResponse.json(members);
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
 	try {
 		const data = await req.json();
 		const name: string | undefined = data?.name?.toString();
