@@ -3,6 +3,9 @@ import { readMembers, writeMembers, Member } from "@/app/lib/members-store";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function PUT(req: NextRequest, ctx: RouteContext) {
     const { id } = await ctx.params;
 	if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
@@ -27,8 +30,14 @@ export async function PUT(req: NextRequest, ctx: RouteContext) {
 			birthYear: typeof patch?.birthYear === "number" ? patch.birthYear : (patch?.birthYear === null ? undefined : current.birthYear),
 		};
 
-		members[idx] = updated;
-		await writeMembers(members);
+    members[idx] = updated;
+    try {
+        await writeMembers(members);
+    } catch (err: any) {
+        const code = err?.code || "UNKNOWN";
+        const message = err?.message || String(err);
+        return NextResponse.json({ error: "write_failed", code, message }, { status: 500 });
+    }
 		return NextResponse.json(updated);
 	} catch {
 		return NextResponse.json({ error: "invalid request" }, { status: 400 });
@@ -43,6 +52,12 @@ export async function DELETE(_req: NextRequest, ctx: RouteContext) {
 	const next = members.filter(m => m.id !== id);
 	if (next.length === members.length) return NextResponse.json({ error: "not found" }, { status: 404 });
 
-	await writeMembers(next);
+    try {
+        await writeMembers(next);
+    } catch (err: any) {
+        const code = err?.code || "UNKNOWN";
+        const message = err?.message || String(err);
+        return NextResponse.json({ error: "write_failed", code, message }, { status: 500 });
+    }
 	return NextResponse.json({ ok: true });
 }

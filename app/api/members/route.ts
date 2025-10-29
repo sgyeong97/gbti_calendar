@@ -1,6 +1,9 @@
 import { NextResponse, NextRequest } from "next/server";
 import { readMembers, writeMembers, Member } from "@/app/lib/members-store";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function GET() {
 	const members = await readMembers();
 	return NextResponse.json(members);
@@ -26,9 +29,15 @@ export async function POST(req: NextRequest) {
 		};
 
 		members.push(newMember);
-		await writeMembers(members);
+		try {
+			await writeMembers(members);
+		} catch (err: any) {
+			const code = err?.code || "UNKNOWN";
+			const message = err?.message || String(err);
+			return NextResponse.json({ error: "write_failed", code, message }, { status: 500 });
+		}
 		return NextResponse.json(newMember, { status: 201 });
-	} catch (err) {
-		return NextResponse.json({ error: "invalid request" }, { status: 400 });
+	} catch (err: any) {
+		return NextResponse.json({ error: "invalid request", message: err?.message || String(err) }, { status: 400 });
 	}
 }
