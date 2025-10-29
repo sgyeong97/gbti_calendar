@@ -29,6 +29,7 @@ export default function MemberManagementPage() {
 	const [loading, setLoading] = useState(false);
 	const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
 	const [editingDiscordLink, setEditingDiscordLink] = useState("");
+	const [editingBirthYear, setEditingBirthYear] = useState<number | null>(null);
 	const [sortBy, setSortBy] = useState<"name" | "birthYear" | "lastSeen">("name");
 	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 	const [filterBirthYear, setFilterBirthYear] = useState<number | null>(null);
@@ -36,7 +37,7 @@ export default function MemberManagementPage() {
 	const tabTypes = {
 		all: { name: "전체 멤버", icon: "👥", description: "모든 플랫폼 멤버 현황" },
 		"discord-only": { name: "디코 전용", icon: "💬", description: "Discord에만 있는 멤버" },
-		"notice-only": { name: "공지방 전용", icon: "📢", description: "공지방에만 있는 멤버" },
+		"notice-only": { name: "공지방 전용", icon: "📢", description: "디코방과 공지방 둘 다 있는 멤버" },
 		"missing": { name: "누락 체크", icon: "⚠️", description: "일부 플랫폼에서 누락된 멤버" }
 	};
 
@@ -137,7 +138,7 @@ export default function MemberManagementPage() {
 				break;
 			case "notice-only":
 				filtered = members.filter(m => 
-					!m.platforms.discord && m.platforms.notice && !m.platforms.chat
+					m.platforms.discord && m.platforms.notice && !m.platforms.chat
 				);
 				break;
 			case "missing":
@@ -263,6 +264,29 @@ export default function MemberManagementPage() {
 		));
 	}
 
+	function startEditBirthYear(member: Member) {
+		setEditingMemberId(member.id);
+		setEditingBirthYear(member.birthYear || null);
+	}
+
+	function saveBirthYear() {
+		if (!editingMemberId) return;
+
+		setMembers(members.map(m => 
+			m.id === editingMemberId 
+				? { ...m, birthYear: editingBirthYear || undefined }
+				: m
+		));
+
+		setEditingMemberId(null);
+		setEditingBirthYear(null);
+	}
+
+	function cancelEditBirthYear() {
+		setEditingMemberId(null);
+		setEditingBirthYear(null);
+	}
+
 	function getPlatformStatus(member: Member) {
 		const platforms = [];
 		if (member.platforms.discord) platforms.push("디코");
@@ -272,6 +296,20 @@ export default function MemberManagementPage() {
 		if (platforms.length === 0) return "없음";
 		if (platforms.length === 3) return "전체";
 		return platforms.join(", ");
+	}
+
+	// 동적 년도 범위 계산
+	function getBirthYearRange() {
+		const years = members
+			.map(m => m.birthYear)
+			.filter(year => year !== undefined) as number[];
+		
+		if (years.length === 0) return { min: 1990, max: 2005 };
+		
+		return {
+			min: Math.min(...years),
+			max: Math.max(...years)
+		};
 	}
 
 	return (
@@ -366,22 +404,16 @@ export default function MemberManagementPage() {
 							className="border rounded px-3 py-2"
 						>
 							<option value="">전체 년도</option>
-							<option value="1990">1990년</option>
-							<option value="1991">1991년</option>
-							<option value="1992">1992년</option>
-							<option value="1993">1993년</option>
-							<option value="1994">1994년</option>
-							<option value="1995">1995년</option>
-							<option value="1996">1996년</option>
-							<option value="1997">1997년</option>
-							<option value="1998">1998년</option>
-							<option value="1999">1999년</option>
-							<option value="2000">2000년</option>
-							<option value="2001">2001년</option>
-							<option value="2002">2002년</option>
-							<option value="2003">2003년</option>
-							<option value="2004">2004년</option>
-							<option value="2005">2005년</option>
+							{(() => {
+								const { min, max } = getBirthYearRange();
+								const options = [];
+								for (let year = min; year <= max; year++) {
+									options.push(
+										<option key={year} value={year}>{year}년</option>
+									);
+								}
+								return options;
+							})()}
 						</select>
 
 						{/* 필터 초기화 */}
@@ -455,32 +487,86 @@ export default function MemberManagementPage() {
 										</span>
 									</div>
 									
-									{/* 디코 링크 편집 */}
-									{member.platforms.discord && (
-										<div className="mt-2">
-											{editingMemberId === member.id ? (
+									{/* 디코 링크 및 탄생년도 편집 */}
+									<div className="mt-2 space-y-2">
+										{/* 디코 링크 편집 */}
+										{member.platforms.discord && (
+											<div>
+												{editingMemberId === member.id && editingDiscordLink !== undefined ? (
+													<div className="flex gap-2">
+														<input
+															type="text"
+															placeholder="디코 자기소개 링크"
+															value={editingDiscordLink}
+															onChange={(e) => setEditingDiscordLink(e.target.value)}
+															className="flex-1 border rounded px-2 py-1 text-sm"
+															onKeyDown={(e) => {
+																if (e.key === "Enter") saveDiscordLink();
+																if (e.key === "Escape") cancelEditDiscordLink();
+															}}
+															autoFocus
+														/>
+														<button
+															className="px-2 py-1 rounded text-sm bg-green-100 text-green-700 hover:bg-green-200"
+															onClick={saveDiscordLink}
+														>
+															저장
+														</button>
+														<button
+															className="px-2 py-1 rounded text-sm border"
+															onClick={cancelEditDiscordLink}
+														>
+															취소
+														</button>
+													</div>
+												) : (
+													<div className="flex gap-2">
+														<button
+															className="px-2 py-1 rounded text-xs border hover:bg-zinc-100 dark:hover:bg-zinc-800"
+															onClick={() => startEditDiscordLink(member)}
+														>
+															{member.discordLink ? "링크 수정" : "링크 추가"}
+														</button>
+														{member.discordLink && (
+															<button
+																className="px-2 py-1 rounded text-xs bg-red-100 text-red-700 hover:bg-red-200"
+																onClick={() => removeDiscordLink(member.id)}
+															>
+																링크 삭제
+															</button>
+														)}
+													</div>
+												)}
+											</div>
+										)}
+
+										{/* 탄생년도 편집 */}
+										<div>
+											{editingMemberId === member.id && editingBirthYear !== null ? (
 												<div className="flex gap-2">
 													<input
-														type="text"
-														placeholder="디코 자기소개 링크"
-														value={editingDiscordLink}
-														onChange={(e) => setEditingDiscordLink(e.target.value)}
+														type="number"
+														placeholder="탄생년도"
+														value={editingBirthYear || ""}
+														onChange={(e) => setEditingBirthYear(e.target.value ? parseInt(e.target.value) : null)}
 														className="flex-1 border rounded px-2 py-1 text-sm"
+														min="1990"
+														max="2010"
 														onKeyDown={(e) => {
-															if (e.key === "Enter") saveDiscordLink();
-															if (e.key === "Escape") cancelEditDiscordLink();
+															if (e.key === "Enter") saveBirthYear();
+															if (e.key === "Escape") cancelEditBirthYear();
 														}}
 														autoFocus
 													/>
 													<button
 														className="px-2 py-1 rounded text-sm bg-green-100 text-green-700 hover:bg-green-200"
-														onClick={saveDiscordLink}
+														onClick={saveBirthYear}
 													>
 														저장
 													</button>
 													<button
 														className="px-2 py-1 rounded text-sm border"
-														onClick={cancelEditDiscordLink}
+														onClick={cancelEditBirthYear}
 													>
 														취소
 													</button>
@@ -489,22 +575,14 @@ export default function MemberManagementPage() {
 												<div className="flex gap-2">
 													<button
 														className="px-2 py-1 rounded text-xs border hover:bg-zinc-100 dark:hover:bg-zinc-800"
-														onClick={() => startEditDiscordLink(member)}
+														onClick={() => startEditBirthYear(member)}
 													>
-														{member.discordLink ? "링크 수정" : "링크 추가"}
+														{member.birthYear ? "탄생년도 수정" : "탄생년도 추가"}
 													</button>
-													{member.discordLink && (
-														<button
-															className="px-2 py-1 rounded text-xs bg-red-100 text-red-700 hover:bg-red-200"
-															onClick={() => removeDiscordLink(member.id)}
-														>
-															링크 삭제
-														</button>
-													)}
 												</div>
 											)}
 										</div>
-									)}
+									</div>
 								</div>
 								
 								{/* 플랫폼 토글 버튼들 */}
