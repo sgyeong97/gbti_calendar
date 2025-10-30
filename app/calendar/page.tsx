@@ -4,9 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import CreateEventModal from "@/app/calendar/CreateEventModal";
 import EventDetailModal from "@/app/calendar/EventDetailModal";
-import CreateNoticeModal from "@/app/calendar/CreateNoticeModal";
-import NoticeDetailModal from "./NoticeDetailModal";
-import AdminPasswordModal from "@/app/calendar/AdminPasswordModal";
+// 공지사항 관련 import 제거
 import { addDays, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, isToday, startOfMonth, startOfWeek } from "date-fns";
 const BRAND_COLOR = "#FDC205"; // rgb(253,194,5)
 const NOTIF_ICON = "/gbti_small.jpg"; // public 경로의 아이콘
@@ -24,20 +22,13 @@ type Event = {
 	color?: string;
 };
 
-type ViewMode = "month" | "favorites" | "notices";
+type ViewMode = "month" | "favorites";
 
 type FavoriteUser = {
 	name: string;
 };
 
-type Notice = {
-	id: string;
-	title: string;
-	content: string;
-	imageUrl?: string;
-	author: string;
-	createdAt: string;
-};
+// 공지사항 타입 제거
 
 export default function CalendarPage() {
 	const router = useRouter();
@@ -49,10 +40,7 @@ export default function CalendarPage() {
 	const [favoriteUsers, setFavoriteUsers] = useState<FavoriteUser[]>([]);
 	const [showFavorites, setShowFavorites] = useState(false);
 	// 관리자 버튼은 라우팅으로 대체
-	const [notices, setNotices] = useState<Notice[]>([]);
-	const [showCreateNoticeModal, setShowCreateNoticeModal] = useState(false);
-	const [showAdminPasswordModal, setShowAdminPasswordModal] = useState(false);
-	const [activeNotice, setActiveNotice] = useState<Notice | null>(null);
+    // 공지사항 상태 제거
 	const days = useMemo(() => {
 		{
 			// 월간 뷰: 월 전체 표시 (이전/다음 달 일부 포함)
@@ -329,15 +317,10 @@ export default function CalendarPage() {
 		setParticipantList((data.participants ?? []).map((p: any) => p.name));
 	};
 
-	const fetchNotices = async () => {
-		const res = await fetch("/api/notices");
-		const data = await res.json();
-		setNotices(data.notices ?? []);
-	};
+    // 공지사항 fetch 제거
 
 	useEffect(() => {
-		fetchParticipants();
-		fetchNotices();
+        fetchParticipants();
 
 		// localStorage에서 즐겨찾기 로드
 		const savedFavorites = localStorage.getItem("gbti_favorites");
@@ -389,7 +372,7 @@ export default function CalendarPage() {
 			<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4">
 				<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
 					<h1 className="text-base sm:text-2xl font-semibold">달력</h1>
-					<div className="w-full sm:w-auto grid grid-cols-3 gap-1">
+                    <div className="w-full sm:w-auto grid grid-cols-2 gap-1">
 						<button
 							className={`h-9 text-xs sm:text-sm border rounded-md transition-colors cursor-pointer ${viewMode === "month" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
 							style={viewMode === "month" ? { backgroundColor: BRAND_COLOR, color: "#111", borderColor: BRAND_COLOR } : undefined}
@@ -397,13 +380,7 @@ export default function CalendarPage() {
 						>
 							월간
 						</button>
-						<button
-							className={`h-9 text-xs sm:text-sm border rounded-md transition-colors cursor-pointer ${viewMode === "notices" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
-							style={viewMode === "notices" ? { backgroundColor: BRAND_COLOR, color: "#111", borderColor: BRAND_COLOR } : undefined}
-							onClick={() => setViewMode("notices")}
-						>
-							공지사항
-						</button>
+                        
 						<button
 							className={`h-9 text-xs sm:text-sm border rounded-md transition-colors cursor-pointer ${viewMode === "favorites" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
 							style={viewMode === "favorites" ? { backgroundColor: BRAND_COLOR, color: "#111", borderColor: BRAND_COLOR } : undefined}
@@ -679,49 +656,7 @@ export default function CalendarPage() {
 					설정이 저장되었습니다
 				</div>
 			)}
-			{viewMode === "notices" ? (
-				// 공지사항 뷰: 갤러리 형태
-				<div className="space-y-4">
-					<div className="flex justify-between items-center">
-						<h2 className="text-base sm:text-lg font-semibold">공지사항</h2>
-						<button
-							className="px-2 sm:px-3 py-1 text-sm rounded text-black transition-colors cursor-pointer"
-							style={{ backgroundColor: "#FDC205" }}
-							onClick={() => setShowAdminPasswordModal(true)}
-						>
-							공지 작성
-						</button>
-					</div>
-
-					{notices.length === 0 ? (
-						<div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
-							등록된 공지사항이 없습니다.
-						</div>
-					) : (
-						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-							{notices.map((notice) => (
-								<div key={notice.id} className="border rounded p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveNotice(notice)}>
-									{notice.imageUrl && (
-										<img
-											src={notice.imageUrl}
-											alt={notice.title}
-											className="w-full h-32 object-cover rounded mb-3"
-										/>
-									)}
-									<h3 className="font-semibold text-lg mb-2">{notice.title}</h3>
-									<p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3 whitespace-pre-line break-words">
-										{notice.content}
-									</p>
-									<div className="flex justify-between items-center text-xs text-zinc-500 dark:text-zinc-400">
-										<span>{notice.author}</span>
-										<span>{format(new Date(notice.createdAt), "yyyy.MM.dd")}</span>
-									</div>
-								</div>
-							))}
-						</div>
-					)}
-				</div>
-			) : (
+            {(
 				// 월간 뷰: 기존 날짜 그리드
 				<>
 					{/* 요일 헤더 (월~일) */}
@@ -749,7 +684,7 @@ export default function CalendarPage() {
 										</span>
 									) : (
 										<span>{format(d, "d")}</span>
-									)}
+            )}
 								</div>
 								<div className="mt-1 space-y-1">
 									{events.filter((e) => isSameDay(new Date(e.startAt), d)).map((e) => (
@@ -940,32 +875,7 @@ export default function CalendarPage() {
 				</div>
 			)}
 
-			{/* 관리자 인증 모달 */}
-			{showAdminPasswordModal && (
-				<AdminPasswordModal
-					onClose={() => setShowAdminPasswordModal(false)}
-					onSuccess={() => setShowCreateNoticeModal(true)}
-				/>
-			)}
-
-			{showCreateNoticeModal && (
-				<CreateNoticeModal
-					onClose={() => setShowCreateNoticeModal(false)}
-					onCreated={() => {
-						fetchNotices();
-						setShowCreateNoticeModal(false);
-					}}
-				/>
-			)}
-
-
-			{activeNotice && (
-				<NoticeDetailModal
-					notice={activeNotice}
-					onClose={() => setActiveNotice(null)}
-					onDeleted={() => fetchNotices()}
-				/>
-			)}
+            {/* 공지사항 관련 모달 제거 */}
 		</div>
 	);
 }
