@@ -208,6 +208,14 @@ export default function CalendarPage() {
 		} catch { }
 	}
 
+	// KST(Asia/Seoul) 고정 변환: 어떤 사용자의 로컬 타임존에서도 한국 시간 기준으로 계산되도록 함
+	function toKstDate(d: Date) {
+		// KST 벽시각을 문자열로 만든 뒤 Date로 재생성
+		// 주의: 생성된 Date는 로컬 타임존으로 파싱되지만, 우리는 getTime()만 사용해 상대 시간 계산에 활용
+		const kstString = d.toLocaleString("en-US", { timeZone: "Asia/Seoul" });
+		return new Date(kstString);
+	}
+
 	// 선택 대상 일정의 알림 스케줄링 (탭이 열려 있는 동안 동작)
 	useEffect(() => {
 		if (!notificationsEnabled) {
@@ -223,15 +231,17 @@ export default function CalendarPage() {
 		const now = Date.now();
 		const maxDelayMs = 24 * 60 * 60 * 1000; // 최대 24시간까지만 예약
 
-		events.forEach((e) => {
+			events.forEach((e) => {
 			if (!e.participants || e.participants.length === 0) return;
 			if (targetNames.size === 0) return; // 대상이 없으면 예약 안 함
 			const hasTarget = e.participants.some((p) => targetNames.has(p));
 			if (!hasTarget) return;
 
-			const start = new Date(e.startAt);
-			const startMs = start.getTime();
-			const startTimeText = `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`;
+				// 한국시간 기준으로 고정된 시작 시각 계산
+				const startUtc = new Date(e.startAt);
+				const startKst = toKstDate(startUtc);
+				const startMs = startKst.getTime();
+				const startTimeText = `${String(startKst.getHours()).padStart(2, '0')}:${String(startKst.getMinutes()).padStart(2, '0')}`;
 
 			const leads = (notificationLeadMinutesList.length > 0 ? notificationLeadMinutesList : [notificationLeadMinutes])
 				.filter((m, idx, arr) => arr.indexOf(m) === idx)

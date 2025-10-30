@@ -6,13 +6,20 @@ export async function GET(req: NextRequest) {
   console.log("Cron job started at:", new Date().toISOString());
   
   try {
-    // 30분 후 시작하는 이벤트 찾기
-    const now = new Date();
-    const thirtyMinutesLater = new Date(now.getTime() + 30 * 60 * 1000);
-    
-    // 현재 시간부터 5분 후까지의 범위에서 이벤트 조회
-    const startTime = now.toISOString();
-    const endTime = new Date(now.getTime() + 5 * 60 * 1000).toISOString();
+    // KST(UTC+9) 기준으로 30분 후 ~ 35분 후 시작하는 이벤트를 조회
+    const LEAD_MIN = 30;     // 알림 리드타임
+    const WINDOW_MIN = 5;    // 조회 윈도우 폭
+
+    // 현재 UTC 기준 milliseconds
+    const nowUtcMs = Date.now();
+    // KST 기준 '지금'의 UTC 시각 = UTC now - 9h (KST 벽시각을 UTC로 보정)
+    const kstNowUtcMs = nowUtcMs - 9 * 60 * 60 * 1000;
+
+    const startWindowUtc = new Date(kstNowUtcMs + LEAD_MIN * 60 * 1000);      // KST now + 30m (UTC 보정)
+    const endWindowUtc = new Date(kstNowUtcMs + (LEAD_MIN + WINDOW_MIN) * 60 * 1000); // KST now + 35m (UTC 보정)
+
+    const startTime = startWindowUtc.toISOString();
+    const endTime = endWindowUtc.toISOString();
     
     const { data: events, error: eventsError } = await supabase
       .from('Event')
@@ -26,7 +33,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: eventsError.message }, { status: 500 });
     }
 
-    // 반복 이벤트도 확인
+    // 반복 이벤트도 확인 (필요 시 동일 윈도우 사용)
     const { data: recurringSlots, error: slotsError } = await supabase
       .from('RecurringSlot')
       .select('*')
