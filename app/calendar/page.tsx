@@ -383,16 +383,16 @@ export default function CalendarPage() {
 				<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
 					<h1 className="text-base sm:text-2xl font-semibold">달력</h1>
                     <div className="w-full sm:w-auto grid grid-cols-2 gap-1">
-						<button
-							className={`h-9 text-xs sm:text-sm border rounded-md transition-colors cursor-pointer ${viewMode === "month" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
+                        <button
+                            className={`h-9 px-4 min-w-16 text-xs sm:text-sm border rounded-md transition-colors cursor-pointer ${viewMode === "month" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
 							style={viewMode === "month" ? { backgroundColor: BRAND_COLOR, color: "#111", borderColor: BRAND_COLOR } : undefined}
 							onClick={() => setViewMode("month")}
 						>
 							월간
 						</button>
                         
-						<button
-							className={`h-9 text-xs sm:text-sm border rounded-md transition-colors cursor-pointer ${viewMode === "favorites" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
+                        <button
+                            className={`h-9 px-4 min-w-16 text-xs sm:text-sm border rounded-md transition-colors cursor-pointer ${viewMode === "favorites" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
 							style={viewMode === "favorites" ? { backgroundColor: BRAND_COLOR, color: "#111", borderColor: BRAND_COLOR } : undefined}
 							onClick={() => setViewMode("favorites")}
 						>
