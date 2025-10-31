@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
+import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
 import dayjs, { Dayjs } from "dayjs";
 
 type Props = { eventId: string | null; onClose: () => void; onChanged: () => void };
@@ -17,10 +17,18 @@ export default function EventDetailModal({ eventId, onClose, onChanged }: Props)
 	const [editParticipants, setEditParticipants] = useState<string[]>([]);
 	const [participantInput, setParticipantInput] = useState("");
 	const [allParticipants, setAllParticipants] = useState<string[]>([]);
-const [isEditingRecurrence, setIsEditingRecurrence] = useState(false);
-const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
+	const [isEditingRecurrence, setIsEditingRecurrence] = useState(false);
+	const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
 const [editStartAt, setEditStartAt] = useState<Dayjs | null>(null);
 const [editEndAt, setEditEndAt] = useState<Dayjs | null>(null);
+// 팝업 제어 (일반 이벤트)
+const [openStartDate, setOpenStartDate] = useState(false);
+const [openStartTime, setOpenStartTime] = useState(false);
+const [openEndDate, setOpenEndDate] = useState(false);
+const [openEndTime, setOpenEndTime] = useState(false);
+// 반복 이벤트 시간 편집 팝업
+const [openRecurringStartTime, setOpenRecurringStartTime] = useState(false);
+const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 const [editRecurringStart, setEditRecurringStart] = useState<string>("");
 const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 
@@ -110,19 +118,55 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 							}
 						</div>
 						<div><strong>캘린더:</strong> {data.event.calendar?.name || "기본 캘린더"}</div>
+				<LocalizationProvider dateAdapter={AdapterDayjs}>
 				<div>
 					<strong>시작:</strong>{" "}
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    {isEditing && !data.event.isRecurring ? (
-                        <DateTimePicker
-                            value={editStartAt}
-                            onChange={(v) => setEditStartAt(v)}
-                            slotProps={{ textField: { size: "small", fullWidth: true } }}
-                        />
-                    ) : (
-                        <span>{new Date(data.event.startAt).toLocaleString()}</span>
-                    )}
-                </LocalizationProvider>
+					{isEditing && !data.event.isRecurring ? (
+						<div className="mt-1 grid grid-cols-2 gap-2 relative">
+							<div className="space-y-1">
+								<label className="text-xs text-zinc-600">시작 날짜</label>
+								<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenStartDate(!openStartDate)}>
+									{editStartAt?.format('YYYY-MM-DD')}
+								</button>
+								{openStartDate && editStartAt && (
+									<div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow" style={{width:'min(320px,90vw)'}}>
+										<DateCalendar value={editStartAt} onChange={(v)=>{ if(v){ setEditStartAt(editStartAt.year(v.year()).month(v.month()).date(v.date())); setOpenStartDate(false);} }} />
+									</div>
+								)}
+							</div>
+							<div className="space-y-1">
+								<label className="text-xs text-zinc-600">시작 시간</label>
+								<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenStartTime(!openStartTime)}>
+									{editStartAt?.format('HH:mm')}
+								</button>
+                                    {openStartTime && editStartAt && (
+                                        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+                                            <div className="absolute inset-0 bg-black/30" onClick={()=>setOpenStartTime(false)} />
+                                            <div className="relative z-[61] p-3 rounded border bg-white shadow">
+                                                <div className="flex items-center gap-2">
+												<div className="flex flex-col items-center">
+													<button type="button" onClick={()=>setEditStartAt(editStartAt.add(1,'hour'))}>▲</button>
+													<span className="w-8 text-center">{editStartAt.format('HH')}</span>
+													<button type="button" onClick={()=>setEditStartAt(editStartAt.subtract(1,'hour'))}>▼</button>
+												</div>
+												<span>:</span>
+												<div className="flex flex-col items-center">
+													<button type="button" onClick={()=>setEditStartAt(editStartAt.add(1,'minute'))}>▲</button>
+													<span className="w-8 text-center">{editStartAt.format('mm')}</span>
+													<button type="button" onClick={()=>setEditStartAt(editStartAt.subtract(1,'minute'))}>▼</button>
+												</div>
+											</div>
+                                                <div className="text-right mt-2">
+                                                    <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenStartTime(false)}>확인</button>
+                                                </div>
+										</div>
+									</div>
+								)}
+							</div>
+						</div>
+					) : (
+						<span>{new Date(data.event.startAt).toLocaleString()}</span>
+					)}
 				</div>
 
 					{isEditing && data.event.isRecurring && (
@@ -144,28 +188,150 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 								);
 								})}
 							</div>
-							<div className="flex items-center gap-2">
-								<label className="text-xs text-zinc-600">시작</label>
-								<input type="time" className="border rounded px-2 py-1" value={editRecurringStart} onChange={(e)=>setEditRecurringStart(e.target.value)} />
-								<label className="text-xs text-zinc-600">종료</label>
-								<input type="time" className="border rounded px-2 py-1" value={editRecurringEnd} onChange={(e)=>setEditRecurringEnd(e.target.value)} />
+							<div className="grid grid-cols-2 gap-2 relative">
+								<div className="space-y-1">
+									<label className="text-xs text-zinc-600">시작 시간</label>
+									<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenRecurringStartTime(!openRecurringStartTime)}>
+										{editRecurringStart || "--:--"}
+									</button>
+                                    {openRecurringStartTime && (
+                                        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+                                            <div className="absolute inset-0 bg-black/30" onClick={()=>setOpenRecurringStartTime(false)} />
+                                            <div className="relative z-[61] p-3 rounded border bg-white shadow">
+                                                <div className="flex items-center gap-2">
+													<div className="flex flex-col items-center">
+														<button type="button" onClick={()=>{
+															const [hh,mm]= (editRecurringStart||"00:00").split(":").map(Number);
+															const d = dayjs().hour(hh).minute(mm).add(1,'hour');
+															setEditRecurringStart(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
+														}}>▲</button>
+														<span className="w-8 text-center">{(editRecurringStart||"00:00").split(":")[0]}</span>
+														<button type="button" onClick={()=>{
+															const [hh,mm]= (editRecurringStart||"00:00").split(":").map(Number);
+															const d = dayjs().hour(hh).minute(mm).subtract(1,'hour');
+															setEditRecurringStart(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
+														}}>▼</button>
+													</div>
+													<span>:</span>
+													<div className="flex flex-col items-center">
+														<button type="button" onClick={()=>{
+															const [hh,mm]= (editRecurringStart||"00:00").split(":").map(Number);
+															const d = dayjs().hour(hh).minute(mm).add(1,'minute');
+															setEditRecurringStart(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
+														}}>▲</button>
+														<span className="w-8 text-center">{(editRecurringStart||"00:00").split(":")[1]}</span>
+														<button type="button" onClick={()=>{
+															const [hh,mm]= (editRecurringStart||"00:00").split(":").map(Number);
+															const d = dayjs().hour(hh).minute(mm).subtract(1,'minute');
+															setEditRecurringStart(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
+														}}>▼</button>
+													</div>
+                                                </div>
+                                                <div className="text-right mt-2">
+                                                    <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenRecurringStartTime(false)}>확인</button>
+                                                </div>
+											</div>
+										</div>
+									)}
+								</div>
+								<div className="space-y-1">
+									<label className="text-xs text-zinc-600">종료 시간</label>
+									<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenRecurringEndTime(!openRecurringEndTime)}>
+										{editRecurringEnd || "--:--"}
+									</button>
+                                    {openRecurringEndTime && (
+                                        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+                                            <div className="absolute inset-0 bg-black/30" onClick={()=>setOpenRecurringEndTime(false)} />
+                                            <div className="relative z-[61] p-3 rounded border bg-white shadow">
+                                                <div className="flex items-center gap-2">
+													<div className="flex flex-col items-center">
+														<button type="button" onClick={()=>{
+															const [hh,mm]= (editRecurringEnd||"00:00").split(":").map(Number);
+															const d = dayjs().hour(hh).minute(mm).add(1,'hour');
+															setEditRecurringEnd(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
+														}}>▲</button>
+														<span className="w-8 text-center">{(editRecurringEnd||"00:00").split(":")[0]}</span>
+														<button type="button" onClick={()=>{
+															const [hh,mm]= (editRecurringEnd||"00:00").split(":").map(Number);
+															const d = dayjs().hour(hh).minute(mm).subtract(1,'hour');
+															setEditRecurringEnd(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
+														}}>▼</button>
+													</div>
+													<span>:</span>
+													<div className="flex flex-col items-center">
+														<button type="button" onClick={()=>{
+															const [hh,mm]= (editRecurringEnd||"00:00").split(":").map(Number);
+															const d = dayjs().hour(hh).minute(mm).add(1,'minute');
+															setEditRecurringEnd(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
+														}}>▲</button>
+														<span className="w-8 text-center">{(editRecurringEnd||"00:00").split(":")[1]}</span>
+														<button type="button" onClick={()=>{
+															const [hh,mm]= (editRecurringEnd||"00:00").split(":").map(Number);
+															const d = dayjs().hour(hh).minute(mm).subtract(1,'minute');
+															setEditRecurringEnd(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
+														}}>▼</button>
+													</div>
+                                                </div>
+                                                <div className="text-right mt-2">
+                                                    <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenRecurringEndTime(false)}>확인</button>
+                                                </div>
+											</div>
+										</div>
+									)}
+								</div>
 							</div>
 						</div>
 					)}
 				<div>
 					<strong>종료:</strong>{" "}
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    {isEditing && !data.event.isRecurring ? (
-                        <DateTimePicker
-                            value={editEndAt}
-                            onChange={(v) => setEditEndAt(v)}
-                            slotProps={{ textField: { size: "small", fullWidth: true } }}
-                        />
-                    ) : (
-                        <span>{new Date(data.event.endAt).toLocaleString()}</span>
-                    )}
-                </LocalizationProvider>
+					{isEditing && !data.event.isRecurring ? (
+						<div className="mt-1 grid grid-cols-2 gap-2 relative">
+							<div className="space-y-1">
+								<label className="text-xs text-zinc-600">종료 날짜</label>
+								<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenEndDate(!openEndDate)}>
+									{editEndAt?.format('YYYY-MM-DD')}
+								</button>
+								{openEndDate && editEndAt && (
+									<div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow" style={{width:'min(320px,90vw)'}}>
+										<DateCalendar value={editEndAt} onChange={(v)=>{ if(v){ setEditEndAt(editEndAt.year(v.year()).month(v.month()).date(v.date())); setOpenEndDate(false);} }} />
+									</div>
+								)}
+							</div>
+							<div className="space-y-1">
+								<label className="text-xs text-zinc-600">종료 시간</label>
+								<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenEndTime(!openEndTime)}>
+									{editEndAt?.format('HH:mm')}
+								</button>
+                                    {openEndTime && editEndAt && (
+                                        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+                                            <div className="absolute inset-0 bg-black/30" onClick={()=>setOpenEndTime(false)} />
+                                            <div className="relative z-[61] p-3 rounded border bg-white shadow">
+                                                <div className="flex items-center gap-2">
+												<div className="flex flex-col items-center">
+													<button type="button" onClick={()=>setEditEndAt(editEndAt.add(1,'hour'))}>▲</button>
+													<span className="w-8 text-center">{editEndAt.format('HH')}</span>
+													<button type="button" onClick={()=>setEditEndAt(editEndAt.subtract(1,'hour'))}>▼</button>
+												</div>
+												<span>:</span>
+												<div className="flex flex-col items-center">
+													<button type="button" onClick={()=>setEditEndAt(editEndAt.add(1,'minute'))}>▲</button>
+													<span className="w-8 text-center">{editEndAt.format('mm')}</span>
+													<button type="button" onClick={()=>setEditEndAt(editEndAt.subtract(1,'minute'))}>▼</button>
+												</div>
+											</div>
+                                                <div className="text-right mt-2">
+                                                    <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenEndTime(false)}>확인</button>
+                                                </div>
+										</div>
+									</div>
+								)}
+							</div>
+						</div>
+					) : (
+						<span>{new Date(data.event.endAt).toLocaleString()}</span>
+					)}
 				</div>
+				</LocalizationProvider>
 						<div className="pt-1">
 							<div className="mb-1"><strong>참여자:</strong></div>
 							{isEditing ? (
@@ -244,7 +410,7 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 								const participantNames = (data?.event?.attendees ?? []).map((a: any) => a.participant.name);
 								setEditParticipants(participantNames);
 							}}>취소</button>
-                            <button className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer" onClick={async () => {
+							<button className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer" onClick={async () => {
 								if (!editTitle.trim()) return alert("제목을 입력해주세요.");
 								
 								// 반복 이벤트인 경우
@@ -255,7 +421,7 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
                                         const [hh, mm] = t.split(":").map(Number);
                                         return (isNaN(hh)||isNaN(mm)) ? undefined : hh*60+mm;
                                     };
-                                    await fetch(`/api/calendars/${data.event.calendarId}/recurring`, {
+									await fetch(`/api/calendars/${data.event.calendarId}/recurring`, {
 										method: "PUT",
 										headers: { "Content-Type": "application/json" },
 										body: JSON.stringify({
@@ -270,7 +436,11 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 								} else {
 									// 일반 이벤트: 제목과 참여자 업데이트
                                     const toIso = (v: Dayjs | null, fallback: string) => (v && v.isValid()) ? v.toDate().toISOString() : fallback;
-                                    await fetch(`/api/events/${eventId}`, {
+                                    if (editStartAt && editEndAt && editEndAt.valueOf() <= editStartAt.valueOf()) {
+                                        alert("종료일시가 시작일시보다 늦어야 합니다.");
+                                        return;
+                                    }
+									await fetch(`/api/events/${eventId}`, {
 										method: "PUT",
 										headers: { "Content-Type": "application/json" },
 										body: JSON.stringify({

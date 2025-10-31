@@ -164,7 +164,8 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 					value={title}
 					onChange={(e) => setTitle(e.target.value)}
 				/>
-                    <div className="space-y-3 relative">
+						<LocalizationProvider dateAdapter={AdapterDayjs}>
+						<div className="space-y-3 relative">
                         {/* 인라인 입력 */}
                         <div className="grid grid-cols-2 gap-2">
                             <div className="space-y-1">
@@ -184,13 +185,10 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
                                     {startAt.format('HH:mm')}
                                 </button>
                                 {openStartTime && (
-                                    <div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow">
-                                        <div className="flex items-center gap-2">
-                                            <div className="flex flex-col items-center">
-                                                <button type="button" className="px-2 py-1 border rounded" onClick={()=>setStartAt(startAt.add(1,'hour'))}>+1시간</button>
-                                                <button type="button" className="px-2 py-1 border rounded mt-1" onClick={()=>setStartAt(startAt.subtract(1,'hour'))}>-1시간</button>
-                                            </div>
-                                            <div className="flex items-center gap-2 border rounded px-2 py-1">
+                                    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+                                        <div className="absolute inset-0 bg-black/30" onClick={()=>setOpenStartTime(false)} />
+                                        <div className="relative z-[61] p-3 rounded border bg-white shadow">
+                                            <div className="flex items-center gap-2">
                                                 <div className="flex flex-col items-center">
                                                     <button type="button" onClick={()=>setStartAt(startAt.add(1,'hour'))}>▲</button>
                                                     <span className="w-8 text-center">{startAt.format('HH')}</span>
@@ -203,11 +201,9 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
                                                     <button type="button" onClick={()=>setStartAt(startAt.subtract(1,'minute'))}>▼</button>
                                                 </div>
                                             </div>
-                                            <div className="flex flex-col items-center">
-                                                <button type="button" className="px-2 py-1 border rounded" onClick={()=>setStartAt(startAt.add(30,'minute'))}>+30분</button>
-                                                <button type="button" className="px-2 py-1 border rounded mt-1" onClick={()=>setStartAt(startAt.subtract(30,'minute'))}>-30분</button>
+                                            <div className="text-right mt-2">
+                                                <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenStartTime(false)}>확인</button>
                                             </div>
-                                            <button type="button" className="ml-2 px-3 py-1 rounded border" onClick={()=>setOpenStartTime(false)}>확인</button>
                                         </div>
                                     </div>
                                 )}
@@ -232,13 +228,10 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
                                     {endAt.format('HH:mm')}
                                 </button>
                                 {openEndTime && (
-                                    <div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow">
-                                        <div className="flex items-center gap-2">
-                                            <div className="flex flex-col items-center">
-                                                <button type="button" className="px-2 py-1 border rounded" onClick={()=>setEndAt(endAt.add(1,'hour'))}>+1시간</button>
-                                                <button type="button" className="px-2 py-1 border rounded mt-1" onClick={()=>setEndAt(endAt.subtract(1,'hour'))}>-1시간</button>
-                                            </div>
-                                            <div className="flex items-center gap-2 border rounded px-2 py-1">
+                                    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+                                        <div className="absolute inset-0 bg-black/30" onClick={()=>setOpenEndTime(false)} />
+                                        <div className="relative z-[61] p-3 rounded border bg-white shadow">
+                                            <div className="flex items-center gap-2">
                                                 <div className="flex flex-col items-center">
                                                     <button type="button" onClick={()=>setEndAt(endAt.add(1,'hour'))}>▲</button>
                                                     <span className="w-8 text-center">{endAt.format('HH')}</span>
@@ -251,18 +244,16 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
                                                     <button type="button" onClick={()=>setEndAt(endAt.subtract(1,'minute'))}>▼</button>
                                                 </div>
                                             </div>
-                                            <div className="flex flex-col items-center">
-                                                <button type="button" className="px-2 py-1 border rounded" onClick={()=>setEndAt(endAt.add(30,'minute'))}>+30분</button>
-                                                <button type="button" className="px-2 py-1 border rounded mt-1" onClick={()=>setEndAt(endAt.subtract(30,'minute'))}>-30분</button>
+                                            <div className="text-right mt-2">
+                                                <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenEndTime(false)}>확인</button>
                                             </div>
-                                            <button type="button" className="ml-2 px-3 py-1 rounded border" onClick={()=>setOpenEndTime(false)}>확인</button>
                                         </div>
                                     </div>
                                 )}
                             </div>
                         </div>
-                    </div>
-                {/* </LocalizationProvider> */}
+						</div>
+					</LocalizationProvider>
 
 				{/* 참여자 태그 입력 (모든 사용자) */}
 					<div>
