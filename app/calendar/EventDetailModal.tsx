@@ -13,8 +13,12 @@ export default function EventDetailModal({ eventId, onClose, onChanged }: Props)
 	const [editParticipants, setEditParticipants] = useState<string[]>([]);
 	const [participantInput, setParticipantInput] = useState("");
 	const [allParticipants, setAllParticipants] = useState<string[]>([]);
-	const [isEditingRecurrence, setIsEditingRecurrence] = useState(false);
-	const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
+const [isEditingRecurrence, setIsEditingRecurrence] = useState(false);
+const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
+const [editStartAt, setEditStartAt] = useState<string>("");
+const [editEndAt, setEditEndAt] = useState<string>("");
+const [editRecurringStart, setEditRecurringStart] = useState<string>("");
+const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 
 	useEffect(() => {
 		if (!eventId) {
@@ -38,6 +42,29 @@ export default function EventDetailModal({ eventId, onClose, onChanged }: Props)
 				console.log("Participant names:", participantNames);
 				setEditParticipants(participantNames);
 				setIsEditing(false);
+				// 시간 편집 초기값 세팅
+				if (data.event) {
+					const s = new Date(data.event.startAt);
+					const e = new Date(data.event.endAt);
+					const toLocalInput = (d: Date) => {
+						const yyyy = d.getFullYear();
+						const mm = String(d.getMonth()+1).padStart(2,'0');
+						const dd = String(d.getDate()).padStart(2,'0');
+						const HH = String(d.getHours()).padStart(2,'0');
+						const MM = String(d.getMinutes()).padStart(2,'0');
+						return `${yyyy}-${mm}-${dd}T${HH}:${MM}`;
+					};
+					setEditStartAt(toLocalInput(s));
+					setEditEndAt(toLocalInput(e));
+					if (data.event.isRecurring) {
+						const rs = data.event.recurringStartMinutes ?? 0;
+						const re = data.event.recurringEndMinutes ?? 0;
+						const toHHMM = (m:number) => `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
+						setEditRecurringStart(toHHMM(rs));
+						setEditRecurringEnd(toHHMM(re));
+						setSelectedDays(new Set<number>(data.event.recurringDays || []));
+					}
+				}
 			})
 			.catch((err) => setError(err.message))
 			.finally(() => setLoading(false));
@@ -89,8 +116,50 @@ export default function EventDetailModal({ eventId, onClose, onChanged }: Props)
 							}
 						</div>
 						<div><strong>캘린더:</strong> {data.event.calendar?.name || "기본 캘린더"}</div>
-						<div><strong>시작:</strong> {new Date(data.event.startAt).toLocaleString()}</div>
-						<div><strong>종료:</strong> {new Date(data.event.endAt).toLocaleString()}</div>
+				<div>
+					<strong>시작:</strong>{" "}
+					{isEditing && !data.event.isRecurring ? (
+						<input type="datetime-local" className="w-full border rounded px-2 py-1 mt-1" value={editStartAt} onChange={(e)=>setEditStartAt(e.target.value)} />
+					) : (
+						<span>{new Date(data.event.startAt).toLocaleString()}</span>
+					)}
+				</div>
+
+					{isEditing && data.event.isRecurring && (
+						<div className="space-y-2">
+							<div className="text-xs text-zinc-600">반복 요일</div>
+							<div className="flex gap-1 flex-wrap">
+								{["일","월","화","수","목","금","토"].map((w, idx)=>{
+									const on = selectedDays.has(idx);
+									return (
+										<button key={idx} className={`px-2 py-1 text-xs rounded border ${on?"bg-yellow-200":"hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
+											onClick={()=>{
+											const next = new Set(selectedDays);
+											if (on) next.delete(idx); else next.add(idx);
+											setSelectedDays(next);
+										}}
+									>
+										{w}
+									</button>
+								);
+								})}
+							</div>
+							<div className="flex items-center gap-2">
+								<label className="text-xs text-zinc-600">시작</label>
+								<input type="time" className="border rounded px-2 py-1" value={editRecurringStart} onChange={(e)=>setEditRecurringStart(e.target.value)} />
+								<label className="text-xs text-zinc-600">종료</label>
+								<input type="time" className="border rounded px-2 py-1" value={editRecurringEnd} onChange={(e)=>setEditRecurringEnd(e.target.value)} />
+							</div>
+						</div>
+					)}
+				<div>
+					<strong>종료:</strong>{" "}
+					{isEditing && !data.event.isRecurring ? (
+						<input type="datetime-local" className="w-full border rounded px-2 py-1 mt-1" value={editEndAt} onChange={(e)=>setEditEndAt(e.target.value)} />
+					) : (
+						<span>{new Date(data.event.endAt).toLocaleString()}</span>
+					)}
+				</div>
 						<div className="pt-1">
 							<div className="mb-1"><strong>참여자:</strong></div>
 							{isEditing ? (
@@ -169,29 +238,40 @@ export default function EventDetailModal({ eventId, onClose, onChanged }: Props)
 								const participantNames = (data?.event?.attendees ?? []).map((a: any) => a.participant.name);
 								setEditParticipants(participantNames);
 							}}>취소</button>
-							<button className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer" onClick={async () => {
+                            <button className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer" onClick={async () => {
 								if (!editTitle.trim()) return alert("제목을 입력해주세요.");
 								
 								// 반복 이벤트인 경우
 								if (data.event.isRecurring) {
 									// 제목과 참여자 업데이트
-									await fetch(`/api/calendars/${data.event.calendarId}/recurring`, {
+                                    // HH:MM -> minutes
+                                    const toMin = (t:string) => {
+                                        const [hh, mm] = t.split(":").map(Number);
+                                        return (isNaN(hh)||isNaN(mm)) ? undefined : hh*60+mm;
+                                    };
+                                    await fetch(`/api/calendars/${data.event.calendarId}/recurring`, {
 										method: "PUT",
 										headers: { "Content-Type": "application/json" },
 										body: JSON.stringify({
 											eventTitle: data.event.title,
 											newTitle: editTitle,
-											participants: editParticipants
+                                            participants: editParticipants,
+                                            days: Array.from(selectedDays),
+                                            startMinutes: toMin(editRecurringStart),
+                                            endMinutes: toMin(editRecurringEnd)
 										})
 									});
 								} else {
 									// 일반 이벤트: 제목과 참여자 업데이트
-									await fetch(`/api/events/${eventId}`, {
+                                    const toIso = (localDt:string) => new Date(localDt).toISOString();
+                                    await fetch(`/api/events/${eventId}`, {
 										method: "PUT",
 										headers: { "Content-Type": "application/json" },
 										body: JSON.stringify({
 											title: editTitle,
-											participants: editParticipants
+                                            participants: editParticipants,
+                                            startAt: editStartAt ? toIso(editStartAt) : undefined,
+                                            endAt: editEndAt ? toIso(editEndAt) : undefined
 										})
 									});
 								}
