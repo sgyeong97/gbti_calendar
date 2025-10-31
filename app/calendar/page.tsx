@@ -702,22 +702,37 @@ export default function CalendarPage() {
                                         const en = new Date(e.endAt);
                                         const dayStart = startOfDay(d);
                                         const dayEnd = endOfDay(d);
-                                        // 이벤트가 해당 날짜와 겹치면 표시 (시작일/종료일 포함, 밤샘 이벤트 지원)
                                         return s <= dayEnd && en >= dayStart;
-                                    }).map((e) => (
-										<button
-											key={e.id}
-											onClick={() => setActiveEventId(e.id)}
-											className="w-full text-left text-[10px] sm:text-xs rounded px-1 py-0.5 truncate transition-colors cursor-pointer"
-											style={{
-												backgroundColor: e.color || "#93c5fd",
-												color: "#000"
-											}}
-										>
-											{e.title}
-										</button>
-									))}
-								</div>
+                                    }).map((e) => {
+                                        const s = new Date(e.startAt);
+                                        const en = new Date(e.endAt);
+                                        const isStartDay = isSameDay(s, d);
+                                        const isEndDay = isSameDay(en, d);
+                                        const radius = 6;
+                                        const shapeStyle = {
+                                            borderTopLeftRadius: isStartDay ? radius : 0,
+                                            borderBottomLeftRadius: isStartDay ? radius : 0,
+                                            borderTopRightRadius: isEndDay ? radius : 0,
+                                            borderBottomRightRadius: isEndDay ? radius : 0,
+                                        } as React.CSSProperties;
+
+                                        return (
+                                            <button
+                                                key={e.id}
+                                                onClick={() => setActiveEventId(e.id)}
+                                                className="w-full text-left text-[10px] sm:text-xs px-1 py-0.5 truncate transition-colors cursor-pointer"
+                                                style={{
+                                                    backgroundColor: e.color || "#93c5fd",
+                                                    color: "#000",
+                                                    ...shapeStyle
+                                                }}
+                                                title={e.title}
+                                            >
+                                                {isStartDay ? e.title : ""}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
 							</div>
 						))}
 					</div>
