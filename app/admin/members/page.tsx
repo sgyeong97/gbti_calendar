@@ -101,6 +101,16 @@ export default function MemberManagementPage() {
 			break;
 			default:
 				filtered = members;
+				// 전체 멤버 탭에서도 플랫폼 필터 적용 (AND 조건)
+				if (missingFilter.size > 0) {
+					filtered = filtered.filter(m => {
+						// 선택된 플랫폼을 모두 가져야 함
+						for (const p of missingFilter) {
+							if (!m.platforms[p]) return false;
+						}
+						return true;
+					});
+				}
 		}
 
 		// 검색어 필터링
@@ -445,8 +455,8 @@ function cancelEditBirthYear() {
 							})()}
 						</select>
 
-						{/* 누락 체크 전용 플랫폼 필터 */}
-						{activeTab === "missing" && (
+						{/* 플랫폼 필터 (전체 멤버 & 누락 체크) */}
+						{(activeTab === "all" || activeTab === "missing") && (
 						<div className="flex items-center gap-2">
 								<span className="text-sm text-zinc-600">플랫폼 필터:</span>
 							<button
@@ -489,12 +499,13 @@ function cancelEditBirthYear() {
 						)}
 
 						{/* 필터 초기화 */}
-						{(filterBirthYear !== null || searchTerm) && (
+						{(filterBirthYear !== null || searchTerm || missingFilter.size > 0) && (
 							<button
 								className="px-3 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
 								onClick={() => {
 									setFilterBirthYear(null);
 									setSearchTerm("");
+									setMissingFilter(new Set());
 								}}
 							>
 								필터 초기화
