@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
+import Flatpickr from "react-flatpickr";
+import "flatpickr/dist/themes/material_blue.css";
 
 type Props = {
 	selectedDate?: Date;
@@ -57,11 +59,9 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 		}
 	};
 
-	const initialDateTime = getInitialDateTime();
-    const [date, setDate] = useState(initialDateTime.date);
-    const [endDate, setEndDate] = useState(initialDateTime.date);
-	const [start, setStart] = useState(initialDateTime.start);
-	const [end, setEnd] = useState(initialDateTime.end);
+    const initialDateTime = getInitialDateTime();
+    const [startAt, setStartAt] = useState<Date>(new Date(`${initialDateTime.date}T${initialDateTime.start}:00`));
+    const [endAt, setEndAt] = useState<Date>(new Date(`${initialDateTime.date}T${initialDateTime.end}:00`));
 	const [participantInput, setParticipantInput] = useState("");
 	const [participants, setParticipants] = useState<string[]>([]);
 	const [allParticipants, setAllParticipants] = useState<string[]>([]);
@@ -69,11 +69,10 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 	const [loading, setLoading] = useState(false);
 
 	// 선택된 날짜가 변경되면 모든 상태 업데이트
-	useEffect(() => {
-		const newDateTime = getInitialDateTime();
-		setDate(newDateTime.date);
-		setStart(newDateTime.start);
-		setEnd(newDateTime.end);
+    useEffect(() => {
+        const newDateTime = getInitialDateTime();
+        setStartAt(new Date(`${newDateTime.date}T${newDateTime.start}:00`));
+        setEndAt(new Date(`${newDateTime.date}T${newDateTime.end}:00`));
     }, [selectedDate]);
 
 	useEffect(() => {
@@ -95,9 +94,6 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 
 		setLoading(true);
 		try {
-            const startAt = new Date(`${date}T${start}:00`);
-            const endAt = new Date(`${endDate}T${end}:00`);
-
             if (endAt <= startAt) {
                 return alert("종료일시가 시작일시보다 늦어야 합니다.");
             }
@@ -105,8 +101,8 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 			// 요청 데이터 구성
 			const requestData: any = {
 				title,
-				startAt,
-				endAt,
+                startAt,
+                endAt,
 				allDay: false,
 				calendarId: "default",
 				calendarName: "기본 캘린더",
@@ -117,11 +113,11 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 			if (participants.length > 0) {
 				requestData.participants = participants;
 			}
-			if (repeat.enabled && repeat.days.size > 0) {
+            if (repeat.enabled && repeat.days.size > 0) {
 				requestData.repeat = {
 					daysOfWeek: Array.from(repeat.days),
-					startMinutes: parseInt(start.split(":")[0]) * 60 + parseInt(start.split(":")[1]),
-					endMinutes: parseInt(end.split(":")[0]) * 60 + parseInt(end.split(":")[1]),
+                    startMinutes: startAt.getHours() * 60 + startAt.getMinutes(),
+                    endMinutes: endAt.getHours() * 60 + endAt.getMinutes(),
 					color
 				};
 			}
@@ -162,46 +158,27 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 					value={title}
 					onChange={(e) => setTitle(e.target.value)}
 				/>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2">
                     <div>
-                        <label className="text-xs text-zinc-600">시작 날짜</label>
-                        <input
+                        <label className="text-xs text-zinc-600">시작</label>
+                        <Flatpickr
                             className="w-full border rounded px-2 py-1"
-                            type="date"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
+                            value={startAt}
+                            options={{ enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, minuteIncrement: 5 }}
+                            onChange={(dates: Date[]) => { if (dates[0]) setStartAt(dates[0]); }}
                         />
                     </div>
                     <div>
-                        <label className="text-xs text-zinc-600">종료 날짜</label>
-                        <input
+                        <label className="text-xs text-zinc-600">종료</label>
+                        <Flatpickr
                             className="w-full border rounded px-2 py-1"
-                            type="date"
-                            value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
+                            value={endAt}
+                            options={{ enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, minuteIncrement: 5 }}
+                            onChange={(dates: Date[]) => { if (dates[0]) setEndAt(dates[0]); }}
                         />
                     </div>
                 </div>
-                <div className="flex gap-2">
-                    <div className="w-full">
-                        <label className="text-xs text-zinc-600">시작 시간</label>
-                        <input
-                            className="border rounded px-2 py-1 w-full"
-                            type="time"
-                            value={start}
-                            onChange={(e) => setStart(e.target.value)}
-                        />
-                    </div>
-                    <div className="w-full">
-                        <label className="text-xs text-zinc-600">종료 시간</label>
-                        <input
-                            className="border rounded px-2 py-1 w-full"
-                            type="time"
-                            value={end}
-                            onChange={(e) => setEnd(e.target.value)}
-                        />
-                    </div>
-                </div>
+                {/* 시간 선택은 위 Flatpickr에서 처리 */}
 
 				{/* 참여자 태그 입력 (모든 사용자) */}
 					<div>

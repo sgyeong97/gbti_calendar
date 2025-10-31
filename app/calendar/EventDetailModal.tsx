@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Flatpickr from "react-flatpickr";
+import "flatpickr/dist/themes/material_blue.css";
 
 type Props = { eventId: string | null; onClose: () => void; onChanged: () => void };
 
@@ -118,11 +120,16 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 						<div><strong>캘린더:</strong> {data.event.calendar?.name || "기본 캘린더"}</div>
 				<div>
 					<strong>시작:</strong>{" "}
-					{isEditing && !data.event.isRecurring ? (
-						<input type="datetime-local" className="w-full border rounded px-2 py-1 mt-1" value={editStartAt} onChange={(e)=>setEditStartAt(e.target.value)} />
-					) : (
-						<span>{new Date(data.event.startAt).toLocaleString()}</span>
-					)}
+                {isEditing && !data.event.isRecurring ? (
+                    <Flatpickr
+                        className="w-full border rounded px-2 py-1 mt-1"
+                        value={editStartAt ? new Date(editStartAt) : new Date(data.event.startAt)}
+                        options={{ enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, minuteIncrement: 5 }}
+                        onChange={(dates: Date[]) => { if (dates[0]) setEditStartAt(dates[0].toISOString().slice(0,16)); }}
+                    />
+                ) : (
+                    <span>{new Date(data.event.startAt).toLocaleString()}</span>
+                )}
 				</div>
 
 					{isEditing && data.event.isRecurring && (
@@ -154,11 +161,16 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 					)}
 				<div>
 					<strong>종료:</strong>{" "}
-					{isEditing && !data.event.isRecurring ? (
-						<input type="datetime-local" className="w-full border rounded px-2 py-1 mt-1" value={editEndAt} onChange={(e)=>setEditEndAt(e.target.value)} />
-					) : (
-						<span>{new Date(data.event.endAt).toLocaleString()}</span>
-					)}
+                {isEditing && !data.event.isRecurring ? (
+                    <Flatpickr
+                        className="w-full border rounded px-2 py-1 mt-1"
+                        value={editEndAt ? new Date(editEndAt) : new Date(data.event.endAt)}
+                        options={{ enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, minuteIncrement: 5 }}
+                        onChange={(dates: Date[]) => { if (dates[0]) setEditEndAt(dates[0].toISOString().slice(0,16)); }}
+                    />
+                ) : (
+                    <span>{new Date(data.event.endAt).toLocaleString()}</span>
+                )}
 				</div>
 						<div className="pt-1">
 							<div className="mb-1"><strong>참여자:</strong></div>
