@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
+import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
+import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import dayjs, { Dayjs } from "dayjs";
 
 type Props = {
@@ -161,22 +162,47 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 					onChange={(e) => setTitle(e.target.value)}
 				/>
                 <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    <div className="grid grid-cols-1 gap-2">
-                        <div>
-                            <label className="text-xs text-zinc-600">시작</label>
-                            <DateTimePicker
-                                value={startAt}
-                                onChange={(v) => v && setStartAt(v)}
-                                slotProps={{ textField: { size: "small", fullWidth: true } }}
-                            />
+                    <div className="grid grid-cols-1 gap-3">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <div className="text-xs text-zinc-600 mb-1">시작 날짜</div>
+                                <DateCalendar
+                                    value={startAt}
+                                    onChange={(v) => {
+                                        if (!v) return;
+                                        setStartAt(startAt.year(v.year()).month(v.month()).date(v.date()));
+                                    }}
+                                />
+                            </div>
+                            <div>
+                                <div className="text-xs text-zinc-600 mb-1">종료 날짜</div>
+                                <DateCalendar
+                                    value={endAt}
+                                    onChange={(v) => {
+                                        if (!v) return;
+                                        setEndAt(endAt.year(v.year()).month(v.month()).date(v.date()));
+                                    }}
+                                />
+                            </div>
                         </div>
-                        <div>
-                            <label className="text-xs text-zinc-600">종료</label>
-                            <DateTimePicker
-                                value={endAt}
-                                onChange={(v) => v && setEndAt(v)}
-                                slotProps={{ textField: { size: "small", fullWidth: true } }}
-                            />
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <div className="text-xs text-zinc-600 mb-1">시작 시간</div>
+                                <TimePicker
+                                    value={startAt}
+                                    onChange={(v) => { if (v) setStartAt(startAt.hour(v.hour()).minute(v.minute())); }}
+                                    slotProps={{ textField: { size: "small", fullWidth: true } }}
+                                />
+                            </div>
+                            <div>
+                                <div className="text-xs text-zinc-600 mb-1">종료 시간</div>
+                                <TimePicker
+                                    value={endAt}
+                                    onChange={(v) => { if (v) setEndAt(endAt.hour(v.hour()).minute(v.minute())); }}
+                                    slotProps={{ textField: { size: "small", fullWidth: true } }}
+                                />
+                            </div>
                         </div>
                     </div>
                 </LocalizationProvider>
