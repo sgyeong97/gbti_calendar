@@ -109,6 +109,19 @@ export default function CalendarPage() {
 	const [notificationTargets, setNotificationTargets] = useState<string[]>([]);
 	const [showNotificationSettings, setShowNotificationSettings] = useState<boolean>(false);
 	const [showSaveToast, setShowSaveToast] = useState<boolean>(false);
+	// 도우미: 같은 색 이벤트가 겹칠 때 구분을 위한 진한 테두리 색 생성
+	function darkenColor(hex?: string, amount = 20) {
+		if (!hex) return "#000000";
+		const h = hex.replace('#', '');
+		const num = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+		let r = (num >> 16) & 0xff;
+		let g = (num >> 8) & 0xff;
+		let b = num & 0xff;
+		r = Math.max(0, r - amount);
+		g = Math.max(0, g - amount);
+		b = Math.max(0, b - amount);
+		return `rgb(${r}, ${g}, ${b})`;
+	}
 
 	useEffect(() => {
 		// 저장된 설정 불러오기
@@ -716,19 +729,30 @@ export default function CalendarPage() {
                                             borderBottomRightRadius: isEndDay ? radius : 0,
                                         } as React.CSSProperties;
 
+                                        // 라벨: 시작/중간/종료 구분
+                                        let label = e.title;
+                                        if (!isStartDay && !isEndDay) label = "계속";
+                                        if (isEndDay && !isStartDay) label = `종료 ${format(en, "HH:mm")}`;
+                                        if (isStartDay && !isEndDay) label = `${format(s, "HH:mm")} ${e.title}`;
+
+                                        const borderColor = darkenColor(e.color || "#93c5fd", 40);
+                                        const isMiddle = !isStartDay && !isEndDay;
+                                        const heightClass = isMiddle ? "h-1.5" : "";
+
                                         return (
                                             <button
                                                 key={e.id}
                                                 onClick={() => setActiveEventId(e.id)}
-                                                className="w-full text-left text-[10px] sm:text-xs px-1 py-0.5 truncate transition-colors cursor-pointer"
+                                                className={`w-full text-left text-[10px] sm:text-xs px-1 py-0.5 truncate transition-colors cursor-pointer ${heightClass}`}
                                                 style={{
                                                     backgroundColor: e.color || "#93c5fd",
                                                     color: "#000",
+                                                    borderLeft: `3px solid ${borderColor}`,
                                                     ...shapeStyle
                                                 }}
                                                 title={e.title}
                                             >
-                                                {isStartDay ? e.title : ""}
+                                                {isMiddle ? "" : label}
                                             </button>
                                         );
                                     })}
