@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import CreateEventModal from "@/app/calendar/CreateEventModal";
 import EventDetailModal from "@/app/calendar/EventDetailModal";
 // 공지사항 관련 import 제거
-import { addDays, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, isToday, startOfMonth, startOfWeek } from "date-fns";
+import { addDays, eachDayOfInterval, endOfDay, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, isToday, startOfDay, startOfMonth, startOfWeek } from "date-fns";
 const BRAND_COLOR = "#FDC205"; // rgb(253,194,5)
 const NOTIF_ICON = "/gbti_small.jpg"; // public 경로의 아이콘
 const NOTIF_BADGE = "/gbti_small.jpg";  // 작은 배지 아이콘(없으면 아이콘과 동일하게 사용)
@@ -696,8 +696,15 @@ export default function CalendarPage() {
 										<span>{format(d, "d")}</span>
             )}
 								</div>
-								<div className="mt-1 space-y-1">
-									{events.filter((e) => isSameDay(new Date(e.startAt), d)).map((e) => (
+                                <div className="mt-1 space-y-1">
+                                    {events.filter((e) => {
+                                        const s = new Date(e.startAt);
+                                        const en = new Date(e.endAt);
+                                        const dayStart = startOfDay(d);
+                                        const dayEnd = endOfDay(d);
+                                        // 이벤트가 해당 날짜와 겹치면 표시 (시작일/종료일 포함, 밤샘 이벤트 지원)
+                                        return s <= dayEnd && en >= dayStart;
+                                    }).map((e) => (
 										<button
 											key={e.id}
 											onClick={() => setActiveEventId(e.id)}
