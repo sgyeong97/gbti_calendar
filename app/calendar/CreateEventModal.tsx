@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import Flatpickr from "react-flatpickr";
-import "flatpickr/dist/themes/material_blue.css";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
+import dayjs, { Dayjs } from "dayjs";
 
 type Props = {
 	selectedDate?: Date;
@@ -60,8 +62,8 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 	};
 
     const initialDateTime = getInitialDateTime();
-    const [startAt, setStartAt] = useState<Date>(new Date(`${initialDateTime.date}T${initialDateTime.start}:00`));
-    const [endAt, setEndAt] = useState<Date>(new Date(`${initialDateTime.date}T${initialDateTime.end}:00`));
+    const [startAt, setStartAt] = useState<Dayjs>(dayjs(`${initialDateTime.date}T${initialDateTime.start}:00`));
+    const [endAt, setEndAt] = useState<Dayjs>(dayjs(`${initialDateTime.date}T${initialDateTime.end}:00`));
 	const [participantInput, setParticipantInput] = useState("");
 	const [participants, setParticipants] = useState<string[]>([]);
 	const [allParticipants, setAllParticipants] = useState<string[]>([]);
@@ -71,8 +73,8 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 	// 선택된 날짜가 변경되면 모든 상태 업데이트
     useEffect(() => {
         const newDateTime = getInitialDateTime();
-        setStartAt(new Date(`${newDateTime.date}T${newDateTime.start}:00`));
-        setEndAt(new Date(`${newDateTime.date}T${newDateTime.end}:00`));
+        setStartAt(dayjs(`${newDateTime.date}T${newDateTime.start}:00`));
+        setEndAt(dayjs(`${newDateTime.date}T${newDateTime.end}:00`));
     }, [selectedDate]);
 
 	useEffect(() => {
@@ -94,15 +96,15 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 
 		setLoading(true);
 		try {
-            if (endAt <= startAt) {
+            if (!startAt.isValid() || !endAt.isValid() || endAt.valueOf() <= startAt.valueOf()) {
                 return alert("종료일시가 시작일시보다 늦어야 합니다.");
             }
 
 			// 요청 데이터 구성
 			const requestData: any = {
 				title,
-                startAt,
-                endAt,
+                startAt: startAt.toDate(),
+                endAt: endAt.toDate(),
 				allDay: false,
 				calendarId: "default",
 				calendarName: "기본 캘린더",
@@ -116,8 +118,8 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
             if (repeat.enabled && repeat.days.size > 0) {
 				requestData.repeat = {
 					daysOfWeek: Array.from(repeat.days),
-                    startMinutes: startAt.getHours() * 60 + startAt.getMinutes(),
-                    endMinutes: endAt.getHours() * 60 + endAt.getMinutes(),
+                    startMinutes: startAt.hour() * 60 + startAt.minute(),
+                    endMinutes: endAt.hour() * 60 + endAt.minute(),
 					color
 				};
 			}
@@ -158,26 +160,26 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 					value={title}
 					onChange={(e) => setTitle(e.target.value)}
 				/>
-                <div className="grid grid-cols-1 gap-2">
-                    <div>
-                        <label className="text-xs text-zinc-600">시작</label>
-                        <Flatpickr
-                            className="w-full border rounded px-2 py-1"
-                            value={startAt}
-                            options={{ enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, minuteIncrement: 5 }}
-                            onChange={(dates: Date[]) => { if (dates[0]) setStartAt(dates[0]); }}
-                        />
+                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <div className="grid grid-cols-1 gap-2">
+                        <div>
+                            <label className="text-xs text-zinc-600">시작</label>
+                            <DateTimePicker
+                                value={startAt}
+                                onChange={(v) => v && setStartAt(v)}
+                                slotProps={{ textField: { size: "small", fullWidth: true } }}
+                            />
+                        </div>
+                        <div>
+                            <label className="text-xs text-zinc-600">종료</label>
+                            <DateTimePicker
+                                value={endAt}
+                                onChange={(v) => v && setEndAt(v)}
+                                slotProps={{ textField: { size: "small", fullWidth: true } }}
+                            />
+                        </div>
                     </div>
-                    <div>
-                        <label className="text-xs text-zinc-600">종료</label>
-                        <Flatpickr
-                            className="w-full border rounded px-2 py-1"
-                            value={endAt}
-                            options={{ enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, minuteIncrement: 5 }}
-                            onChange={(dates: Date[]) => { if (dates[0]) setEndAt(dates[0]); }}
-                        />
-                    </div>
-                </div>
+                </LocalizationProvider>
                 {/* 시간 선택은 위 Flatpickr에서 처리 */}
 
 				{/* 참여자 태그 입력 (모든 사용자) */}

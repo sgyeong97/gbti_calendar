@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Flatpickr from "react-flatpickr";
-import "flatpickr/dist/themes/material_blue.css";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
+import dayjs, { Dayjs } from "dayjs";
 
 type Props = { eventId: string | null; onClose: () => void; onChanged: () => void };
 
@@ -17,8 +19,8 @@ export default function EventDetailModal({ eventId, onClose, onChanged }: Props)
 	const [allParticipants, setAllParticipants] = useState<string[]>([]);
 const [isEditingRecurrence, setIsEditingRecurrence] = useState(false);
 const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
-const [editStartAt, setEditStartAt] = useState<string>("");
-const [editEndAt, setEditEndAt] = useState<string>("");
+const [editStartAt, setEditStartAt] = useState<Dayjs | null>(null);
+const [editEndAt, setEditEndAt] = useState<Dayjs | null>(null);
 const [editRecurringStart, setEditRecurringStart] = useState<string>("");
 const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 
@@ -45,19 +47,9 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 				setEditParticipants(participantNames);
 				setIsEditing(false);
 				// 시간 편집 초기값 세팅
-				if (data.event) {
-					const s = new Date(data.event.startAt);
-					const e = new Date(data.event.endAt);
-					const toLocalInput = (d: Date) => {
-						const yyyy = d.getFullYear();
-						const mm = String(d.getMonth()+1).padStart(2,'0');
-						const dd = String(d.getDate()).padStart(2,'0');
-						const HH = String(d.getHours()).padStart(2,'0');
-						const MM = String(d.getMinutes()).padStart(2,'0');
-						return `${yyyy}-${mm}-${dd}T${HH}:${MM}`;
-					};
-					setEditStartAt(toLocalInput(s));
-					setEditEndAt(toLocalInput(e));
+        if (data.event) {
+            setEditStartAt(dayjs(data.event.startAt));
+            setEditEndAt(dayjs(data.event.endAt));
 					if (data.event.isRecurring) {
 						const rs = data.event.recurringStartMinutes ?? 0;
 						const re = data.event.recurringEndMinutes ?? 0;
@@ -120,16 +112,17 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 						<div><strong>캘린더:</strong> {data.event.calendar?.name || "기본 캘린더"}</div>
 				<div>
 					<strong>시작:</strong>{" "}
-                {isEditing && !data.event.isRecurring ? (
-                    <Flatpickr
-                        className="w-full border rounded px-2 py-1 mt-1"
-                        value={editStartAt ? new Date(editStartAt) : new Date(data.event.startAt)}
-                        options={{ enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, minuteIncrement: 5 }}
-                        onChange={(dates: Date[]) => { if (dates[0]) setEditStartAt(dates[0].toISOString().slice(0,16)); }}
-                    />
-                ) : (
-                    <span>{new Date(data.event.startAt).toLocaleString()}</span>
-                )}
+                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    {isEditing && !data.event.isRecurring ? (
+                        <DateTimePicker
+                            value={editStartAt}
+                            onChange={(v) => setEditStartAt(v)}
+                            slotProps={{ textField: { size: "small", fullWidth: true } }}
+                        />
+                    ) : (
+                        <span>{new Date(data.event.startAt).toLocaleString()}</span>
+                    )}
+                </LocalizationProvider>
 				</div>
 
 					{isEditing && data.event.isRecurring && (
@@ -161,16 +154,17 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 					)}
 				<div>
 					<strong>종료:</strong>{" "}
-                {isEditing && !data.event.isRecurring ? (
-                    <Flatpickr
-                        className="w-full border rounded px-2 py-1 mt-1"
-                        value={editEndAt ? new Date(editEndAt) : new Date(data.event.endAt)}
-                        options={{ enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, minuteIncrement: 5 }}
-                        onChange={(dates: Date[]) => { if (dates[0]) setEditEndAt(dates[0].toISOString().slice(0,16)); }}
-                    />
-                ) : (
-                    <span>{new Date(data.event.endAt).toLocaleString()}</span>
-                )}
+                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    {isEditing && !data.event.isRecurring ? (
+                        <DateTimePicker
+                            value={editEndAt}
+                            onChange={(v) => setEditEndAt(v)}
+                            slotProps={{ textField: { size: "small", fullWidth: true } }}
+                        />
+                    ) : (
+                        <span>{new Date(data.event.endAt).toLocaleString()}</span>
+                    )}
+                </LocalizationProvider>
 				</div>
 						<div className="pt-1">
 							<div className="mb-1"><strong>참여자:</strong></div>
@@ -275,15 +269,15 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 									});
 								} else {
 									// 일반 이벤트: 제목과 참여자 업데이트
-                                    const toIso = (localDt:string) => new Date(localDt).toISOString();
+                                    const toIso = (v: Dayjs | null, fallback: string) => (v && v.isValid()) ? v.toDate().toISOString() : fallback;
                                     await fetch(`/api/events/${eventId}`, {
 										method: "PUT",
 										headers: { "Content-Type": "application/json" },
 										body: JSON.stringify({
 											title: editTitle,
                                             participants: editParticipants,
-                                            startAt: editStartAt ? toIso(editStartAt) : undefined,
-                                            endAt: editEndAt ? toIso(editEndAt) : undefined
+                                            startAt: toIso(editStartAt, data.event.startAt),
+                                            endAt: toIso(editEndAt, data.event.endAt)
 										})
 									});
 								}
