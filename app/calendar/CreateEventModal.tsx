@@ -58,7 +58,8 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 	};
 
 	const initialDateTime = getInitialDateTime();
-	const [date, setDate] = useState(initialDateTime.date);
+    const [date, setDate] = useState(initialDateTime.date);
+    const [endDate, setEndDate] = useState(initialDateTime.date);
 	const [start, setStart] = useState(initialDateTime.start);
 	const [end, setEnd] = useState(initialDateTime.end);
 	const [participantInput, setParticipantInput] = useState("");
@@ -73,7 +74,7 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 		setDate(newDateTime.date);
 		setStart(newDateTime.start);
 		setEnd(newDateTime.end);
-	}, [selectedDate]);
+    }, [selectedDate]);
 
 	useEffect(() => {
 		// 참여자 목록 (모든 사용자 노출)
@@ -94,8 +95,12 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 
 		setLoading(true);
 		try {
-			const startAt = new Date(`${date}T${start}:00`);
-			const endAt = new Date(`${date}T${end}:00`);
+            const startAt = new Date(`${date}T${start}:00`);
+            const endAt = new Date(`${endDate}T${end}:00`);
+
+            if (endAt <= startAt) {
+                return alert("종료일시가 시작일시보다 늦어야 합니다.");
+            }
 
 			// 요청 데이터 구성
 			const requestData: any = {
@@ -157,26 +162,46 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 					value={title}
 					onChange={(e) => setTitle(e.target.value)}
 				/>
-				<input
-					className="w-full border rounded px-2 py-1"
-					type="date"
-					value={date}
-					onChange={(e) => setDate(e.target.value)}
-				/>
-				<div className="flex gap-2">
-					<input
-						className="border rounded px-2 py-1 w-full"
-						type="time"
-						value={start}
-						onChange={(e) => setStart(e.target.value)}
-					/>
-					<input
-						className="border rounded px-2 py-1 w-full"
-						type="time"
-						value={end}
-						onChange={(e) => setEnd(e.target.value)}
-					/>
-				</div>
+                <div className="grid grid-cols-2 gap-2">
+                    <div>
+                        <label className="text-xs text-zinc-600">시작 날짜</label>
+                        <input
+                            className="w-full border rounded px-2 py-1"
+                            type="date"
+                            value={date}
+                            onChange={(e) => setDate(e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <label className="text-xs text-zinc-600">종료 날짜</label>
+                        <input
+                            className="w-full border rounded px-2 py-1"
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                        />
+                    </div>
+                </div>
+                <div className="flex gap-2">
+                    <div className="w-full">
+                        <label className="text-xs text-zinc-600">시작 시간</label>
+                        <input
+                            className="border rounded px-2 py-1 w-full"
+                            type="time"
+                            value={start}
+                            onChange={(e) => setStart(e.target.value)}
+                        />
+                    </div>
+                    <div className="w-full">
+                        <label className="text-xs text-zinc-600">종료 시간</label>
+                        <input
+                            className="border rounded px-2 py-1 w-full"
+                            type="time"
+                            value={end}
+                            onChange={(e) => setEnd(e.target.value)}
+                        />
+                    </div>
+                </div>
 
 				{/* 참여자 태그 입력 (모든 사용자) */}
 					<div>
