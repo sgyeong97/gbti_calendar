@@ -737,22 +737,25 @@ export default function CalendarPage() {
 
                                         const borderColor = darkenColor(e.color || "#93c5fd", 40);
                                         const isMiddle = !isStartDay && !isEndDay;
-                                        const heightClass = isMiddle ? "h-1.5" : "";
+                                        // 연결감을 위해 중간/끝/시작에 컬러 보더 추가
+                                        const leftBorder = (isStartDay || isMiddle) ? `3px solid ${borderColor}` : undefined;
+                                        const rightBorder = (isEndDay || isMiddle) ? `3px solid ${borderColor}` : undefined;
 
                                         return (
                                             <button
                                                 key={e.id}
                                                 onClick={() => setActiveEventId(e.id)}
-                                                className={`w-full text-left text-[10px] sm:text-xs px-1 py-0.5 truncate transition-colors cursor-pointer ${heightClass}`}
+                                                className={`w-full text-left text-[10px] sm:text-xs px-1 py-0.5 truncate transition-colors cursor-pointer`}
                                                 style={{
                                                     backgroundColor: e.color || "#93c5fd",
                                                     color: "#000",
-                                                    borderLeft: `3px solid ${borderColor}`,
+                                                    borderLeft: leftBorder,
+                                                    borderRight: rightBorder,
                                                     ...shapeStyle
                                                 }}
                                                 title={e.title}
                                             >
-                                                {isMiddle ? "" : label}
+                                                {isMiddle ? "↔" : label}
                                             </button>
                                         );
                                     })}
