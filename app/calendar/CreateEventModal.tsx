@@ -64,6 +64,10 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
     const initialDateTime = getInitialDateTime();
     const [startAt, setStartAt] = useState<Dayjs>(dayjs(`${initialDateTime.date}T${initialDateTime.start}:00`));
     const [endAt, setEndAt] = useState<Dayjs>(dayjs(`${initialDateTime.date}T${initialDateTime.end}:00`));
+    const [openStartDate, setOpenStartDate] = useState(false);
+    const [openEndDate, setOpenEndDate] = useState(false);
+    const [openStartTime, setOpenStartTime] = useState(false);
+    const [openEndTime, setOpenEndTime] = useState(false);
 	const [participantInput, setParticipantInput] = useState("");
 	const [participants, setParticipants] = useState<string[]>([]);
 	const [allParticipants, setAllParticipants] = useState<string[]>([]);
@@ -160,95 +164,105 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 					value={title}
 					onChange={(e) => setTitle(e.target.value)}
 				/>
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    <div className="grid grid-cols-1 gap-3">
-                        {/* 날짜 선택 (시작/종료) */}
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <div className="text-xs text-zinc-600 mb-1">시작 날짜</div>
-                                <DateCalendar
-                                    value={startAt}
-                                    onChange={(v) => { if (v) setStartAt(startAt.year(v.year()).month(v.month()).date(v.date())); }}
-                                />
+                    <div className="space-y-3 relative">
+                        {/* 인라인 입력 */}
+                        <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                                <label className="text-xs text-zinc-600">시작 날짜</label>
+                                <button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenStartDate(!openStartDate)}>
+                                    {startAt.format('YYYY-MM-DD')}
+                                </button>
+                                {openStartDate && (
+                                    <div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow" style={{width:'min(320px,90vw)'}}>
+                                        <DateCalendar value={startAt} onChange={(v)=>{ if(v){ setStartAt(startAt.year(v.year()).month(v.month()).date(v.date())); setOpenStartDate(false);} }} />
+                                    </div>
+                                )}
                             </div>
-                            <div>
-                                <div className="text-xs text-zinc-600 mb-1">종료 날짜</div>
-                                <DateCalendar
-                                    value={endAt}
-                                    onChange={(v) => { if (v) setEndAt(endAt.year(v.year()).month(v.month()).date(v.date())); }}
-                                />
+                            <div className="space-y-1">
+                                <label className="text-xs text-zinc-600">시작 시간</label>
+                                <button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenStartTime(!openStartTime)}>
+                                    {startAt.format('HH:mm')}
+                                </button>
+                                {openStartTime && (
+                                    <div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow">
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex flex-col items-center">
+                                                <button type="button" className="px-2 py-1 border rounded" onClick={()=>setStartAt(startAt.add(1,'hour'))}>+1시간</button>
+                                                <button type="button" className="px-2 py-1 border rounded mt-1" onClick={()=>setStartAt(startAt.subtract(1,'hour'))}>-1시간</button>
+                                            </div>
+                                            <div className="flex items-center gap-2 border rounded px-2 py-1">
+                                                <div className="flex flex-col items-center">
+                                                    <button type="button" onClick={()=>setStartAt(startAt.add(1,'hour'))}>▲</button>
+                                                    <span className="w-8 text-center">{startAt.format('HH')}</span>
+                                                    <button type="button" onClick={()=>setStartAt(startAt.subtract(1,'hour'))}>▼</button>
+                                                </div>
+                                                <span>:</span>
+                                                <div className="flex flex-col items-center">
+                                                    <button type="button" onClick={()=>setStartAt(startAt.add(1,'minute'))}>▲</button>
+                                                    <span className="w-8 text-center">{startAt.format('mm')}</span>
+                                                    <button type="button" onClick={()=>setStartAt(startAt.subtract(1,'minute'))}>▼</button>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col items-center">
+                                                <button type="button" className="px-2 py-1 border rounded" onClick={()=>setStartAt(startAt.add(30,'minute'))}>+30분</button>
+                                                <button type="button" className="px-2 py-1 border rounded mt-1" onClick={()=>setStartAt(startAt.subtract(30,'minute'))}>-30분</button>
+                                            </div>
+                                            <button type="button" className="ml-2 px-3 py-1 rounded border" onClick={()=>setOpenStartTime(false)}>확인</button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
-                        {/* 시간 스테퍼 (시작/종료) */}
-                        <div className="grid grid-cols-2 gap-3">
-                            {/* 시작 시간 */}
-                            <div className="space-y-2">
-                                <div className="text-xs text-zinc-600">시작 시간</div>
-                                <div className="flex items-center gap-2">
-                                    <div className="flex flex-col items-center">
-                                        <button type="button" className="px-2 py-1 border rounded"
-                                            onClick={() => setStartAt(startAt.add(1, 'hour'))}>+1시간</button>
-                                        <button type="button" className="px-2 py-1 border rounded mt-1"
-                                            onClick={() => setStartAt(startAt.subtract(1, 'hour'))}>-1시간</button>
+                        <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                                <label className="text-xs text-zinc-600">종료 날짜</label>
+                                <button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenEndDate(!openEndDate)}>
+                                    {endAt.format('YYYY-MM-DD')}
+                                </button>
+                                {openEndDate && (
+                                    <div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow" style={{width:'min(320px,90vw)'}}>
+                                        <DateCalendar value={endAt} onChange={(v)=>{ if(v){ setEndAt(endAt.year(v.year()).month(v.month()).date(v.date())); setOpenEndDate(false);} }} />
                                     </div>
-                                    <div className="flex items-center gap-2 border rounded px-2 py-1">
-                                        <div className="flex flex-col items-center">
-                                            <button type="button" onClick={() => setStartAt(startAt.add(1, 'hour'))}>▲</button>
-                                            <span className="w-8 text-center">{String(startAt.hour()).padStart(2,'0')}</span>
-                                            <button type="button" onClick={() => setStartAt(startAt.subtract(1, 'hour'))}>▼</button>
-                                        </div>
-                                        <span>:</span>
-                                        <div className="flex flex-col items-center">
-                                            <button type="button" onClick={() => setStartAt(startAt.add(1, 'minute'))}>▲</button>
-                                            <span className="w-8 text-center">{String(startAt.minute()).padStart(2,'0')}</span>
-                                            <button type="button" onClick={() => setStartAt(startAt.subtract(1, 'minute'))}>▼</button>
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col items-center">
-                                        <button type="button" className="px-2 py-1 border rounded"
-                                            onClick={() => setStartAt(startAt.add(30, 'minute'))}>+30분</button>
-                                        <button type="button" className="px-2 py-1 border rounded mt-1"
-                                            onClick={() => setStartAt(startAt.subtract(30, 'minute'))}>-30분</button>
-                                    </div>
-                                </div>
+                                )}
                             </div>
-
-                            {/* 종료 시간 */}
-                            <div className="space-y-2">
-                                <div className="text-xs text-zinc-600">종료 시간</div>
-                                <div className="flex items-center gap-2">
-                                    <div className="flex flex-col items-center">
-                                        <button type="button" className="px-2 py-1 border rounded"
-                                            onClick={() => setEndAt(endAt.add(1, 'hour'))}>+1시간</button>
-                                        <button type="button" className="px-2 py-1 border rounded mt-1"
-                                            onClick={() => setEndAt(endAt.subtract(1, 'hour'))}>-1시간</button>
-                                    </div>
-                                    <div className="flex items-center gap-2 border rounded px-2 py-1">
-                                        <div className="flex flex-col items-center">
-                                            <button type="button" onClick={() => setEndAt(endAt.add(1, 'hour'))}>▲</button>
-                                            <span className="w-8 text-center">{String(endAt.hour()).padStart(2,'0')}</span>
-                                            <button type="button" onClick={() => setEndAt(endAt.subtract(1, 'hour'))}>▼</button>
+                            <div className="space-y-1">
+                                <label className="text-xs text-zinc-600">종료 시간</label>
+                                <button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenEndTime(!openEndTime)}>
+                                    {endAt.format('HH:mm')}
+                                </button>
+                                {openEndTime && (
+                                    <div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow">
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex flex-col items-center">
+                                                <button type="button" className="px-2 py-1 border rounded" onClick={()=>setEndAt(endAt.add(1,'hour'))}>+1시간</button>
+                                                <button type="button" className="px-2 py-1 border rounded mt-1" onClick={()=>setEndAt(endAt.subtract(1,'hour'))}>-1시간</button>
+                                            </div>
+                                            <div className="flex items-center gap-2 border rounded px-2 py-1">
+                                                <div className="flex flex-col items-center">
+                                                    <button type="button" onClick={()=>setEndAt(endAt.add(1,'hour'))}>▲</button>
+                                                    <span className="w-8 text-center">{endAt.format('HH')}</span>
+                                                    <button type="button" onClick={()=>setEndAt(endAt.subtract(1,'hour'))}>▼</button>
+                                                </div>
+                                                <span>:</span>
+                                                <div className="flex flex-col items-center">
+                                                    <button type="button" onClick={()=>setEndAt(endAt.add(1,'minute'))}>▲</button>
+                                                    <span className="w-8 text-center">{endAt.format('mm')}</span>
+                                                    <button type="button" onClick={()=>setEndAt(endAt.subtract(1,'minute'))}>▼</button>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col items-center">
+                                                <button type="button" className="px-2 py-1 border rounded" onClick={()=>setEndAt(endAt.add(30,'minute'))}>+30분</button>
+                                                <button type="button" className="px-2 py-1 border rounded mt-1" onClick={()=>setEndAt(endAt.subtract(30,'minute'))}>-30분</button>
+                                            </div>
+                                            <button type="button" className="ml-2 px-3 py-1 rounded border" onClick={()=>setOpenEndTime(false)}>확인</button>
                                         </div>
-                                        <span>:</span>
-                                        <div className="flex flex-col items-center">
-                                            <button type="button" onClick={() => setEndAt(endAt.add(1, 'minute'))}>▲</button>
-                                            <span className="w-8 text-center">{String(endAt.minute()).padStart(2,'0')}</span>
-                                            <button type="button" onClick={() => setEndAt(endAt.subtract(1, 'minute'))}>▼</button>
-                                        </div>
                                     </div>
-                                    <div className="flex flex-col items-center">
-                                        <button type="button" className="px-2 py-1 border rounded"
-                                            onClick={() => setEndAt(endAt.add(30, 'minute'))}>+30분</button>
-                                        <button type="button" className="px-2 py-1 border rounded mt-1"
-                                            onClick={() => setEndAt(endAt.subtract(30, 'minute'))}>-30분</button>
-                                    </div>
-                                </div>
+                                )}
                             </div>
                         </div>
                     </div>
-                </LocalizationProvider>
-                {/* 시간 선택은 위 Flatpickr에서 처리 */}
+                {/* </LocalizationProvider> */}
 
 				{/* 참여자 태그 입력 (모든 사용자) */}
 					<div>
