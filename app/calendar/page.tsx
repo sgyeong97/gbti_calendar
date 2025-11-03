@@ -392,18 +392,70 @@ export default function CalendarPage() {
 
 	return (
 		<div className="px-3 py-4 sm:p-6 max-w-5xl mx-auto">
-			{/* 상단 전광판 배너 */}
+			{/* 상단 전광판 배너 (화려한 스타일) */}
 			<div className="mb-3">
-				<div className="relative overflow-hidden rounded-md border" style={{ backgroundColor: "#FFF6D1", borderColor: BRAND_COLOR }}>
-					<div className="whitespace-nowrap" style={{ animation: "gbti-marquee 20s linear infinite", paddingLeft: "100%" }}>
-						<span className="mx-6">🌹딩고의 여자 : 노린재, 하늘, 갱이, 여름 🌹</span>
-						<span className="mx-6">🌹딩고의 여자 : 노린재, 하늘, 갱이, 여름 🌹</span>
+				<div className="relative overflow-hidden rounded-md border shadow-lg banner-wrap">
+					{/* 부유하는 이모지 효과 */}
+					<span className="sparkle" style={{ left: "6%", top: "-8%" }}>✨</span>
+					<span className="sparkle delay-1" style={{ left: "22%", top: "-10%" }}>🌹</span>
+					<span className="sparkle delay-2" style={{ left: "44%", top: "-12%" }}>💛</span>
+					<span className="sparkle delay-3" style={{ left: "70%", top: "-14%" }}>💫</span>
+					<span className="sparkle delay-4" style={{ left: "88%", top: "-16%" }}>🌟</span>
+
+					{/* 전광판 텍스트 */}
+					<div className="marquee-track">
+						<span className="marquee-text">🌹딩고의 여자 : 노린재, 하늘, 갱이, 여름 🌹</span>
+						<span className="marquee-text">⭐딩고 여친 or 남친 상시 모집중 >> 문의 97 딩고⭐</span>
+						<span className="marquee-text">🌹딩고의 여자 : 노린재, 하늘, 갱이, 여름 🌹</span>
+						<span className="marquee-text">⭐딩고 여친 or 남친 상시 모집중 >> 문의 97 딩고⭐</span>
 					</div>
 				</div>
 				<style jsx>{`
+				.banner-wrap {
+					border-color: ${BRAND_COLOR};
+					background: linear-gradient(90deg, #fff6d1 0%, #ffeaa7 25%, #ffd166 50%, #ffeaa7 75%, #fff6d1 100%);
+					background-size: 300% 100%;
+					animation: gbti-gradient 14s linear infinite;
+					box-shadow: 0 6px 16px rgba(0,0,0,0.12), 0 0 0 3px rgba(253,194,5,0.25) inset;
+					height: 44px;
+				}
+
+				.marquee-track {
+					position: relative;
+					white-space: nowrap;
+					padding-left: 100%;
+					animation: gbti-marquee 22s linear infinite;
+				}
+				.banner-wrap:hover .marquee-track { animation-duration: 12s; }
+
+				.marquee-text {
+					display: inline-block;
+					margin: 0 2.5rem;
+					font-weight: 700;
+					letter-spacing: 0.5px;
+					color: #111;
+					text-shadow: 0 0 6px rgba(253,194,5,0.8), 0 0 12px rgba(253,194,5,0.6);
+				}
+
+				/* 부유하는 이모지 */
+				.sparkle { position: absolute; font-size: 18px; opacity: 0.9; animation: floatY 5.5s ease-in-out infinite; }
+				.delay-1 { animation-delay: .7s; }
+				.delay-2 { animation-delay: 1.4s; }
+				.delay-3 { animation-delay: 2.1s; }
+				.delay-4 { animation-delay: 2.8s; }
+
+				@keyframes floatY {
+					0%, 100% { transform: translateY(0); }
+					50% { transform: translateY(12px); }
+				}
+
 				@keyframes gbti-marquee {
 					0% { transform: translateX(0); }
 					100% { transform: translateX(-100%); }
+				}
+				@keyframes gbti-gradient {
+					0% { background-position: 0% 0%; }
+					100% { background-position: 300% 0%; }
 				}
 				`}</style>
 			</div>
