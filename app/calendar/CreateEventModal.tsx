@@ -86,7 +86,38 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 		fetch("/api/participants").then((r) => r.json()).then((data) => {
 			setAllParticipants((data.participants ?? []).map((p: any) => p.name));
 		});
+
+		// 드래프트 복원
+		try {
+			const raw = localStorage.getItem("gbti_create_event_draft");
+			if (raw) {
+				const d = JSON.parse(raw);
+				if (typeof d.title === "string") setTitle(d.title);
+				if (typeof d.color === "string") setColor(d.color);
+				if (d.startAt) setStartAt(dayjs(d.startAt));
+				if (d.endAt) setEndAt(dayjs(d.endAt));
+				if (Array.isArray(d.participants)) setParticipants(d.participants);
+				if (d.repeat && typeof d.repeat.enabled === 'boolean' && Array.isArray(d.repeat.days)) {
+					setRepeat({ enabled: d.repeat.enabled, days: new Set<number>(d.repeat.days) });
+				}
+			}
+		} catch {}
 	}, []);
+
+	// 드래프트 자동 저장
+	useEffect(() => {
+		try {
+			const draft = {
+				title,
+				color,
+				startAt: startAt?.toISOString?.(),
+				endAt: endAt?.toISOString?.(),
+				participants,
+				repeat: { enabled: repeat.enabled, days: Array.from(repeat.days) },
+			};
+			localStorage.setItem("gbti_create_event_draft", JSON.stringify(draft));
+		} catch {}
+	}, [title, color, startAt, endAt, participants, repeat]);
 
 	function toggleDay(idx: number) {
 		const next = new Set(repeat.days);
@@ -137,6 +168,7 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 			if (res.ok) {
 				const result = await res.json();
 				console.log("이벤트 생성 성공:", result);
+				try { localStorage.removeItem("gbti_create_event_draft"); } catch {}
 				onCreated();
 			} else {
 				const error = await res.json();
@@ -403,23 +435,23 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 						)}
 					</div>
 
-				<div className="flex justify-end gap-2">
-					<button
-						className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-						onClick={onClose}
-						disabled={loading}
-					>
-						닫기
-					</button>
-					<button
-						className="px-3 py-1 rounded text-black disabled:opacity-50 transition-colors cursor-pointer"
-						style={{ backgroundColor: "#FDC205" }}
-						onClick={submit}
-						disabled={loading}
-					>
-						{loading ? "추가 중..." : "추가"}
-					</button>
-				</div>
+			<div className="flex justify-end gap-2">
+				<button
+					className="px-3 py-1 rounded text-black disabled:opacity-50 transition-colors cursor-pointer"
+					style={{ backgroundColor: "#FDC205" }}
+					onClick={submit}
+					disabled={loading}
+				>
+					{loading ? "추가 중..." : "추가"}
+				</button>
+				<button
+					className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+					onClick={onClose}
+					disabled={loading}
+				>
+					닫기
+				</button>
+			</div>
 			</div>
 		</div>
 	);
