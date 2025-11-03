@@ -392,6 +392,21 @@ export default function CalendarPage() {
 
 	return (
 		<div className="px-3 py-4 sm:p-6 max-w-5xl mx-auto">
+			{/* 상단 전광판 배너 */}
+			<div className="mb-3">
+				<div className="relative overflow-hidden rounded-md border" style={{ backgroundColor: "#FFF6D1", borderColor: BRAND_COLOR }}>
+					<div className="whitespace-nowrap" style={{ animation: "gbti-marquee 20s linear infinite", paddingLeft: "100%" }}>
+						<span className="mx-6">🌹딩고의 여자 : 노린재, 하늘, 갱이, 여름 🌹</span>
+						<span className="mx-6">🌹딩고의 여자 : 노린재, 하늘, 갱이, 여름 🌹</span>
+					</div>
+				</div>
+				<style jsx>{`
+				@keyframes gbti-marquee {
+					0% { transform: translateX(0); }
+					100% { transform: translateX(-100%); }
+				}
+				`}</style>
+			</div>
 			<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4">
 				<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
 					<h1 className="text-base sm:text-2xl font-semibold">달력</h1>
