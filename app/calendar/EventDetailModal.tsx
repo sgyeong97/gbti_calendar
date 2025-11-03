@@ -144,20 +144,43 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
                                             <div className="absolute inset-0 bg-black/30" onClick={()=>setOpenStartTime(false)} />
                                             <div className="relative z-[61] p-3 rounded border bg-white shadow">
                                                 <div className="flex items-center gap-2">
-												<div className="flex flex-col items-center">
-													<button type="button" onClick={()=>setEditStartAt(editStartAt.add(1,'hour'))}>▲</button>
-													<span className="w-8 text-center">{editStartAt.format('HH')}</span>
-													<button type="button" onClick={()=>setEditStartAt(editStartAt.subtract(1,'hour'))}>▼</button>
-												</div>
-												<span>:</span>
-												<div className="flex flex-col items-center">
-													<button type="button" onClick={()=>setEditStartAt(editStartAt.add(1,'minute'))}>▲</button>
-													<span className="w-8 text-center">{editStartAt.format('mm')}</span>
-													<button type="button" onClick={()=>setEditStartAt(editStartAt.subtract(1,'minute'))}>▼</button>
-												</div>
-											</div>
-                                                <div className="text-right mt-2">
+                                                    <div className="flex flex-col items-center">
+                                                        <button type="button" onClick={()=>setEditStartAt(editStartAt.add(1,'hour'))}>▲</button>
+                                                        <input
+                                                            className="w-12 text-center border rounded px-1 py-0.5"
+                                                            value={editStartAt.format('HH')}
+                                                            onChange={(e)=>{
+                                                                const v = e.target.value.replace(/\D/g,'');
+                                                                const n = Math.min(23, Math.max(0, Number(v||'0')));
+                                                                setEditStartAt(editStartAt.hour(n));
+                                                            }}
+                                                        />
+                                                        <button type="button" onClick={()=>setEditStartAt(editStartAt.subtract(1,'hour'))}>▼</button>
+                                                    </div>
+                                                    <span>:</span>
+                                                    <div className="flex flex-col items-center">
+                                                        <button type="button" onClick={()=>setEditStartAt(editStartAt.add(1,'minute'))}>▲</button>
+                                                        <input
+                                                            className="w-12 text-center border rounded px-1 py-0.5"
+                                                            value={editStartAt.format('mm')}
+                                                            onChange={(e)=>{
+                                                                const v = e.target.value.replace(/\D/g,'');
+                                                                const n = Math.min(59, Math.max(0, Number(v||'0')));
+                                                                setEditStartAt(editStartAt.minute(n));
+                                                            }}
+                                                        />
+                                                        <button type="button" onClick={()=>setEditStartAt(editStartAt.subtract(1,'minute'))}>▼</button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 justify-between mt-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditStartAt(editStartAt.add(5,'minute'))}>+5분</button>
+                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditStartAt(editStartAt.add(10,'minute'))}>+10분</button>
+                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditStartAt(editStartAt.add(30,'minute'))}>+30분</button>
+                                                    </div>
+                                                    <div className="text-right">
                                                     <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenStartTime(false)}>확인</button>
+                                                    </div>
                                                 </div>
 										</div>
 									</div>
@@ -200,12 +223,21 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
                                             <div className="relative z-[61] p-3 rounded border bg-white shadow">
                                                 <div className="flex items-center gap-2">
 													<div className="flex flex-col items-center">
-														<button type="button" onClick={()=>{
+                                                        <button type="button" onClick={()=>{
 															const [hh,mm]= (editRecurringStart||"00:00").split(":").map(Number);
 															const d = dayjs().hour(hh).minute(mm).add(1,'hour');
 															setEditRecurringStart(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
 														}}>▲</button>
-														<span className="w-8 text-center">{(editRecurringStart||"00:00").split(":")[0]}</span>
+                                                        <input
+                                                            className="w-12 text-center border rounded px-1 py-0.5"
+                                                            value={(editRecurringStart||"00:00").split(":")[0]}
+                                                            onChange={(e)=>{
+                                                                const v = e.target.value.replace(/\D/g,'');
+                                                                const n = Math.min(23, Math.max(0, Number(v||'0')));
+                                                                const mins = (editRecurringStart||"00:00").split(":")[1];
+                                                                setEditRecurringStart(`${String(n).padStart(2,'0')}:${mins}`);
+                                                            }}
+                                                        />
 														<button type="button" onClick={()=>{
 															const [hh,mm]= (editRecurringStart||"00:00").split(":").map(Number);
 															const d = dayjs().hour(hh).minute(mm).subtract(1,'hour');
@@ -219,7 +251,16 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 															const d = dayjs().hour(hh).minute(mm).add(1,'minute');
 															setEditRecurringStart(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
 														}}>▲</button>
-														<span className="w-8 text-center">{(editRecurringStart||"00:00").split(":")[1]}</span>
+                                                        <input
+                                                            className="w-12 text-center border rounded px-1 py-0.5"
+                                                            value={(editRecurringStart||"00:00").split(":")[1]}
+                                                            onChange={(e)=>{
+                                                                const v = e.target.value.replace(/\D/g,'');
+                                                                const n = Math.min(59, Math.max(0, Number(v||'0')));
+                                                                const hrs = (editRecurringStart||"00:00").split(":")[0];
+                                                                setEditRecurringStart(`${hrs}:${String(n).padStart(2,'0')}`);
+                                                            }}
+                                                        />
 														<button type="button" onClick={()=>{
 															const [hh,mm]= (editRecurringStart||"00:00").split(":").map(Number);
 															const d = dayjs().hour(hh).minute(mm).subtract(1,'minute');
@@ -227,8 +268,27 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 														}}>▼</button>
 													</div>
                                                 </div>
-                                                <div className="text-right mt-2">
-                                                    <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenRecurringStartTime(false)}>확인</button>
+                                                <div className="flex items-center gap-2 justify-between mt-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>{
+                                                            const [hh,mm]= (editRecurringStart||"00:00").split(":").map(Number);
+                                                            const d = dayjs().hour(hh).minute(mm).add(5,'minute');
+                                                            setEditRecurringStart(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
+                                                        }}>+5분</button>
+                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>{
+                                                            const [hh,mm]= (editRecurringStart||"00:00").split(":").map(Number);
+                                                            const d = dayjs().hour(hh).minute(mm).add(10,'minute');
+                                                            setEditRecurringStart(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
+                                                        }}>+10분</button>
+                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>{
+                                                            const [hh,mm]= (editRecurringStart||"00:00").split(":").map(Number);
+                                                            const d = dayjs().hour(hh).minute(mm).add(30,'minute');
+                                                            setEditRecurringStart(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
+                                                        }}>+30분</button>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenRecurringStartTime(false)}>확인</button>
+                                                    </div>
                                                 </div>
 											</div>
 										</div>
@@ -250,7 +310,16 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 															const d = dayjs().hour(hh).minute(mm).add(1,'hour');
 															setEditRecurringEnd(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
 														}}>▲</button>
-														<span className="w-8 text-center">{(editRecurringEnd||"00:00").split(":")[0]}</span>
+                                                        <input
+                                                            className="w-12 text-center border rounded px-1 py-0.5"
+                                                            value={(editRecurringEnd||"00:00").split(":")[0]}
+                                                            onChange={(e)=>{
+                                                                const v = e.target.value.replace(/\D/g,'');
+                                                                const n = Math.min(23, Math.max(0, Number(v||'0')));
+                                                                const mins = (editRecurringEnd||"00:00").split(":")[1];
+                                                                setEditRecurringEnd(`${String(n).padStart(2,'0')}:${mins}`);
+                                                            }}
+                                                        />
 														<button type="button" onClick={()=>{
 															const [hh,mm]= (editRecurringEnd||"00:00").split(":").map(Number);
 															const d = dayjs().hour(hh).minute(mm).subtract(1,'hour');
@@ -264,7 +333,16 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 															const d = dayjs().hour(hh).minute(mm).add(1,'minute');
 															setEditRecurringEnd(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
 														}}>▲</button>
-														<span className="w-8 text-center">{(editRecurringEnd||"00:00").split(":")[1]}</span>
+                                                        <input
+                                                            className="w-12 text-center border rounded px-1 py-0.5"
+                                                            value={(editRecurringEnd||"00:00").split(":")[1]}
+                                                            onChange={(e)=>{
+                                                                const v = e.target.value.replace(/\D/g,'');
+                                                                const n = Math.min(59, Math.max(0, Number(v||'0')));
+                                                                const hrs = (editRecurringEnd||"00:00").split(":")[0];
+                                                                setEditRecurringEnd(`${hrs}:${String(n).padStart(2,'0')}`);
+                                                            }}
+                                                        />
 														<button type="button" onClick={()=>{
 															const [hh,mm]= (editRecurringEnd||"00:00").split(":").map(Number);
 															const d = dayjs().hour(hh).minute(mm).subtract(1,'minute');
@@ -272,8 +350,27 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 														}}>▼</button>
 													</div>
                                                 </div>
-                                                <div className="text-right mt-2">
-                                                    <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenRecurringEndTime(false)}>확인</button>
+                                                <div className="flex items-center gap-2 justify-between mt-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>{
+                                                            const [hh,mm]= (editRecurringEnd||"00:00").split(":").map(Number);
+                                                            const d = dayjs().hour(hh).minute(mm).add(5,'minute');
+                                                            setEditRecurringEnd(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
+                                                        }}>+5분</button>
+                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>{
+                                                            const [hh,mm]= (editRecurringEnd||"00:00").split(":").map(Number);
+                                                            const d = dayjs().hour(hh).minute(mm).add(10,'minute');
+                                                            setEditRecurringEnd(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
+                                                        }}>+10분</button>
+                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>{
+                                                            const [hh,mm]= (editRecurringEnd||"00:00").split(":").map(Number);
+                                                            const d = dayjs().hour(hh).minute(mm).add(30,'minute');
+                                                            setEditRecurringEnd(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
+                                                        }}>+30분</button>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenRecurringEndTime(false)}>확인</button>
+                                                    </div>
                                                 </div>
 											</div>
 										</div>
@@ -307,20 +404,43 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
                                             <div className="absolute inset-0 bg-black/30" onClick={()=>setOpenEndTime(false)} />
                                             <div className="relative z-[61] p-3 rounded border bg-white shadow">
                                                 <div className="flex items-center gap-2">
-												<div className="flex flex-col items-center">
-													<button type="button" onClick={()=>setEditEndAt(editEndAt.add(1,'hour'))}>▲</button>
-													<span className="w-8 text-center">{editEndAt.format('HH')}</span>
-													<button type="button" onClick={()=>setEditEndAt(editEndAt.subtract(1,'hour'))}>▼</button>
-												</div>
-												<span>:</span>
-												<div className="flex flex-col items-center">
-													<button type="button" onClick={()=>setEditEndAt(editEndAt.add(1,'minute'))}>▲</button>
-													<span className="w-8 text-center">{editEndAt.format('mm')}</span>
-													<button type="button" onClick={()=>setEditEndAt(editEndAt.subtract(1,'minute'))}>▼</button>
-												</div>
-											</div>
-                                                <div className="text-right mt-2">
+                                                    <div className="flex flex-col items-center">
+                                                        <button type="button" onClick={()=>setEditEndAt(editEndAt.add(1,'hour'))}>▲</button>
+                                                        <input
+                                                            className="w-12 text-center border rounded px-1 py-0.5"
+                                                            value={editEndAt.format('HH')}
+                                                            onChange={(e)=>{
+                                                                const v = e.target.value.replace(/\D/g,'');
+                                                                const n = Math.min(23, Math.max(0, Number(v||'0')));
+                                                                setEditEndAt(editEndAt.hour(n));
+                                                            }}
+                                                        />
+                                                        <button type="button" onClick={()=>setEditEndAt(editEndAt.subtract(1,'hour'))}>▼</button>
+                                                    </div>
+                                                    <span>:</span>
+                                                    <div className="flex flex-col items-center">
+                                                        <button type="button" onClick={()=>setEditEndAt(editEndAt.add(1,'minute'))}>▲</button>
+                                                        <input
+                                                            className="w-12 text-center border rounded px-1 py-0.5"
+                                                            value={editEndAt.format('mm')}
+                                                            onChange={(e)=>{
+                                                                const v = e.target.value.replace(/\D/g,'');
+                                                                const n = Math.min(59, Math.max(0, Number(v||'0')));
+                                                                setEditEndAt(editEndAt.minute(n));
+                                                            }}
+                                                        />
+                                                        <button type="button" onClick={()=>setEditEndAt(editEndAt.subtract(1,'minute'))}>▼</button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 justify-between mt-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditEndAt(editEndAt.add(5,'minute'))}>+5분</button>
+                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditEndAt(editEndAt.add(10,'minute'))}>+10분</button>
+                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditEndAt(editEndAt.add(30,'minute'))}>+30분</button>
+                                                    </div>
+                                                    <div className="text-right">
                                                     <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenEndTime(false)}>확인</button>
+                                                    </div>
                                                 </div>
 										</div>
 									</div>

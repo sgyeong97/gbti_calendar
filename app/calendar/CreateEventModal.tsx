@@ -191,18 +191,41 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
                                             <div className="flex items-center gap-2">
                                                 <div className="flex flex-col items-center">
                                                     <button type="button" onClick={()=>setStartAt(startAt.add(1,'hour'))}>▲</button>
-                                                    <span className="w-8 text-center">{startAt.format('HH')}</span>
+                                                    <input
+                                                        className="w-12 text-center border rounded px-1 py-0.5"
+                                                        value={startAt.format('HH')}
+                                                        onChange={(e)=>{
+                                                            const v = e.target.value.replace(/\D/g,'');
+                                                            const n = Math.min(23, Math.max(0, Number(v||'0')));
+                                                            setStartAt(startAt.hour(n));
+                                                        }}
+                                                    />
                                                     <button type="button" onClick={()=>setStartAt(startAt.subtract(1,'hour'))}>▼</button>
                                                 </div>
                                                 <span>:</span>
                                                 <div className="flex flex-col items-center">
                                                     <button type="button" onClick={()=>setStartAt(startAt.add(1,'minute'))}>▲</button>
-                                                    <span className="w-8 text-center">{startAt.format('mm')}</span>
+                                                    <input
+                                                        className="w-12 text-center border rounded px-1 py-0.5"
+                                                        value={startAt.format('mm')}
+                                                        onChange={(e)=>{
+                                                            const v = e.target.value.replace(/\D/g,'');
+                                                            const n = Math.min(59, Math.max(0, Number(v||'0')));
+                                                            setStartAt(startAt.minute(n));
+                                                        }}
+                                                    />
                                                     <button type="button" onClick={()=>setStartAt(startAt.subtract(1,'minute'))}>▼</button>
                                                 </div>
                                             </div>
-                                            <div className="text-right mt-2">
+                                            <div className="flex items-center gap-2 justify-between mt-2">
+                                                <div className="flex items-center gap-2">
+                                                    <button type="button" className="px-2 py-1 rounded border" onClick={()=>setStartAt(startAt.add(5,'minute'))}>+5분</button>
+                                                    <button type="button" className="px-2 py-1 rounded border" onClick={()=>setStartAt(startAt.add(10,'minute'))}>+10분</button>
+                                                    <button type="button" className="px-2 py-1 rounded border" onClick={()=>setStartAt(startAt.add(30,'minute'))}>+30분</button>
+                                                </div>
+                                                <div className="text-right">
                                                 <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenStartTime(false)}>확인</button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -234,18 +257,41 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
                                             <div className="flex items-center gap-2">
                                                 <div className="flex flex-col items-center">
                                                     <button type="button" onClick={()=>setEndAt(endAt.add(1,'hour'))}>▲</button>
-                                                    <span className="w-8 text-center">{endAt.format('HH')}</span>
+                                                    <input
+                                                        className="w-12 text-center border rounded px-1 py-0.5"
+                                                        value={endAt.format('HH')}
+                                                        onChange={(e)=>{
+                                                            const v = e.target.value.replace(/\D/g,'');
+                                                            const n = Math.min(23, Math.max(0, Number(v||'0')));
+                                                            setEndAt(endAt.hour(n));
+                                                        }}
+                                                    />
                                                     <button type="button" onClick={()=>setEndAt(endAt.subtract(1,'hour'))}>▼</button>
                                                 </div>
                                                 <span>:</span>
                                                 <div className="flex flex-col items-center">
                                                     <button type="button" onClick={()=>setEndAt(endAt.add(1,'minute'))}>▲</button>
-                                                    <span className="w-8 text-center">{endAt.format('mm')}</span>
+                                                    <input
+                                                        className="w-12 text-center border rounded px-1 py-0.5"
+                                                        value={endAt.format('mm')}
+                                                        onChange={(e)=>{
+                                                            const v = e.target.value.replace(/\D/g,'');
+                                                            const n = Math.min(59, Math.max(0, Number(v||'0')));
+                                                            setEndAt(endAt.minute(n));
+                                                        }}
+                                                    />
                                                     <button type="button" onClick={()=>setEndAt(endAt.subtract(1,'minute'))}>▼</button>
                                                 </div>
                                             </div>
-                                            <div className="text-right mt-2">
+                                            <div className="flex items-center gap-2 justify-between mt-2">
+                                                <div className="flex items-center gap-2">
+                                                    <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEndAt(endAt.add(5,'minute'))}>+5분</button>
+                                                    <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEndAt(endAt.add(10,'minute'))}>+10분</button>
+                                                    <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEndAt(endAt.add(30,'minute'))}>+30분</button>
+                                                </div>
+                                                <div className="text-right">
                                                 <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenEndTime(false)}>확인</button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
