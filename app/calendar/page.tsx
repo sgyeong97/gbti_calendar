@@ -402,10 +402,18 @@ export default function CalendarPage() {
 					<span className="sparkle delay-3" style={{ left: "70%", top: "-14%" }}>💫</span>
 					<span className="sparkle delay-4" style={{ left: "88%", top: "-16%" }}>🌟</span>
 
-					{/* 전광판 텍스트 */}
+					{/* 전광판 텍스트 (무한 루프, 완전 통과 보장) */}
 					<div className="marquee-track">
-						<span className="marquee-text">🌹딩고의 여자 ♥️갱이♥️ ♥️하늘♥️ ♥️여름♥️ ♥️노린재♥️ 🌹</span>
-						<span className="marquee-text">⭐딩고 여친 or 남친 상시 모집중 {'>>'} 문의 97 딩고⭐</span>
+						<div className="marquee-group">
+							<span className="marquee-text">🌹딩고의 여자 ♥️갱이♥️ ♥️하늘♥️ ♥️여름♥️ ♥️노린재♥️ 🌹</span>
+							<span className="marquee-text">🌹딩고의 남자 ♥️아로♥️ 🌹</span>
+							<span className="marquee-text">⭐딩고 여친 or 남친 상시 모집중 {'>>'} 문의 97 딩고⭐</span>
+						</div>
+						<div className="marquee-group" aria-hidden>
+							<span className="marquee-text">🌹딩고의 여자 ♥️갱이♥️ ♥️하늘♥️ ♥️여름♥️ ♥️노린재♥️ 🌹</span>
+							<span className="marquee-text">🌹딩고의 남자 ♥️아로♥️ 🌹</span>
+							<span className="marquee-text">⭐딩고 여친 or 남친 상시 모집중 {'>>'} 문의 97 딩고⭐</span>
+						</div>
 					</div>
 				</div>
 				<style jsx>{`
@@ -419,12 +427,13 @@ export default function CalendarPage() {
 				}
 
 				.marquee-track {
-					position: relative;
-					white-space: nowrap;
-					padding-left: 100%;
-					animation: gbti-marquee 22s linear infinite;
+					display: flex;
+					width: max-content;
+					animation: gbti-marquee 24s linear infinite;
 				}
-				.banner-wrap:hover .marquee-track { animation-duration: 12s; }
+				.banner-wrap:hover .marquee-track { animation-duration: 16s; }
+
+				.marquee-group { display: flex; gap: 2.5rem; padding-right: 2.5rem; }
 
 				.marquee-text {
 					display: inline-block;
@@ -449,7 +458,7 @@ export default function CalendarPage() {
 
 				@keyframes gbti-marquee {
 					0% { transform: translateX(0); }
-					100% { transform: translateX(-100%); }
+					100% { transform: translateX(-50%); }
 				}
 				@keyframes gbti-gradient {
 					0% { background-position: 0% 0%; }
