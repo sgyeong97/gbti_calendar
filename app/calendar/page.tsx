@@ -405,9 +405,9 @@ export default function CalendarPage() {
 					{/* 전광판 텍스트 */}
 					<div className="marquee-track">
 						<span className="marquee-text">🌹딩고의 여자 : 노린재, 하늘, 갱이, 여름 🌹</span>
-						<span className="marquee-text">⭐딩고 여친 or 남친 상시 모집중 >> 문의 97 딩고⭐</span>
+						<span className="marquee-text">⭐딩고 여친 or 남친 상시 모집중 {'>>'} 문의 97 딩고⭐</span>
 						<span className="marquee-text">🌹딩고의 여자 : 노린재, 하늘, 갱이, 여름 🌹</span>
-						<span className="marquee-text">⭐딩고 여친 or 남친 상시 모집중 >> 문의 97 딩고⭐</span>
+						<span className="marquee-text">⭐딩고 여친 or 남친 상시 모집중 {'>>'} 문의 97 딩고⭐</span>
 					</div>
 				</div>
 				<style jsx>{`
