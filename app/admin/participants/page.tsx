@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 type Participant = {
 	id: string;
 	name: string;
+	title?: string | null;
+	color?: string | null;
 };
 
 export default function ParticipantManagementPage() {
@@ -14,8 +16,12 @@ export default function ParticipantManagementPage() {
 	const [selectedParticipants, setSelectedParticipants] = useState<Set<string>>(new Set());
 	const [loading, setLoading] = useState(true);
 	const [newParticipantName, setNewParticipantName] = useState("");
+	const [newParticipantTitle, setNewParticipantTitle] = useState("");
+	const [newParticipantColor, setNewParticipantColor] = useState("#e5e7eb");
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [editingName, setEditingName] = useState("");
+	const [editingTitle, setEditingTitle] = useState("");
+	const [editingColor, setEditingColor] = useState("#e5e7eb");
 
 	useEffect(() => {
 		fetchParticipants();
@@ -41,11 +47,17 @@ export default function ParticipantManagementPage() {
 			const res = await fetch("/api/participants", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ name: newParticipantName.trim() }),
+				body: JSON.stringify({ 
+					name: newParticipantName.trim(),
+					title: newParticipantTitle.trim() || null,
+					color: newParticipantColor || "#e5e7eb"
+				}),
 			});
 
 			if (res.ok) {
 				setNewParticipantName("");
+				setNewParticipantTitle("");
+				setNewParticipantColor("#e5e7eb");
 				fetchParticipants();
 			} else {
 				alert("참여자 추가에 실패했습니다.");
@@ -62,12 +74,18 @@ export default function ParticipantManagementPage() {
 			const res = await fetch(`/api/participants/${id}`, {
 				method: "PUT",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ name: editingName.trim() }),
+				body: JSON.stringify({ 
+					name: editingName.trim(),
+					title: editingTitle.trim() || null,
+					color: editingColor || "#e5e7eb"
+				}),
 			});
 
 			if (res.ok) {
 				setEditingId(null);
 				setEditingName("");
+				setEditingTitle("");
+				setEditingColor("#e5e7eb");
 				fetchParticipants();
 			} else {
 				alert("참여자 수정에 실패했습니다.");
@@ -101,11 +119,15 @@ export default function ParticipantManagementPage() {
 	function startEdit(participant: Participant) {
 		setEditingId(participant.id);
 		setEditingName(participant.name);
+		setEditingTitle(participant.title || "");
+		setEditingColor(participant.color || "#e5e7eb");
 	}
 
 	function cancelEdit() {
 		setEditingId(null);
 		setEditingName("");
+		setEditingTitle("");
+		setEditingColor("#e5e7eb");
 	}
 
 	if (loading) {
@@ -128,24 +150,42 @@ export default function ParticipantManagementPage() {
 			{/* 참여자 추가 */}
 			<div className="bg-white dark:bg-zinc-900 rounded-lg border p-6 mb-6">
 				<h2 className="text-lg font-semibold mb-4">참여자 추가</h2>
-				<div className="flex gap-2">
-					<input
-						type="text"
-						placeholder="참여자 이름"
-						value={newParticipantName}
-						onChange={(e) => setNewParticipantName(e.target.value)}
-						className="flex-1 border rounded px-3 py-2"
-						onKeyDown={(e) => {
-							if (e.key === "Enter") addParticipant();
-						}}
-					/>
-					<button
-						className="px-4 py-2 rounded text-black transition-colors cursor-pointer"
-						style={{ backgroundColor: "#FDC205" }}
-						onClick={addParticipant}
-					>
-						추가
-					</button>
+				<div className="space-y-3">
+					<div className="flex gap-2">
+						<input
+							type="text"
+							placeholder="참여자 이름"
+							value={newParticipantName}
+							onChange={(e) => setNewParticipantName(e.target.value)}
+							className="flex-1 border rounded px-3 py-2"
+							onKeyDown={(e) => {
+								if (e.key === "Enter") addParticipant();
+							}}
+						/>
+						<button
+							className="px-4 py-2 rounded text-black transition-colors cursor-pointer"
+							style={{ backgroundColor: "#FDC205" }}
+							onClick={addParticipant}
+						>
+							추가
+						</button>
+					</div>
+					<div className="flex gap-2">
+						<input
+							type="text"
+							placeholder="칭호 (예: 공주)"
+							value={newParticipantTitle}
+							onChange={(e) => setNewParticipantTitle(e.target.value)}
+							className="flex-1 border rounded px-3 py-2"
+						/>
+						<input
+							type="color"
+							value={newParticipantColor}
+							onChange={(e) => setNewParticipantColor(e.target.value)}
+							className="w-16 h-10 border rounded cursor-pointer"
+							title="색상 선택"
+						/>
+					</div>
 				</div>
 			</div>
 
@@ -175,35 +215,61 @@ export default function ParticipantManagementPage() {
 									className="cursor-pointer"
 								/>
 								{editingId === p.id ? (
-									<div className="flex-1 flex gap-2">
-										<input
-											type="text"
-											value={editingName}
-											onChange={(e) => setEditingName(e.target.value)}
-											className="flex-1 border rounded px-2 py-1"
-											onKeyDown={(e) => {
-												if (e.key === "Enter") updateParticipant(p.id);
-												if (e.key === "Escape") cancelEdit();
-											}}
-											autoFocus
-										/>
-										<button
-											className="px-2 py-1 rounded text-black text-sm"
-											style={{ backgroundColor: "#FDC205" }}
-											onClick={() => updateParticipant(p.id)}
-										>
-											저장
-										</button>
-										<button
-											className="px-2 py-1 rounded border text-sm"
-											onClick={cancelEdit}
-										>
-											취소
-										</button>
+									<div className="flex-1 space-y-2">
+										<div className="flex gap-2">
+											<input
+												type="text"
+												placeholder="이름"
+												value={editingName}
+												onChange={(e) => setEditingName(e.target.value)}
+												className="flex-1 border rounded px-2 py-1"
+												onKeyDown={(e) => {
+													if (e.key === "Enter") updateParticipant(p.id);
+													if (e.key === "Escape") cancelEdit();
+												}}
+												autoFocus
+											/>
+											<input
+												type="text"
+												placeholder="칭호"
+												value={editingTitle}
+												onChange={(e) => setEditingTitle(e.target.value)}
+												className="flex-1 border rounded px-2 py-1"
+											/>
+											<input
+												type="color"
+												value={editingColor}
+												onChange={(e) => setEditingColor(e.target.value)}
+												className="w-16 h-9 border rounded cursor-pointer"
+												title="색상 선택"
+											/>
+										</div>
+										<div className="flex gap-2">
+											<button
+												className="px-2 py-1 rounded text-black text-sm"
+												style={{ backgroundColor: "#FDC205" }}
+												onClick={() => updateParticipant(p.id)}
+											>
+												저장
+											</button>
+											<button
+												className="px-2 py-1 rounded border text-sm"
+												onClick={cancelEdit}
+											>
+												취소
+											</button>
+										</div>
 									</div>
 								) : (
 									<>
-										<span className="flex-1">{p.name}</span>
+										<div className="flex-1 flex items-center gap-2">
+											<span className="px-2 py-0.5 text-xs rounded-full" style={{ 
+												backgroundColor: p.color || "#e5e7eb",
+												color: "#000"
+											}}>
+												{p.name}{p.title ? p.title : ""}
+											</span>
+										</div>
 										<button
 											className="px-2 py-1 rounded border text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
 											onClick={() => startEdit(p)}

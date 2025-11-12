@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 	const role = req.cookies.get("gbti_role")?.value;
 	if (role !== "admin") return NextResponse.json({ error: "Admin only" }, { status: 403 });
 
-	const { name } = await req.json();
+	const { name, title, color } = await req.json();
 	
 	if (!name || !name.trim()) {
 		return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -26,7 +26,11 @@ export async function POST(req: NextRequest) {
 
 	const { data: participant, error } = await supabase
 		.from('Participant')
-		.insert({ name: name.trim() })
+		.insert({ 
+			name: name.trim(),
+			title: title?.trim() || null,
+			color: color || "#e5e7eb"
+		})
 		.select()
 		.single();
 

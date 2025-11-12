@@ -74,6 +74,11 @@ export function expandRecurringSlots(slots: any[], start?: string, end?: string)
       const endMins = slot.endMinutes % 60;
       endAt.setHours(endHours, endMins, 0, 0);
       
+      // 종료 시간이 시작 시간보다 작으면 다음날로 넘어가는 경우
+      if (slot.endMinutes < slot.startMinutes) {
+        endAt.setDate(endAt.getDate() + 1);
+      }
+      
       let participants: string[] = [];
       if (slot.participantNames) {
         try {

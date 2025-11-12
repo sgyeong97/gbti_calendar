@@ -17,6 +17,7 @@ export default function EventDetailModal({ eventId, onClose, onChanged }: Props)
 	const [editParticipants, setEditParticipants] = useState<string[]>([]);
 	const [participantInput, setParticipantInput] = useState("");
 	const [allParticipants, setAllParticipants] = useState<string[]>([]);
+	const [participantMap, setParticipantMap] = useState<Map<string, { title?: string | null; color?: string | null }>>(new Map());
 	const [isEditingRecurrence, setIsEditingRecurrence] = useState(false);
 	const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
 const [editStartAt, setEditStartAt] = useState<Dayjs | null>(null);
@@ -73,7 +74,14 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 		
 		// 참여자 목록 가져오기
 		fetch("/api/participants").then((r) => r.json()).then((data) => {
-			setAllParticipants((data.participants ?? []).map((p: any) => p.name));
+			const participants = data.participants ?? [];
+			setAllParticipants(participants.map((p: any) => p.name));
+			// 참여자 정보 맵 생성
+			const map = new Map<string, { title?: string | null; color?: string | null }>();
+			participants.forEach((p: any) => {
+				map.set(p.name, { title: p.title, color: p.color });
+			});
+			setParticipantMap(map);
 		});
 	}, [eventId]);
 
@@ -97,9 +105,24 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 									].filter((_, i) => data.event.recurringDays.includes(i)).join(", ")}
 								</div>
 								<div>
-									<strong>시간:</strong> {data.event.recurringStartMinutes && 
-										`${Math.floor(data.event.recurringStartMinutes / 60).toString().padStart(2, '0')}:${(data.event.recurringStartMinutes % 60).toString().padStart(2, '0')} - ${Math.floor(data.event.recurringEndMinutes / 60).toString().padStart(2, '0')}:${(data.event.recurringEndMinutes % 60).toString().padStart(2, '0')}`
-									}
+									<strong>시간:</strong> {data.event.recurringStartMinutes !== undefined && data.event.recurringEndMinutes !== undefined && (() => {
+										const startHours = Math.floor(data.event.recurringStartMinutes / 60);
+										const startMins = data.event.recurringStartMinutes % 60;
+										const endHours = Math.floor(data.event.recurringEndMinutes / 60);
+										const endMins = data.event.recurringEndMinutes % 60;
+										
+										const startTime = `${String(startHours).padStart(2, '0')}:${String(startMins).padStart(2, '0')}`;
+										const endTime = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
+										
+										// 종료 시간이 시작 시간보다 작으면 다음날로 넘어가는 경우
+										if (data.event.recurringEndMinutes < data.event.recurringStartMinutes) {
+											// 다음날로 넘어가는 경우 날짜 표시
+											return `${startTime} - 다음날 ${endTime}`;
+										} else {
+											// 같은 날이면 시간만 표시
+											return `${startTime} - ${endTime}`;
+										}
+									})()}
 								</div>
 							</div>
 						)}
@@ -455,26 +478,27 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 							</div>
 						</div>
 					)}
-				<div>
-					<strong>종료:</strong>{" "}
-					{isEditing && !data.event.isRecurring ? (
-						<div className="mt-1 grid grid-cols-2 gap-2 relative">
-							<div className="space-y-1">
-								<label className="text-xs text-zinc-600">종료 날짜</label>
-								<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenEndDate(!openEndDate)}>
-									{editEndAt?.format('YYYY-MM-DD')}
-								</button>
-								{openEndDate && editEndAt && (
-									<div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow" style={{width:'min(320px,90vw)'}}>
-										<DateCalendar value={editEndAt} onChange={(v)=>{ if(v){ setEditEndAt(editEndAt.year(v.year()).month(v.month()).date(v.date())); setOpenEndDate(false);} }} />
-									</div>
-								)}
-							</div>
-							<div className="space-y-1">
-								<label className="text-xs text-zinc-600">종료 시간</label>
-								<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenEndTime(!openEndTime)}>
-									{editEndAt?.format('HH:mm')}
-								</button>
+				{!data.event.isRecurring && (
+					<div>
+						<strong>종료:</strong>{" "}
+						{isEditing ? (
+							<div className="mt-1 grid grid-cols-2 gap-2 relative">
+								<div className="space-y-1">
+									<label className="text-xs text-zinc-600">종료 날짜</label>
+									<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenEndDate(!openEndDate)}>
+										{editEndAt?.format('YYYY-MM-DD')}
+									</button>
+									{openEndDate && editEndAt && (
+										<div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow" style={{width:'min(320px,90vw)'}}>
+											<DateCalendar value={editEndAt} onChange={(v)=>{ if(v){ setEditEndAt(editEndAt.year(v.year()).month(v.month()).date(v.date())); setOpenEndDate(false);} }} />
+										</div>
+									)}
+								</div>
+								<div className="space-y-1">
+									<label className="text-xs text-zinc-600">종료 시간</label>
+									<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenEndTime(!openEndTime)}>
+										{editEndAt?.format('HH:mm')}
+									</button>
                                     {openEndTime && editEndAt && (
                                         <div className="fixed inset-0 z-[60] flex items-center justify-center">
                                             <div className="absolute inset-0 bg-black/30" onClick={()=>setOpenEndTime(false)} />
@@ -523,10 +547,11 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 								)}
 							</div>
 						</div>
-					) : (
-						<span>{new Date(data.event.endAt).toLocaleString()}</span>
-					)}
-				</div>
+						) : (
+							<span>{new Date(data.event.endAt).toLocaleString()}</span>
+						)}
+					</div>
+				)}
 				</LocalizationProvider>
 						<div className="pt-1">
 							<div className="mb-1"><strong>참여자:</strong></div>
@@ -567,28 +592,46 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 										{editParticipants.length === 0 ? (
 											<span className="text-xs text-zinc-500">참여자를 추가하세요</span>
 										) : (
-											editParticipants.map((p) => (
-												<span key={p} className="px-2 py-0.5 text-xs rounded-full bg-indigo-200 dark:bg-indigo-700 flex items-center gap-1">
-													{p}
-													<button
-														className="ml-1 hover:text-red-600 cursor-pointer"
-														onClick={() => setEditParticipants(editParticipants.filter(x => x !== p))}
+											editParticipants.map((p) => {
+												const participantInfo = participantMap.get(p);
+												const displayName = p + (participantInfo?.title || "");
+												const bgColor = participantInfo?.color || "#e5e7eb";
+												return (
+													<span 
+														key={p} 
+														className="px-2 py-0.5 text-xs rounded-full flex items-center gap-1"
+														style={{ backgroundColor: bgColor, color: "#000" }}
 													>
-														×
-													</button>
-												</span>
-											))
+														{displayName}
+														<button
+															className="ml-1 hover:text-red-600 cursor-pointer"
+															onClick={() => setEditParticipants(editParticipants.filter(x => x !== p))}
+														>
+															×
+														</button>
+													</span>
+												);
+											})
 										)}
 									</div>
 								</div>
 							) : (
 								<div className="flex gap-2 flex-wrap">
 									{(data.event.attendees ?? []).length === 0 && <span className="text-zinc-500">없음</span>}
-									{(data.event.attendees ?? []).map((a: any) => (
-										<span key={a.participant.id} className="px-2 py-0.5 text-xs rounded-full bg-zinc-200 dark:bg-zinc-700">
-											{a.participant.name}
-										</span>
-									))}
+									{(data.event.attendees ?? []).map((a: any) => {
+										const participantInfo = participantMap.get(a.participant.name);
+										const displayName = a.participant.name + (participantInfo?.title || "");
+										const bgColor = participantInfo?.color || "#e5e7eb";
+										return (
+											<span 
+												key={a.participant.id} 
+												className="px-2 py-0.5 text-xs rounded-full"
+												style={{ backgroundColor: bgColor, color: "#000" }}
+											>
+												{displayName}
+											</span>
+										);
+									})}
 								</div>
 							)}
 						</div>

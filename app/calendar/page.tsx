@@ -87,6 +87,7 @@ export default function CalendarPage() {
 	}, [current, selectedParticipant, selectedParticipants, viewMode]);
 
 	const [participantList, setParticipantList] = useState<string[]>([]);
+	const [participantMap, setParticipantMap] = useState<Map<string, { title?: string | null; color?: string | null }>>(new Map());
 	const [activeEventId, setActiveEventId] = useState<string | null>(null);
 	const [showCreateModal, setShowCreateModal] = useState(false);
 	const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -367,7 +368,14 @@ export default function CalendarPage() {
 	const fetchParticipants = async () => {
 		const res = await fetch("/api/participants");
 		const data = await res.json();
-		setParticipantList((data.participants ?? []).map((p: any) => p.name));
+		const participants = data.participants ?? [];
+		setParticipantList(participants.map((p: any) => p.name));
+		// 참여자 정보 맵 생성 (이름 -> {title, color})
+		const map = new Map<string, { title?: string | null; color?: string | null }>();
+		participants.forEach((p: any) => {
+			map.set(p.name, { title: p.title, color: p.color });
+		});
+		setParticipantMap(map);
 	};
 
     // 공지사항 fetch 제거
@@ -892,11 +900,20 @@ export default function CalendarPage() {
 													</div>
 													{e.participants && e.participants.length > 0 && (
 														<div className="flex gap-1 flex-wrap mt-1">
-															{e.participants.map((p) => (
-																<span key={p} className="px-2 py-0.5 text-xs rounded-full bg-zinc-200 dark:bg-zinc-700">
-																	{p}
-																</span>
-															))}
+															{e.participants.map((p) => {
+																const participantInfo = participantMap.get(p);
+																const displayName = p + (participantInfo?.title || "");
+																const bgColor = participantInfo?.color || "#e5e7eb";
+																return (
+																	<span 
+																		key={p} 
+																		className="px-2 py-0.5 text-xs rounded-full"
+																		style={{ backgroundColor: bgColor, color: "#000" }}
+																	>
+																		{displayName}
+																	</span>
+																);
+															})}
 														</div>
 													)}
 												</div>
