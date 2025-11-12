@@ -36,6 +36,8 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 	const [repeat, setRepeat] = useState<{enabled:boolean, days:Set<number>}>({ enabled: false, days: new Set<number>() });
 	const [color, setColor] = useState("#93c5fd");
 	const [loading, setLoading] = useState(false);
+	const [openStartTime, setOpenStartTime] = useState(false);
+	const [openEndTime, setOpenEndTime] = useState(false);
 
 	// 선택된 날짜가 변경되면 date 상태 업데이트
 	useEffect(() => {
@@ -116,25 +118,97 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 					value={title}
 					onChange={(e) => setTitle(e.target.value)}
 				/>
-				<input
-					className="w-full border rounded px-2 py-1"
-					type="date"
-					value={date}
-					onChange={(e) => setDate(e.target.value)}
-				/>
-				<div className="flex gap-2">
+				<div className="flex items-center gap-2 flex-wrap relative">
 					<input
-						className="border rounded px-2 py-1 w-full"
-						type="time"
-						value={start}
-						onChange={(e) => setStart(e.target.value)}
+						className="border rounded px-3 py-1.5"
+						type="date"
+						value={date}
+						onChange={(e) => setDate(e.target.value)}
 					/>
-					<input
-						className="border rounded px-2 py-1 w-full"
-						type="time"
-						value={end}
-						onChange={(e) => setEnd(e.target.value)}
-					/>
+					<div className="relative">
+						<button 
+							type="button"
+							className="px-3 py-1.5 border rounded text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors min-w-[100px]"
+							onClick={() => setOpenStartTime(!openStartTime)}
+						>
+							{(() => {
+								const [hours, minutes] = start.split(':');
+								const hour = parseInt(hours || '0');
+								const min = parseInt(minutes || '0');
+								return hour >= 12 ? `오후 ${hour === 12 ? 12 : hour - 12}:${String(min).padStart(2, '0')}` : `오전 ${hour === 0 ? 12 : hour}:${String(min).padStart(2, '0')}`;
+							})()}
+						</button>
+						{openStartTime && (
+							<div className="absolute z-50 mt-1 bg-white dark:bg-zinc-800 border rounded shadow-lg max-h-60 overflow-y-auto min-w-[120px]">
+								{Array.from({ length: 24 * 4 }, (_, i) => {
+									const hour = Math.floor(i / 4);
+									const minute = (i % 4) * 15;
+									const timeStr = hour >= 12 ? `오후 ${hour === 12 ? 12 : hour - 12}:${String(minute).padStart(2, '0')}` : `오전 ${hour === 0 ? 12 : hour}:${String(minute).padStart(2, '0')}`;
+									const [currentHours, currentMinutes] = start.split(':');
+									const currentHour = parseInt(currentHours || '0');
+									const currentMin = parseInt(currentMinutes || '0');
+									const isSelected = currentHour === hour && currentMin === minute;
+									return (
+										<button
+											key={i}
+											type="button"
+											className={`w-full px-3 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-700 ${isSelected ? 'bg-blue-100 dark:bg-blue-900/30' : ''}`}
+											onClick={() => {
+												setStart(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
+												setOpenStartTime(false);
+											}}
+										>
+											{timeStr}
+										</button>
+									);
+								})}
+							</div>
+						)}
+					</div>
+					<span className="text-zinc-500">-</span>
+					<div className="relative">
+						<button 
+							type="button"
+							className="px-3 py-1.5 border rounded text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors min-w-[100px]"
+							onClick={() => setOpenEndTime(!openEndTime)}
+						>
+							{(() => {
+								const [hours, minutes] = end.split(':');
+								const hour = parseInt(hours || '0');
+								const min = parseInt(minutes || '0');
+								return hour >= 12 ? `오후 ${hour === 12 ? 12 : hour - 12}:${String(min).padStart(2, '0')}` : `오전 ${hour === 0 ? 12 : hour}:${String(min).padStart(2, '0')}`;
+							})()}
+						</button>
+						{openEndTime && (
+							<div className="absolute z-50 mt-1 bg-white dark:bg-zinc-800 border rounded shadow-lg max-h-60 overflow-y-auto min-w-[120px]">
+								{Array.from({ length: 24 * 4 }, (_, i) => {
+									const hour = Math.floor(i / 4);
+									const minute = (i % 4) * 15;
+									const timeStr = hour >= 12 ? `오후 ${hour === 12 ? 12 : hour - 12}:${String(minute).padStart(2, '0')}` : `오전 ${hour === 0 ? 12 : hour}:${String(minute).padStart(2, '0')}`;
+									const [currentHours, currentMinutes] = end.split(':');
+									const currentHour = parseInt(currentHours || '0');
+									const currentMin = parseInt(currentMinutes || '0');
+									const isSelected = currentHour === hour && currentMin === minute;
+									return (
+										<button
+											key={i}
+											type="button"
+											className={`w-full px-3 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-700 ${isSelected ? 'bg-blue-100 dark:bg-blue-900/30' : ''}`}
+											onClick={() => {
+												setEnd(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
+												setOpenEndTime(false);
+											}}
+										>
+											{timeStr}
+										</button>
+									);
+								})}
+							</div>
+						)}
+					</div>
+					{(openStartTime || openEndTime) && (
+						<div className="fixed inset-0 z-40" onClick={() => {setOpenStartTime(false); setOpenEndTime(false);}} />
+					)}
 				</div>
 
 				{/* 참여자 태그 입력 */}
@@ -182,7 +256,6 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 									className="px-2 py-0.5 text-xs rounded-full"
 									style={{ backgroundColor: bgColor, color: "#000" }}
 								>
-									<span>{p}</span>
 									{participantInfo?.title && (() => {
 										const glowColor = participantInfo?.color || "#ff00ff";
 										const hexToRgb = (hex: string) => {
@@ -212,7 +285,7 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 										const bgColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15)`;
 										return (
 											<span 
-												className="font-bold ml-0.5 px-1.5 py-0.5 rounded"
+												className="font-bold mr-0.5 px-1.5 py-0.5 rounded"
 												style={{ 
 													color: textColor,
 													textShadow: textShadow.trim(),
@@ -227,6 +300,7 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 											</span>
 										);
 									})()}
+									<span>{p}</span>
 									<button
 										className="ml-1 text-zinc-500 hover:text-zinc-700"
 										onClick={() => setParticipants(participants.filter(x => x !== p))}

@@ -909,7 +909,6 @@ export default function CalendarPage() {
 																		className="px-2 py-0.5 text-xs rounded-full"
 																		style={{ backgroundColor: bgColor, color: "#000" }}
 																	>
-																		<span>{p}</span>
 																		{participantInfo?.title && (() => {
 																			const glowColor = participantInfo?.color || "#ff00ff";
 																			const hexToRgb = (hex: string) => {
@@ -939,7 +938,7 @@ export default function CalendarPage() {
 																			const bgColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15)`;
 																			return (
 																				<span 
-																					className="font-bold ml-0.5 px-1.5 py-0.5 rounded"
+																					className="font-bold mr-0.5 px-1.5 py-0.5 rounded"
 																					style={{ 
 																						color: textColor,
 																						textShadow: textShadow.trim(),
@@ -954,6 +953,7 @@ export default function CalendarPage() {
 																				</span>
 																			);
 																		})()}
+																		<span>{p}</span>
 																	</span>
 																);
 															})}

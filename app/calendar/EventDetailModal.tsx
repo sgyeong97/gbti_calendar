@@ -167,72 +167,61 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 							<div>
 								<strong>시작:</strong>{" "}
 								{isEditing ? (
-									<div className="mt-1 grid grid-cols-2 gap-2 relative">
-										<div className="space-y-1">
-											<label className="text-xs text-zinc-600">시작 날짜</label>
-											<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenStartDate(!openStartDate)}>
-												{editStartAt?.format('YYYY-MM-DD')}
+									<div className="mt-1 flex items-center gap-2 flex-wrap relative">
+										<button 
+											type="button" 
+											className="px-3 py-1.5 border rounded text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+											onClick={()=>setOpenStartDate(!openStartDate)}
+										>
+											{editStartAt ? `${editStartAt.format('M월 D일')} (${['일','월','화','수','목','금','토'][editStartAt.day()]})` : ''}
+										</button>
+										{openStartDate && editStartAt && (
+											<div className="absolute z-50 mt-1 p-2 rounded border bg-white dark:bg-zinc-800 shadow-lg" style={{width:'min(320px,90vw)'}}>
+												<DateCalendar value={editStartAt} onChange={(v)=>{ if(v && editStartAt){ setEditStartAt(editStartAt.year(v.year()).month(v.month()).date(v.date())); setOpenStartDate(false);} }} />
+											</div>
+										)}
+										<div className="relative">
+											<button 
+												type="button" 
+												className="px-3 py-1.5 border rounded text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors min-w-[100px]"
+												onClick={()=>setOpenStartTime(!openStartTime)}
+											>
+												{editStartAt?.format('A h:mm')}
 											</button>
-											{openStartDate && editStartAt && (
-												<div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow" style={{width:'min(320px,90vw)'}}>
-													<DateCalendar value={editStartAt} onChange={(v)=>{ if(v){ setEditStartAt(editStartAt.year(v.year()).month(v.month()).date(v.date())); setOpenStartDate(false);} }} />
+											{openStartTime && editStartAt && (
+												<div className="absolute z-50 mt-1 bg-white dark:bg-zinc-800 border rounded shadow-lg max-h-60 overflow-y-auto min-w-[120px]">
+													{Array.from({ length: 24 * 4 }, (_, i) => {
+														const hour = Math.floor(i / 4);
+														const minute = (i % 4) * 15;
+														const time = dayjs().hour(hour).minute(minute);
+														const isSelected = editStartAt.hour() === hour && editStartAt.minute() === minute;
+														return (
+															<button
+																key={i}
+																type="button"
+																className={`w-full px-3 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-700 ${isSelected ? 'bg-blue-100 dark:bg-blue-900/30' : ''}`}
+																onClick={() => {
+																	if (editStartAt) {
+																		setEditStartAt(editStartAt.hour(hour).minute(minute));
+																		setOpenStartTime(false);
+																	}
+																}}
+															>
+																{time.format('A h:mm')}
+															</button>
+														);
+													})}
 												</div>
 											)}
 										</div>
-										<div className="space-y-1">
-											<label className="text-xs text-zinc-600">시작 시간</label>
-											<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenStartTime(!openStartTime)}>
-												{editStartAt?.format('HH:mm')}
-											</button>
-											{openStartTime && editStartAt && (
-												<div className="fixed inset-0 z-[60] flex items-center justify-center">
-													<div className="absolute inset-0 bg-black/30" onClick={()=>setOpenStartTime(false)} />
-													<div className="relative z-[61] p-3 rounded border bg-white shadow">
-														<div className="flex items-center gap-2">
-															<div className="flex flex-col items-center">
-																<button type="button" onClick={()=>setEditStartAt(editStartAt.add(1,'hour'))}>▲</button>
-																<input
-																	className="w-12 text-center border rounded px-1 py-0.5"
-																	value={editStartAt.format('HH')}
-																	onChange={(e)=>{
-																		const v = e.target.value.replace(/\D/g,'');
-																		const n = Math.min(23, Math.max(0, Number(v||'0')));
-																		setEditStartAt(editStartAt.hour(n));
-																	}}
-																/>
-																<button type="button" onClick={()=>setEditStartAt(editStartAt.subtract(1,'hour'))}>▼</button>
-															</div>
-															<span>:</span>
-															<div className="flex flex-col items-center">
-																<button type="button" onClick={()=>setEditStartAt(editStartAt.add(1,'minute'))}>▲</button>
-																<input
-																	className="w-12 text-center border rounded px-1 py-0.5"
-																	value={editStartAt.format('mm')}
-																	onChange={(e)=>{
-																		const v = e.target.value.replace(/\D/g,'');
-																		const n = Math.min(59, Math.max(0, Number(v||'0')));
-																		setEditStartAt(editStartAt.minute(n));
-																	}}
-																/>
-																<button type="button" onClick={()=>setEditStartAt(editStartAt.subtract(1,'minute'))}>▼</button>
-															</div>
-														</div>
-														<div className="flex items-center gap-2 justify-between mt-2">
-															<div className="flex items-center gap-2">
-																<button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditStartAt(editStartAt.add(5,'minute'))}>+5분</button>
-																<button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditStartAt(editStartAt.add(10,'minute'))}>+10분</button>
-																<button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditStartAt(editStartAt.add(30,'minute'))}>+30분</button>
-															</div>
-															<div className="text-right">
-															<button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenStartTime(false)}>확인</button>
-															</div>
-														</div>
-												</div>
-											</div>
+										{openStartDate && (
+											<div className="fixed inset-0 z-40" onClick={()=>setOpenStartDate(false)} />
+										)}
+										{openStartTime && (
+											<div className="fixed inset-0 z-40" onClick={()=>setOpenStartTime(false)} />
 										)}
 									</div>
-								</div>
-							) : (
+								) : (
 								<span>{(() => {
 									// 같은 날이면 시간만 표시
 									if (isSameDay) {
@@ -248,72 +237,59 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 							<div>
 								<strong>종료:</strong>{" "}
 								{isEditing ? (
-									<div className="mt-1 grid grid-cols-2 gap-2 relative">
-										<div className="space-y-1">
-											<label className="text-xs text-zinc-600">종료 날짜</label>
-											<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenEndDate(!openEndDate)}>
-												{editEndAt?.format('YYYY-MM-DD')}
-											</button>
-											{openEndDate && editEndAt && (
-												<div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow" style={{width:'min(320px,90vw)'}}>
-													<DateCalendar value={editEndAt} onChange={(v)=>{ if(v){ setEditEndAt(editEndAt.year(v.year()).month(v.month()).date(v.date())); setOpenEndDate(false);} }} />
-												</div>
-											)}
-										</div>
-										<div className="space-y-1">
-											<label className="text-xs text-zinc-600">종료 시간</label>
-											<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenEndTime(!openEndTime)}>
-												{editEndAt?.format('HH:mm')}
+									<div className="mt-1 flex items-center gap-2 flex-wrap relative">
+										<button 
+											type="button" 
+											className="px-3 py-1.5 border rounded text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+											onClick={()=>setOpenEndDate(!openEndDate)}
+										>
+											{editEndAt ? `${editEndAt.format('M월 D일')} (${['일','월','화','수','목','금','토'][editEndAt.day()]})` : ''}
+										</button>
+										{openEndDate && editEndAt && (
+											<div className="absolute z-50 mt-1 p-2 rounded border bg-white dark:bg-zinc-800 shadow-lg" style={{width:'min(320px,90vw)'}}>
+												<DateCalendar value={editEndAt} onChange={(v)=>{ if(v && editEndAt){ setEditEndAt(editEndAt.year(v.year()).month(v.month()).date(v.date())); setOpenEndDate(false);} }} />
+											</div>
+										)}
+										<div className="relative">
+											<button 
+												type="button" 
+												className="px-3 py-1.5 border rounded text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors min-w-[100px]"
+												onClick={()=>setOpenEndTime(!openEndTime)}
+											>
+												{editEndAt?.format('A h:mm')}
 											</button>
 											{openEndTime && editEndAt && (
-												<div className="fixed inset-0 z-[60] flex items-center justify-center">
-													<div className="absolute inset-0 bg-black/30" onClick={()=>setOpenEndTime(false)} />
-													<div className="relative z-[61] p-3 rounded border bg-white shadow">
-														<div className="flex items-center gap-2">
-															<div className="flex flex-col items-center">
-																<button type="button" onClick={()=>editEndAt && setEditEndAt(editEndAt.add(1,'hour'))}>▲</button>
-																<input
-																	className="w-12 text-center border rounded px-1 py-0.5"
-																	value={editEndAt.format('HH')}
-																	onChange={(e)=>{
-																		if (!editEndAt) return;
-																		const v = e.target.value.replace(/\D/g,'');
-																		const n = Math.min(23, Math.max(0, Number(v||'0')));
-																		setEditEndAt(editEndAt.hour(n));
-																	}}
-																/>
-																<button type="button" onClick={()=>editEndAt && setEditEndAt(editEndAt.subtract(1,'hour'))}>▼</button>
-															</div>
-															<span>:</span>
-															<div className="flex flex-col items-center">
-																<button type="button" onClick={()=>editEndAt && setEditEndAt(editEndAt.add(1,'minute'))}>▲</button>
-																<input
-																	className="w-12 text-center border rounded px-1 py-0.5"
-																	value={editEndAt.format('mm')}
-																	onChange={(e)=>{
-																		if (!editEndAt) return;
-																		const v = e.target.value.replace(/\D/g,'');
-																		const n = Math.min(59, Math.max(0, Number(v||'0')));
-																		setEditEndAt(editEndAt.minute(n));
-																	}}
-																/>
-																<button type="button" onClick={()=>editEndAt && setEditEndAt(editEndAt.subtract(1,'minute'))}>▼</button>
-															</div>
-														</div>
-														<div className="flex items-center gap-2 justify-between mt-2">
-															<div className="flex items-center gap-2">
-																<button type="button" className="px-2 py-1 rounded border" onClick={()=>editEndAt && setEditEndAt(editEndAt.add(5,'minute'))}>+5분</button>
-																<button type="button" className="px-2 py-1 rounded border" onClick={()=>editEndAt && setEditEndAt(editEndAt.add(10,'minute'))}>+10분</button>
-																<button type="button" className="px-2 py-1 rounded border" onClick={()=>editEndAt && setEditEndAt(editEndAt.add(30,'minute'))}>+30분</button>
-															</div>
-															<div className="text-right">
-															<button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenEndTime(false)}>확인</button>
-															</div>
-														</div>
-													</div>
+												<div className="absolute z-50 mt-1 bg-white dark:bg-zinc-800 border rounded shadow-lg max-h-60 overflow-y-auto min-w-[120px]">
+													{Array.from({ length: 24 * 4 }, (_, i) => {
+														const hour = Math.floor(i / 4);
+														const minute = (i % 4) * 15;
+														const time = dayjs().hour(hour).minute(minute);
+														const isSelected = editEndAt.hour() === hour && editEndAt.minute() === minute;
+														return (
+															<button
+																key={i}
+																type="button"
+																className={`w-full px-3 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-700 ${isSelected ? 'bg-blue-100 dark:bg-blue-900/30' : ''}`}
+																onClick={() => {
+																	if (editEndAt) {
+																		setEditEndAt(editEndAt.hour(hour).minute(minute));
+																		setOpenEndTime(false);
+																	}
+																}}
+															>
+																{time.format('A h:mm')}
+															</button>
+														);
+													})}
 												</div>
 											)}
 										</div>
+										{openEndDate && (
+											<div className="fixed inset-0 z-40" onClick={()=>setOpenEndDate(false)} />
+										)}
+										{openEndTime && (
+											<div className="fixed inset-0 z-40" onClick={()=>setOpenEndTime(false)} />
+										)}
 									</div>
 								) : (
 									<span>{endDate.toLocaleString('ko-KR')}</span>
@@ -512,93 +488,6 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 							</div>
 						</div>
 					)}
-				{!data.event.isRecurring && (
-					<div>
-						<strong>종료:</strong>{" "}
-						{isEditing ? (
-							<div className="mt-1 grid grid-cols-2 gap-2 relative">
-								<div className="space-y-1">
-									<label className="text-xs text-zinc-600">종료 날짜</label>
-									<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenEndDate(!openEndDate)}>
-										{editEndAt?.format('YYYY-MM-DD')}
-									</button>
-									{openEndDate && editEndAt && (
-										<div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow" style={{width:'min(320px,90vw)'}}>
-											<DateCalendar value={editEndAt} onChange={(v)=>{ if(v){ setEditEndAt(editEndAt.year(v.year()).month(v.month()).date(v.date())); setOpenEndDate(false);} }} />
-										</div>
-									)}
-								</div>
-								<div className="space-y-1">
-									<label className="text-xs text-zinc-600">종료 시간</label>
-									<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenEndTime(!openEndTime)}>
-										{editEndAt?.format('HH:mm')}
-									</button>
-                                    {openEndTime && editEndAt && (
-                                        <div className="fixed inset-0 z-[60] flex items-center justify-center">
-                                            <div className="absolute inset-0 bg-black/30" onClick={()=>setOpenEndTime(false)} />
-                                            <div className="relative z-[61] p-3 rounded border bg-white shadow">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="flex flex-col items-center">
-                                                        <button type="button" onClick={()=>setEditEndAt(editEndAt.add(1,'hour'))}>▲</button>
-                                                        <input
-                                                            className="w-12 text-center border rounded px-1 py-0.5"
-                                                            value={editEndAt.format('HH')}
-                                                            onChange={(e)=>{
-                                                                const v = e.target.value.replace(/\D/g,'');
-                                                                const n = Math.min(23, Math.max(0, Number(v||'0')));
-                                                                setEditEndAt(editEndAt.hour(n));
-                                                            }}
-                                                        />
-                                                        <button type="button" onClick={()=>setEditEndAt(editEndAt.subtract(1,'hour'))}>▼</button>
-                                                    </div>
-                                                    <span>:</span>
-                                                    <div className="flex flex-col items-center">
-                                                        <button type="button" onClick={()=>setEditEndAt(editEndAt.add(1,'minute'))}>▲</button>
-                                                        <input
-                                                            className="w-12 text-center border rounded px-1 py-0.5"
-                                                            value={editEndAt.format('mm')}
-                                                            onChange={(e)=>{
-                                                                const v = e.target.value.replace(/\D/g,'');
-                                                                const n = Math.min(59, Math.max(0, Number(v||'0')));
-                                                                setEditEndAt(editEndAt.minute(n));
-                                                            }}
-                                                        />
-                                                        <button type="button" onClick={()=>setEditEndAt(editEndAt.subtract(1,'minute'))}>▼</button>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-2 justify-between mt-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditEndAt(editEndAt.add(5,'minute'))}>+5분</button>
-                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditEndAt(editEndAt.add(10,'minute'))}>+10분</button>
-                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditEndAt(editEndAt.add(30,'minute'))}>+30분</button>
-                                                    </div>
-                                                    <div className="text-right">
-                                                    <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenEndTime(false)}>확인</button>
-                                                    </div>
-                                                </div>
-										</div>
-									</div>
-								)}
-							</div>
-						</div>
-						) : (
-							<span>{(() => {
-								const startDate = new Date(data.event.startAt);
-								const endDate = new Date(data.event.endAt);
-								const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-								const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-								
-								// 같은 날이면 시간만 표시
-								if (startDateOnly.getTime() === endDateOnly.getTime()) {
-									return endDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
-								} else {
-									// 다른 날이면 날짜와 시간 모두 표시
-									return endDate.toLocaleString('ko-KR');
-								}
-							})()}</span>
-						)}
-					</div>
-				)}
 				<div className="pt-1">
 					<div className="mb-1"><strong>참여자:</strong></div>
 					{isEditing ? (
@@ -647,7 +536,6 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 												className="px-2 py-0.5 text-xs rounded-full flex items-center gap-1"
 												style={{ backgroundColor: bgColor, color: "#000" }}
 											>
-												<span>{p}</span>
 												{participantInfo?.title && (() => {
 													const glowColor = participantInfo?.color || "#ff00ff";
 													const hexToRgb = (hex: string) => {
@@ -663,7 +551,7 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 													const bgColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)`;
 													return (
 														<span 
-															className="font-bold ml-0.5 px-1.5 py-0.5 rounded"
+															className="font-bold mr-0.5 px-1.5 py-0.5 rounded"
 															style={{ 
 																color: "#fff",
 																textShadow,
@@ -677,6 +565,7 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 														</span>
 													);
 												})()}
+												<span>{p}</span>
 												<button
 													className="ml-1 hover:text-red-600 cursor-pointer"
 													onClick={() => setEditParticipants(editParticipants.filter(x => x !== p))}
@@ -701,7 +590,6 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 										className="px-2 py-0.5 text-xs rounded-full"
 										style={{ backgroundColor: bgColor, color: "#000" }}
 									>
-										<span>{a.participant.name}</span>
 										{participantInfo?.title && (() => {
 											const glowColor = participantInfo?.color || "#ff00ff";
 											const hexToRgb = (hex: string) => {
@@ -731,7 +619,7 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 											const bgColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15)`;
 											return (
 												<span 
-													className="font-bold ml-0.5 px-1.5 py-0.5 rounded"
+													className="font-bold mr-0.5 px-1.5 py-0.5 rounded"
 													style={{ 
 														color: textColor,
 														textShadow: textShadow.trim(),
@@ -746,6 +634,7 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 												</span>
 											);
 										})()}
+										<span>{a.participant.name}</span>
 									</span>
 								);
 							})}

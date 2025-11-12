@@ -206,137 +206,93 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 				/>
 						<LocalizationProvider dateAdapter={AdapterDayjs}>
 						<div className="space-y-3 relative">
-                        {/* 인라인 입력 */}
-                        <div className="grid grid-cols-2 gap-2">
-                            <div className="space-y-1">
-                                <label className="text-xs text-zinc-600">시작 날짜</label>
-                                <button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenStartDate(!openStartDate)}>
-                                    {startAt.format('YYYY-MM-DD')}
+                        {/* 날짜와 시간 한 줄 표시 */}
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <button 
+                                    type="button" 
+                                    className="px-3 py-1.5 border rounded text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                                    onClick={()=>setOpenStartDate(!openStartDate)}
+                                >
+                                    {startAt.format('M월 D일')} ({['일','월','화','수','목','금','토'][startAt.day()]})
                                 </button>
                                 {openStartDate && (
-                                    <div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow" style={{width:'min(320px,90vw)'}}>
-                                        <DateCalendar value={startAt} onChange={(v)=>{ if(v){ setStartAt(startAt.year(v.year()).month(v.month()).date(v.date())); setOpenStartDate(false);} }} />
+                                    <div className="absolute z-50 mt-1 p-2 rounded border bg-white dark:bg-zinc-800 shadow-lg" style={{width:'min(320px,90vw)'}}>
+                                        <DateCalendar value={startAt} onChange={(v)=>{ if(v){ setStartAt(startAt.year(v.year()).month(v.month()).date(v.date())); setOpenEndDate(false);} }} />
                                     </div>
                                 )}
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs text-zinc-600">시작 시간</label>
-                                <button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenStartTime(!openStartTime)}>
-                                    {startAt.format('HH:mm')}
-                                </button>
-                                {openStartTime && (
-                                    <div className="fixed inset-0 z-[60] flex items-center justify-center">
-                                        <div className="absolute inset-0 bg-black/30" onClick={()=>setOpenStartTime(false)} />
-                                        <div className="relative z-[61] p-3 rounded border bg-white shadow">
-                                            <div className="flex items-center gap-2">
-                                                <div className="flex flex-col items-center">
-                                                    <button type="button" onClick={()=>setStartAt(startAt.add(1,'hour'))}>▲</button>
-                                                    <input
-                                                        className="w-12 text-center border rounded px-1 py-0.5"
-                                                        value={startAt.format('HH')}
-                                                        onChange={(e)=>{
-                                                            const v = e.target.value.replace(/\D/g,'');
-                                                            const n = Math.min(23, Math.max(0, Number(v||'0')));
-                                                            setStartAt(startAt.hour(n));
+                                <div className="relative">
+                                    <button 
+                                        type="button" 
+                                        className="px-3 py-1.5 border rounded text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors min-w-[100px]"
+                                        onClick={()=>setOpenStartTime(!openStartTime)}
+                                    >
+                                        {startAt.format('A h:mm')}
+                                    </button>
+                                    {openStartTime && (
+                                        <div className="absolute z-50 mt-1 bg-white dark:bg-zinc-800 border rounded shadow-lg max-h-60 overflow-y-auto min-w-[120px]">
+                                            {Array.from({ length: 24 * 4 }, (_, i) => {
+                                                const hour = Math.floor(i / 4);
+                                                const minute = (i % 4) * 15;
+                                                const time = dayjs().hour(hour).minute(minute);
+                                                const isSelected = startAt.hour() === hour && startAt.minute() === minute;
+                                                return (
+                                                    <button
+                                                        key={i}
+                                                        type="button"
+                                                        className={`w-full px-3 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-700 ${isSelected ? 'bg-blue-100 dark:bg-blue-900/30' : ''}`}
+                                                        onClick={() => {
+                                                            setStartAt(startAt.hour(hour).minute(minute));
+                                                            setOpenStartTime(false);
                                                         }}
-                                                    />
-                                                    <button type="button" onClick={()=>setStartAt(startAt.subtract(1,'hour'))}>▼</button>
-                                                </div>
-                                                <span>:</span>
-                                                <div className="flex flex-col items-center">
-                                                    <button type="button" onClick={()=>setStartAt(startAt.add(1,'minute'))}>▲</button>
-                                                    <input
-                                                        className="w-12 text-center border rounded px-1 py-0.5"
-                                                        value={startAt.format('mm')}
-                                                        onChange={(e)=>{
-                                                            const v = e.target.value.replace(/\D/g,'');
-                                                            const n = Math.min(59, Math.max(0, Number(v||'0')));
-                                                            setStartAt(startAt.minute(n));
-                                                        }}
-                                                    />
-                                                    <button type="button" onClick={()=>setStartAt(startAt.subtract(1,'minute'))}>▼</button>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2 justify-between mt-2">
-                                                <div className="flex items-center gap-2">
-                                                    <button type="button" className="px-2 py-1 rounded border" onClick={()=>setStartAt(startAt.add(5,'minute'))}>+5분</button>
-                                                    <button type="button" className="px-2 py-1 rounded border" onClick={()=>setStartAt(startAt.add(10,'minute'))}>+10분</button>
-                                                    <button type="button" className="px-2 py-1 rounded border" onClick={()=>setStartAt(startAt.add(30,'minute'))}>+30분</button>
-                                                </div>
-                                                <div className="text-right">
-                                                <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenStartTime(false)}>확인</button>
-                                                </div>
-                                            </div>
+                                                    >
+                                                        {time.format('A h:mm')}
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                            <div className="space-y-1">
-                                <label className="text-xs text-zinc-600">종료 날짜</label>
-                                <button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenEndDate(!openEndDate)}>
-                                    {endAt.format('YYYY-MM-DD')}
-                                </button>
-                                {openEndDate && (
-                                    <div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow" style={{width:'min(320px,90vw)'}}>
-                                        <DateCalendar value={endAt} onChange={(v)=>{ if(v){ setEndAt(endAt.year(v.year()).month(v.month()).date(v.date())); setOpenEndDate(false);} }} />
-                                    </div>
-                                )}
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs text-zinc-600">종료 시간</label>
-                                <button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenEndTime(!openEndTime)}>
-                                    {endAt.format('HH:mm')}
-                                </button>
-                                {openEndTime && (
-                                    <div className="fixed inset-0 z-[60] flex items-center justify-center">
-                                        <div className="absolute inset-0 bg-black/30" onClick={()=>setOpenEndTime(false)} />
-                                        <div className="relative z-[61] p-3 rounded border bg-white shadow">
-                                            <div className="flex items-center gap-2">
-                                                <div className="flex flex-col items-center">
-                                                    <button type="button" onClick={()=>setEndAt(endAt.add(1,'hour'))}>▲</button>
-                                                    <input
-                                                        className="w-12 text-center border rounded px-1 py-0.5"
-                                                        value={endAt.format('HH')}
-                                                        onChange={(e)=>{
-                                                            const v = e.target.value.replace(/\D/g,'');
-                                                            const n = Math.min(23, Math.max(0, Number(v||'0')));
-                                                            setEndAt(endAt.hour(n));
+                                    )}
+                                </div>
+                                <span className="text-zinc-500">-</span>
+                                <div className="relative">
+                                    <button 
+                                        type="button" 
+                                        className="px-3 py-1.5 border rounded text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors min-w-[100px]"
+                                        onClick={()=>setOpenEndTime(!openEndTime)}
+                                    >
+                                        {endAt.format('A h:mm')}
+                                    </button>
+                                    {openEndTime && (
+                                        <div className="absolute z-50 mt-1 bg-white dark:bg-zinc-800 border rounded shadow-lg max-h-60 overflow-y-auto min-w-[120px]">
+                                            {Array.from({ length: 24 * 4 }, (_, i) => {
+                                                const hour = Math.floor(i / 4);
+                                                const minute = (i % 4) * 15;
+                                                const time = dayjs().hour(hour).minute(minute);
+                                                const isSelected = endAt.hour() === hour && endAt.minute() === minute;
+                                                return (
+                                                    <button
+                                                        key={i}
+                                                        type="button"
+                                                        className={`w-full px-3 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-700 ${isSelected ? 'bg-blue-100 dark:bg-blue-900/30' : ''}`}
+                                                        onClick={() => {
+                                                            setEndAt(endAt.hour(hour).minute(minute));
+                                                            setOpenEndTime(false);
                                                         }}
-                                                    />
-                                                    <button type="button" onClick={()=>setEndAt(endAt.subtract(1,'hour'))}>▼</button>
-                                                </div>
-                                                <span>:</span>
-                                                <div className="flex flex-col items-center">
-                                                    <button type="button" onClick={()=>setEndAt(endAt.add(1,'minute'))}>▲</button>
-                                                    <input
-                                                        className="w-12 text-center border rounded px-1 py-0.5"
-                                                        value={endAt.format('mm')}
-                                                        onChange={(e)=>{
-                                                            const v = e.target.value.replace(/\D/g,'');
-                                                            const n = Math.min(59, Math.max(0, Number(v||'0')));
-                                                            setEndAt(endAt.minute(n));
-                                                        }}
-                                                    />
-                                                    <button type="button" onClick={()=>setEndAt(endAt.subtract(1,'minute'))}>▼</button>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2 justify-between mt-2">
-                                                <div className="flex items-center gap-2">
-                                                    <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEndAt(endAt.add(5,'minute'))}>+5분</button>
-                                                    <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEndAt(endAt.add(10,'minute'))}>+10분</button>
-                                                    <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEndAt(endAt.add(30,'minute'))}>+30분</button>
-                                                </div>
-                                                <div className="text-right">
-                                                <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenEndTime(false)}>확인</button>
-                                                </div>
-                                            </div>
+                                                    >
+                                                        {time.format('A h:mm')}
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                             </div>
+                            {openStartDate && (
+                                <div className="fixed inset-0 z-40" onClick={()=>setOpenStartDate(false)} />
+                            )}
+                            {(openStartTime || openEndTime) && (
+                                <div className="fixed inset-0 z-40" onClick={()=>{setOpenStartTime(false); setOpenEndTime(false);}} />
+                            )}
                         </div>
 						</div>
 					</LocalizationProvider>
@@ -386,7 +342,6 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 										className="px-2 py-0.5 text-xs rounded-full"
 										style={{ backgroundColor: bgColor, color: "#000" }}
 									>
-										<span>{p}</span>
 										{participantInfo?.title && (() => {
 											const glowColor = participantInfo?.color || "#ff00ff";
 											const hexToRgb = (hex: string) => {
@@ -416,7 +371,7 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 											const bgColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15)`;
 											return (
 												<span 
-													className="font-bold ml-0.5 px-1.5 py-0.5 rounded"
+													className="font-bold mr-0.5 px-1.5 py-0.5 rounded"
 													style={{ 
 														color: textColor,
 														textShadow: textShadow.trim(),
@@ -431,6 +386,7 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 												</span>
 											);
 										})()}
+										<span>{p}</span>
 										<button
 											className="ml-1 text-zinc-500 hover:text-zinc-700"
 											onClick={() => setParticipants(participants.filter(x => x !== p))}
