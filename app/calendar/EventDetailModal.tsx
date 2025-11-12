@@ -142,154 +142,188 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 						</div>
 						<div><strong>캘린더:</strong> {data.event.calendar?.name || "기본 캘린더"}</div>
 				<LocalizationProvider dateAdapter={AdapterDayjs}>
-				{!data.event.isRecurring && (
-					<div>
-						<strong>시작:</strong>{" "}
-						{isEditing ? (
-							<div className="mt-1 grid grid-cols-2 gap-2 relative">
-								<div className="space-y-1">
-									<label className="text-xs text-zinc-600">시작 날짜</label>
-									<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenStartDate(!openStartDate)}>
-										{editStartAt?.format('YYYY-MM-DD')}
-									</button>
-									{openStartDate && editStartAt && (
-										<div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow" style={{width:'min(320px,90vw)'}}>
-											<DateCalendar value={editStartAt} onChange={(v)=>{ if(v){ setEditStartAt(editStartAt.year(v.year()).month(v.month()).date(v.date())); setOpenStartDate(false);} }} />
+				{!data.event.isRecurring && (() => {
+					const startDate = new Date(data.event.startAt);
+					const endDate = new Date(data.event.endAt);
+					const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+					const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+					const isSameDay = startDateOnly.getTime() === endDateOnly.getTime();
+					
+					// 같은 날이면 시간만 한 줄로 표시
+					if (isSameDay && !isEditing) {
+						return (
+							<div>
+								<strong>시간:</strong>{" "}
+								<span>
+									{startDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })} - {endDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
+								</span>
+							</div>
+						);
+					}
+					
+					// 다른 날이거나 편집 모드면 기존처럼 표시
+					return (
+						<>
+							<div>
+								<strong>시작:</strong>{" "}
+								{isEditing ? (
+									<div className="mt-1 grid grid-cols-2 gap-2 relative">
+										<div className="space-y-1">
+											<label className="text-xs text-zinc-600">시작 날짜</label>
+											<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenStartDate(!openStartDate)}>
+												{editStartAt?.format('YYYY-MM-DD')}
+											</button>
+											{openStartDate && editStartAt && (
+												<div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow" style={{width:'min(320px,90vw)'}}>
+													<DateCalendar value={editStartAt} onChange={(v)=>{ if(v){ setEditStartAt(editStartAt.year(v.year()).month(v.month()).date(v.date())); setOpenStartDate(false);} }} />
+												</div>
+											)}
 										</div>
-									)}
+										<div className="space-y-1">
+											<label className="text-xs text-zinc-600">시작 시간</label>
+											<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenStartTime(!openStartTime)}>
+												{editStartAt?.format('HH:mm')}
+											</button>
+											{openStartTime && editStartAt && (
+												<div className="fixed inset-0 z-[60] flex items-center justify-center">
+													<div className="absolute inset-0 bg-black/30" onClick={()=>setOpenStartTime(false)} />
+													<div className="relative z-[61] p-3 rounded border bg-white shadow">
+														<div className="flex items-center gap-2">
+															<div className="flex flex-col items-center">
+																<button type="button" onClick={()=>setEditStartAt(editStartAt.add(1,'hour'))}>▲</button>
+																<input
+																	className="w-12 text-center border rounded px-1 py-0.5"
+																	value={editStartAt.format('HH')}
+																	onChange={(e)=>{
+																		const v = e.target.value.replace(/\D/g,'');
+																		const n = Math.min(23, Math.max(0, Number(v||'0')));
+																		setEditStartAt(editStartAt.hour(n));
+																	}}
+																/>
+																<button type="button" onClick={()=>setEditStartAt(editStartAt.subtract(1,'hour'))}>▼</button>
+															</div>
+															<span>:</span>
+															<div className="flex flex-col items-center">
+																<button type="button" onClick={()=>setEditStartAt(editStartAt.add(1,'minute'))}>▲</button>
+																<input
+																	className="w-12 text-center border rounded px-1 py-0.5"
+																	value={editStartAt.format('mm')}
+																	onChange={(e)=>{
+																		const v = e.target.value.replace(/\D/g,'');
+																		const n = Math.min(59, Math.max(0, Number(v||'0')));
+																		setEditStartAt(editStartAt.minute(n));
+																	}}
+																/>
+																<button type="button" onClick={()=>setEditStartAt(editStartAt.subtract(1,'minute'))}>▼</button>
+															</div>
+														</div>
+														<div className="flex items-center gap-2 justify-between mt-2">
+															<div className="flex items-center gap-2">
+																<button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditStartAt(editStartAt.add(5,'minute'))}>+5분</button>
+																<button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditStartAt(editStartAt.add(10,'minute'))}>+10분</button>
+																<button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditStartAt(editStartAt.add(30,'minute'))}>+30분</button>
+															</div>
+															<div className="text-right">
+															<button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenStartTime(false)}>확인</button>
+															</div>
+														</div>
+												</div>
+											</div>
+										)}
+									</div>
 								</div>
-								<div className="space-y-1">
-									<label className="text-xs text-zinc-600">시작 시간</label>
-									<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenStartTime(!openStartTime)}>
-										{editStartAt?.format('HH:mm')}
-									</button>
-                                    {openStartTime && editStartAt && (
-                                        <div className="fixed inset-0 z-[60] flex items-center justify-center">
-                                            <div className="absolute inset-0 bg-black/30" onClick={()=>setOpenStartTime(false)} />
-                                            <div className="relative z-[61] p-3 rounded border bg-white shadow">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="flex flex-col items-center">
-                                                        <button type="button" onClick={()=>setEditStartAt(editStartAt.add(1,'hour'))}>▲</button>
-                                                        <input
-                                                            className="w-12 text-center border rounded px-1 py-0.5"
-                                                            value={editStartAt.format('HH')}
-                                                            onChange={(e)=>{
-                                                                const v = e.target.value.replace(/\D/g,'');
-                                                                const n = Math.min(23, Math.max(0, Number(v||'0')));
-                                                                setEditStartAt(editStartAt.hour(n));
-                                                            }}
-                                                        />
-                                                        <button type="button" onClick={()=>setEditStartAt(editStartAt.subtract(1,'hour'))}>▼</button>
-                                                    </div>
-                                                    <span>:</span>
-                                                    <div className="flex flex-col items-center">
-                                                        <button type="button" onClick={()=>setEditStartAt(editStartAt.add(1,'minute'))}>▲</button>
-                                                        <input
-                                                            className="w-12 text-center border rounded px-1 py-0.5"
-                                                            value={editStartAt.format('mm')}
-                                                            onChange={(e)=>{
-                                                                const v = e.target.value.replace(/\D/g,'');
-                                                                const n = Math.min(59, Math.max(0, Number(v||'0')));
-                                                                setEditStartAt(editStartAt.minute(n));
-                                                            }}
-                                                        />
-                                                        <button type="button" onClick={()=>setEditStartAt(editStartAt.subtract(1,'minute'))}>▼</button>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-2 justify-between mt-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditStartAt(editStartAt.add(5,'minute'))}>+5분</button>
-                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditStartAt(editStartAt.add(10,'minute'))}>+10분</button>
-                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditStartAt(editStartAt.add(30,'minute'))}>+30분</button>
-                                                    </div>
-                                                    <div className="text-right">
-                                                    <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenStartTime(false)}>확인</button>
-                                                    </div>
-                                                </div>
+							) : (
+								<span>{(() => {
+									// 같은 날이면 시간만 표시
+									if (isSameDay) {
+										return startDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+									} else {
+										// 다른 날이면 날짜와 시간 모두 표시
+										return startDate.toLocaleString('ko-KR');
+									}
+								})()}</span>
+							)}
+						</div>
+						{!isSameDay && (
+							<div>
+								<strong>종료:</strong>{" "}
+								{isEditing ? (
+									<div className="mt-1 grid grid-cols-2 gap-2 relative">
+										<div className="space-y-1">
+											<label className="text-xs text-zinc-600">종료 날짜</label>
+											<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenEndDate(!openEndDate)}>
+												{editEndAt?.format('YYYY-MM-DD')}
+											</button>
+											{openEndDate && editEndAt && (
+												<div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow" style={{width:'min(320px,90vw)'}}>
+													<DateCalendar value={editEndAt} onChange={(v)=>{ if(v){ setEditEndAt(editEndAt.year(v.year()).month(v.month()).date(v.date())); setOpenEndDate(false);} }} />
+												</div>
+											)}
+										</div>
+										<div className="space-y-1">
+											<label className="text-xs text-zinc-600">종료 시간</label>
+											<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenEndTime(!openEndTime)}>
+												{editEndAt?.format('HH:mm')}
+											</button>
+											{openEndTime && editEndAt && (
+												<div className="fixed inset-0 z-[60] flex items-center justify-center">
+													<div className="absolute inset-0 bg-black/30" onClick={()=>setOpenEndTime(false)} />
+													<div className="relative z-[61] p-3 rounded border bg-white shadow">
+														<div className="flex items-center gap-2">
+															<div className="flex flex-col items-center">
+																<button type="button" onClick={()=>editEndAt && setEditEndAt(editEndAt.add(1,'hour'))}>▲</button>
+																<input
+																	className="w-12 text-center border rounded px-1 py-0.5"
+																	value={editEndAt.format('HH')}
+																	onChange={(e)=>{
+																		if (!editEndAt) return;
+																		const v = e.target.value.replace(/\D/g,'');
+																		const n = Math.min(23, Math.max(0, Number(v||'0')));
+																		setEditEndAt(editEndAt.hour(n));
+																	}}
+																/>
+																<button type="button" onClick={()=>editEndAt && setEditEndAt(editEndAt.subtract(1,'hour'))}>▼</button>
+															</div>
+															<span>:</span>
+															<div className="flex flex-col items-center">
+																<button type="button" onClick={()=>editEndAt && setEditEndAt(editEndAt.add(1,'minute'))}>▲</button>
+																<input
+																	className="w-12 text-center border rounded px-1 py-0.5"
+																	value={editEndAt.format('mm')}
+																	onChange={(e)=>{
+																		if (!editEndAt) return;
+																		const v = e.target.value.replace(/\D/g,'');
+																		const n = Math.min(59, Math.max(0, Number(v||'0')));
+																		setEditEndAt(editEndAt.minute(n));
+																	}}
+																/>
+																<button type="button" onClick={()=>editEndAt && setEditEndAt(editEndAt.subtract(1,'minute'))}>▼</button>
+															</div>
+														</div>
+														<div className="flex items-center gap-2 justify-between mt-2">
+															<div className="flex items-center gap-2">
+																<button type="button" className="px-2 py-1 rounded border" onClick={()=>editEndAt && setEditEndAt(editEndAt.add(5,'minute'))}>+5분</button>
+																<button type="button" className="px-2 py-1 rounded border" onClick={()=>editEndAt && setEditEndAt(editEndAt.add(10,'minute'))}>+10분</button>
+																<button type="button" className="px-2 py-1 rounded border" onClick={()=>editEndAt && setEditEndAt(editEndAt.add(30,'minute'))}>+30분</button>
+															</div>
+															<div className="text-right">
+															<button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenEndTime(false)}>확인</button>
+															</div>
+														</div>
+													</div>
+												</div>
+											)}
 										</div>
 									</div>
+								) : (
+									<span>{endDate.toLocaleString('ko-KR')}</span>
 								)}
 							</div>
-						</div>
-						) : (
-							<span>{new Date(data.event.startAt).toLocaleString()}</span>
 						)}
-					</div>
-				)}
-				{!data.event.isRecurring && (
-					<div>
-						<strong>종료:</strong>{" "}
-						{isEditing ? (
-							<div className="mt-1 grid grid-cols-2 gap-2 relative">
-								<div className="space-y-1">
-									<label className="text-xs text-zinc-600">종료 날짜</label>
-									<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenEndDate(!openEndDate)}>
-										{editEndAt?.format('YYYY-MM-DD')}
-									</button>
-									{openEndDate && editEndAt && (
-										<div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow" style={{width:'min(320px,90vw)'}}>
-											<DateCalendar value={editEndAt} onChange={(v)=>{ if(v){ setEditEndAt(editEndAt.year(v.year()).month(v.month()).date(v.date())); setOpenEndDate(false);} }} />
-										</div>
-									)}
-								</div>
-								<div className="space-y-1">
-									<label className="text-xs text-zinc-600">종료 시간</label>
-									<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenEndTime(!openEndTime)}>
-										{editEndAt?.format('HH:mm')}
-									</button>
-                                    {openEndTime && editEndAt && (
-                                        <div className="fixed inset-0 z-[60] flex items-center justify-center">
-                                            <div className="absolute inset-0 bg-black/30" onClick={()=>setOpenEndTime(false)} />
-                                            <div className="relative z-[61] p-3 rounded border bg-white shadow">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="flex flex-col items-center">
-                                                        <button type="button" onClick={()=>setEditEndAt(editEndAt.add(1,'hour'))}>▲</button>
-                                                        <input
-                                                            className="w-12 text-center border rounded px-1 py-0.5"
-                                                            value={editEndAt.format('HH')}
-                                                            onChange={(e)=>{
-                                                                const v = e.target.value.replace(/\D/g,'');
-                                                                const n = Math.min(23, Math.max(0, Number(v||'0')));
-                                                                setEditEndAt(editEndAt.hour(n));
-                                                            }}
-                                                        />
-                                                        <button type="button" onClick={()=>setEditEndAt(editEndAt.subtract(1,'hour'))}>▼</button>
-                                                    </div>
-                                                    <span>:</span>
-                                                    <div className="flex flex-col items-center">
-                                                        <button type="button" onClick={()=>setEditEndAt(editEndAt.add(1,'minute'))}>▲</button>
-                                                        <input
-                                                            className="w-12 text-center border rounded px-1 py-0.5"
-                                                            value={editEndAt.format('mm')}
-                                                            onChange={(e)=>{
-                                                                const v = e.target.value.replace(/\D/g,'');
-                                                                const n = Math.min(59, Math.max(0, Number(v||'0')));
-                                                                setEditEndAt(editEndAt.minute(n));
-                                                            }}
-                                                        />
-                                                        <button type="button" onClick={()=>setEditEndAt(editEndAt.subtract(1,'minute'))}>▼</button>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-2 justify-between mt-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditEndAt(editEndAt.add(5,'minute'))}>+5분</button>
-                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditEndAt(editEndAt.add(10,'minute'))}>+10분</button>
-                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditEndAt(editEndAt.add(30,'minute'))}>+30분</button>
-                                                    </div>
-                                                    <div className="text-right">
-                                                    <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenEndTime(false)}>확인</button>
-                                                    </div>
-                                                </div>
-										</div>
-									</div>
-								)}
-							</div>
-						</div>
-						) : (
-							<span>{new Date(data.event.endAt).toLocaleString()}</span>
-						)}
-					</div>
-				)}
+					</>
+				);
+			})()}
+				</LocalizationProvider>
 
 					{isEditing && data.event.isRecurring && (
 						<div className="space-y-2">
@@ -548,200 +582,234 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 							</div>
 						</div>
 						) : (
-							<span>{new Date(data.event.endAt).toLocaleString()}</span>
+							<span>{(() => {
+								const startDate = new Date(data.event.startAt);
+								const endDate = new Date(data.event.endAt);
+								const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+								const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+								
+								// 같은 날이면 시간만 표시
+								if (startDateOnly.getTime() === endDateOnly.getTime()) {
+									return endDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+								} else {
+									// 다른 날이면 날짜와 시간 모두 표시
+									return endDate.toLocaleString('ko-KR');
+								}
+							})()}</span>
 						)}
 					</div>
 				)}
-				</LocalizationProvider>
-						<div className="pt-1">
-							<div className="mb-1"><strong>참여자:</strong></div>
-							{isEditing ? (
-								<div className="space-y-2">
-									<div className="flex gap-2">
-										<input
-											className="border rounded px-2 py-1 text-sm flex-1"
-											placeholder="참여자 입력 후 Enter"
-											value={participantInput}
-											onChange={(e) => setParticipantInput(e.target.value)}
-											onKeyDown={(e) => {
-												if (e.key === "Enter" && participantInput.trim()) {
-													if (!editParticipants.includes(participantInput.trim())) {
-														setEditParticipants([...editParticipants, participantInput.trim()]);
-													}
-													setParticipantInput("");
-												}
-											}}
-										/>
-										<select
-											className="border rounded px-2 py-1 text-sm cursor-pointer"
-											onChange={(e) => {
-												const name = e.target.value;
-												if (name && !editParticipants.includes(name)) {
-													setEditParticipants([...editParticipants, name]);
-												}
-												e.currentTarget.selectedIndex = 0;
-											}}
-										>
-											<option value="">목록에서</option>
-											{allParticipants.map((p) => (
-												<option key={p} value={p}>{p}</option>
-											))}
-										</select>
-									</div>
-									<div className="flex gap-2 flex-wrap">
-										{editParticipants.length === 0 ? (
-											<span className="text-xs text-zinc-500">참여자를 추가하세요</span>
-										) : (
-											editParticipants.map((p) => {
-												const participantInfo = participantMap.get(p);
-												const displayName = p + (participantInfo?.title || "");
-												const bgColor = participantInfo?.color || "#e5e7eb";
-												return (
-													<span 
-														key={p} 
-														className="px-2 py-0.5 text-xs rounded-full flex items-center gap-1"
-														style={{ backgroundColor: bgColor, color: "#000" }}
-													>
-														{displayName}
-														<button
-															className="ml-1 hover:text-red-600 cursor-pointer"
-															onClick={() => setEditParticipants(editParticipants.filter(x => x !== p))}
-														>
-															×
-														</button>
-													</span>
-												);
-											})
-										)}
-									</div>
-								</div>
-							) : (
-								<div className="flex gap-2 flex-wrap">
-									{(data.event.attendees ?? []).length === 0 && <span className="text-zinc-500">없음</span>}
-									{(data.event.attendees ?? []).map((a: any) => {
-										const participantInfo = participantMap.get(a.participant.name);
-										const displayName = a.participant.name + (participantInfo?.title || "");
+				<div className="pt-1">
+					<div className="mb-1"><strong>참여자:</strong></div>
+					{isEditing ? (
+						<div className="space-y-2">
+							<div className="flex gap-2">
+								<input
+									className="border rounded px-2 py-1 text-sm flex-1"
+									placeholder="참여자 입력 후 Enter"
+									value={participantInput}
+									onChange={(e) => setParticipantInput(e.target.value)}
+									onKeyDown={(e) => {
+										if (e.key === "Enter" && participantInput.trim()) {
+											if (!editParticipants.includes(participantInput.trim())) {
+												setEditParticipants([...editParticipants, participantInput.trim()]);
+											}
+											setParticipantInput("");
+										}
+									}}
+								/>
+								<select
+									className="border rounded px-2 py-1 text-sm cursor-pointer"
+									onChange={(e) => {
+										const name = e.target.value;
+										if (name && !editParticipants.includes(name)) {
+											setEditParticipants([...editParticipants, name]);
+										}
+										e.currentTarget.selectedIndex = 0;
+									}}
+								>
+									<option value="">목록에서</option>
+									{allParticipants.map((p) => (
+										<option key={p} value={p}>{p}</option>
+									))}
+								</select>
+							</div>
+							<div className="flex gap-2 flex-wrap">
+								{editParticipants.length === 0 ? (
+									<span className="text-xs text-zinc-500">참여자를 추가하세요</span>
+								) : (
+									editParticipants.map((p) => {
+										const participantInfo = participantMap.get(p);
 										const bgColor = participantInfo?.color || "#e5e7eb";
 										return (
 											<span 
-												key={a.participant.id} 
-												className="px-2 py-0.5 text-xs rounded-full"
+												key={p} 
+												className="px-2 py-0.5 text-xs rounded-full flex items-center gap-1"
 												style={{ backgroundColor: bgColor, color: "#000" }}
 											>
-												{displayName}
+												<span>{p}</span>
+												{participantInfo?.title && (
+													<span 
+														className="font-bold ml-0.5 px-1 rounded"
+														style={{ 
+															textShadow: "0 1px 2px rgba(0,0,0,0.4)",
+															backgroundColor: "rgba(0,0,0,0.15)",
+															letterSpacing: "0.5px"
+														}}
+													>
+														{participantInfo.title}
+													</span>
+												)}
+												<button
+													className="ml-1 hover:text-red-600 cursor-pointer"
+													onClick={() => setEditParticipants(editParticipants.filter(x => x !== p))}
+												>
+													×
+												</button>
 											</span>
 										);
-									})}
-								</div>
-							)}
+									})
+								)}
+							</div>
 						</div>
-					</div>
-				) : (
-					<div className="text-sm text-red-600 text-center py-4">이벤트를 찾을 수 없습니다.</div>
-				)}
-				<div className="flex justify-end gap-2">
-					{isEditing ? (
-						<>
-							<button className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer" onClick={() => {
-								setIsEditing(false);
-								// 원래 값으로 복원
-								setEditTitle(data?.event?.title || "");
-								const participantNames = (data?.event?.attendees ?? []).map((a: any) => a.participant.name);
-								setEditParticipants(participantNames);
-							}}>취소</button>
-							<button className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer" onClick={async () => {
-								if (!editTitle.trim()) return alert("제목을 입력해주세요.");
-								
-								// 반복 이벤트인 경우
-								if (data.event.isRecurring) {
-									// 제목과 참여자 업데이트
-                                    // HH:MM -> minutes
-                                    const toMin = (t:string) => {
-                                        const [hh, mm] = t.split(":").map(Number);
-                                        return (isNaN(hh)||isNaN(mm)) ? undefined : hh*60+mm;
-                                    };
-									await fetch(`/api/calendars/${data.event.calendarId}/recurring`, {
-										method: "PUT",
-										headers: { "Content-Type": "application/json" },
-										body: JSON.stringify({
-											eventTitle: data.event.title,
-											newTitle: editTitle,
-                                            participants: editParticipants,
-                                            days: Array.from(selectedDays),
-                                            startMinutes: toMin(editRecurringStart),
-                                            endMinutes: toMin(editRecurringEnd)
-										})
-									});
-								} else {
-									// 일반 이벤트: 제목과 참여자 업데이트
-                                    const toIso = (v: Dayjs | null, fallback: string) => (v && v.isValid()) ? v.toDate().toISOString() : fallback;
-                                    if (editStartAt && editEndAt && editEndAt.valueOf() <= editStartAt.valueOf()) {
-                                        alert("종료일시가 시작일시보다 늦어야 합니다.");
-                                        return;
-                                    }
-									await fetch(`/api/events/${eventId}`, {
-										method: "PUT",
-										headers: { "Content-Type": "application/json" },
-										body: JSON.stringify({
-											title: editTitle,
-                                            participants: editParticipants,
-                                            startAt: toIso(editStartAt, data.event.startAt),
-                                            endAt: toIso(editEndAt, data.event.endAt)
-										})
-									});
-								}
-								
-								onChanged();
-								setIsEditing(false);
-							}}>저장</button>
-						</>
 					) : (
+						<div className="flex gap-2 flex-wrap">
+							{(data.event.attendees ?? []).length === 0 && <span className="text-zinc-500">없음</span>}
+							{(data.event.attendees ?? []).map((a: any) => {
+								const participantInfo = participantMap.get(a.participant.name);
+								const bgColor = participantInfo?.color || "#e5e7eb";
+								return (
+									<span 
+										key={a.participant.id} 
+										className="px-2 py-0.5 text-xs rounded-full"
+										style={{ backgroundColor: bgColor, color: "#000" }}
+									>
+										<span>{a.participant.name}</span>
+										{participantInfo?.title && (
+											<span 
+												className="font-bold ml-0.5 px-1 rounded"
+												style={{ 
+													textShadow: "0 1px 2px rgba(0,0,0,0.4)",
+													backgroundColor: "rgba(0,0,0,0.15)",
+													letterSpacing: "0.5px"
+												}}
+											>
+												{participantInfo.title}
+											</span>
+										)}
+									</span>
+								);
+							})}
+						</div>
+					)}
+				</div>
+			</div>
+		) : (
+			<div className="text-sm text-red-600 text-center py-4">이벤트를 찾을 수 없습니다.</div>
+		)}
+		<div className="flex justify-end gap-2">
+			{isEditing ? (
+				<>
+					<button className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer" onClick={() => {
+						setIsEditing(false);
+						// 원래 값으로 복원
+						setEditTitle(data?.event?.title || "");
+						const participantNames = (data?.event?.attendees ?? []).map((a: any) => a.participant.name);
+						setEditParticipants(participantNames);
+					}}>취소</button>
+					<button className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer" onClick={async () => {
+						if (!editTitle.trim()) return alert("제목을 입력해주세요.");
+						
+						// 반복 이벤트인 경우
+						if (data.event.isRecurring) {
+							// 제목과 참여자 업데이트
+							// HH:MM -> minutes
+							const toMin = (t:string) => {
+								const [hh, mm] = t.split(":").map(Number);
+								return (isNaN(hh)||isNaN(mm)) ? undefined : hh*60+mm;
+							};
+							await fetch(`/api/calendars/${data.event.calendarId}/recurring`, {
+								method: "PUT",
+								headers: { "Content-Type": "application/json" },
+								body: JSON.stringify({
+									eventTitle: data.event.title,
+									newTitle: editTitle,
+									participants: editParticipants,
+									days: Array.from(selectedDays),
+									startMinutes: toMin(editRecurringStart),
+									endMinutes: toMin(editRecurringEnd)
+								})
+							});
+						} else {
+							// 일반 이벤트: 제목과 참여자 업데이트
+							const toIso = (v: Dayjs | null, fallback: string) => (v && v.isValid()) ? v.toDate().toISOString() : fallback;
+							if (editStartAt && editEndAt && editEndAt.valueOf() <= editStartAt.valueOf()) {
+								alert("종료일시가 시작일시보다 늦어야 합니다.");
+								return;
+							}
+							await fetch(`/api/events/${eventId}`, {
+								method: "PUT",
+								headers: { "Content-Type": "application/json" },
+								body: JSON.stringify({
+									title: editTitle,
+									participants: editParticipants,
+									startAt: toIso(editStartAt, data.event.startAt),
+									endAt: toIso(editEndAt, data.event.endAt)
+								})
+							});
+						}
+						
+						onChanged();
+						setIsEditing(false);
+					}}>저장</button>
+				</>
+			) : (
+				<>
+					<button className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer" onClick={onClose} disabled={loading}>닫기</button>
+					{!loading && !error && data?.event && (
 						<>
-							<button className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer" onClick={onClose} disabled={loading}>닫기</button>
-							{!loading && !error && data?.event && (
+							{data.event.isRecurring ? (
 								<>
-									{data.event.isRecurring ? (
-										<>
-											<button className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer" onClick={() => setIsEditing(true)}>수정</button>
-											<button className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white transition-colors cursor-pointer" onClick={async () => {
-												if (!confirm("이 반복 이벤트를 완전히 삭제하시겠습니까?")) return;
-												await fetch(`/api/events/${eventId}`, { method: "DELETE" });
-												onChanged();
-												onClose();
-											}}>반복 삭제</button>
-											<button className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer" onClick={async () => {
-												const eventDate = new Date(data.event.startAt);
-												const dateStr = `${eventDate.getFullYear()}-${String(eventDate.getMonth() + 1).padStart(2, '0')}-${String(eventDate.getDate()).padStart(2, '0')}`;
-												if (!confirm(`${dateStr}부터 이 반복을 종료하시겠습니까?`)) return;
-												const endsOn = new Date(eventDate);
-												endsOn.setHours(23, 59, 59, 999);
-												await fetch(`/api/events/${eventId}`, {
-													method: "PATCH",
-													headers: { "Content-Type": "application/json" },
-													body: JSON.stringify({ endsOn: endsOn.toISOString() })
-												});
-												onChanged();
-												onClose();
-											}}>반복 종료</button>
-										</>
-									) : (
-										<>
-											<button className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer" onClick={() => setIsEditing(true)}>수정</button>
-											<button className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white transition-colors cursor-pointer" onClick={async () => {
-												if (!confirm("정말로 이 이벤트를 삭제하시겠습니까?")) return;
-												await fetch(`/api/events/${eventId}`, { method: "DELETE" });
-												onChanged();
-												onClose();
-											}}>삭제</button>
-										</>
-									)}
+									<button className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer" onClick={() => setIsEditing(true)}>수정</button>
+									<button className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white transition-colors cursor-pointer" onClick={async () => {
+										if (!confirm("이 반복 이벤트를 완전히 삭제하시겠습니까?")) return;
+										await fetch(`/api/events/${eventId}`, { method: "DELETE" });
+										onChanged();
+										onClose();
+									}}>반복 삭제</button>
+									<button className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer" onClick={async () => {
+										const eventDate = new Date(data.event.startAt);
+										const dateStr = `${eventDate.getFullYear()}-${String(eventDate.getMonth() + 1).padStart(2, '0')}-${String(eventDate.getDate()).padStart(2, '0')}`;
+										if (!confirm(`${dateStr}부터 이 반복을 종료하시겠습니까?`)) return;
+										const endsOn = new Date(eventDate);
+										endsOn.setHours(23, 59, 59, 999);
+										await fetch(`/api/events/${eventId}`, {
+											method: "PATCH",
+											headers: { "Content-Type": "application/json" },
+											body: JSON.stringify({ endsOn: endsOn.toISOString() })
+										});
+										onChanged();
+										onClose();
+									}}>반복 종료</button>
+								</>
+							) : (
+								<>
+									<button className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer" onClick={() => setIsEditing(true)}>수정</button>
+									<button className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white transition-colors cursor-pointer" onClick={async () => {
+										if (!confirm("정말로 이 이벤트를 삭제하시겠습니까?")) return;
+										await fetch(`/api/events/${eventId}`, { method: "DELETE" });
+										onChanged();
+										onClose();
+									}}>삭제</button>
 								</>
 							)}
 						</>
 					)}
-				</div>
-			</div>
+				</>
+			)}
 		</div>
+		</div>
+	</div>
 	);
 }
 

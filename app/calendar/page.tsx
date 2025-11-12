@@ -902,7 +902,6 @@ export default function CalendarPage() {
 														<div className="flex gap-1 flex-wrap mt-1">
 															{e.participants.map((p) => {
 																const participantInfo = participantMap.get(p);
-																const displayName = p + (participantInfo?.title || "");
 																const bgColor = participantInfo?.color || "#e5e7eb";
 																return (
 																	<span 
@@ -910,7 +909,19 @@ export default function CalendarPage() {
 																		className="px-2 py-0.5 text-xs rounded-full"
 																		style={{ backgroundColor: bgColor, color: "#000" }}
 																	>
-																		{displayName}
+																		<span>{p}</span>
+																		{participantInfo?.title && (
+																			<span 
+																				className="font-bold ml-0.5 px-1 rounded"
+																				style={{ 
+																					textShadow: "0 1px 2px rgba(0,0,0,0.4)",
+																					backgroundColor: "rgba(0,0,0,0.15)",
+																					letterSpacing: "0.5px"
+																				}}
+																			>
+																				{participantInfo.title}
+																			</span>
+																		)}
 																	</span>
 																);
 															})}

@@ -71,6 +71,7 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 	const [participantInput, setParticipantInput] = useState("");
 	const [participants, setParticipants] = useState<string[]>([]);
 	const [allParticipants, setAllParticipants] = useState<string[]>([]);
+	const [participantMap, setParticipantMap] = useState<Map<string, { title?: string | null; color?: string | null }>>(new Map());
 	const [repeat, setRepeat] = useState<{enabled:boolean, days:Set<number>}>({ enabled: false, days: new Set<number>() });
 	const [loading, setLoading] = useState(false);
 
@@ -84,7 +85,14 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 	useEffect(() => {
 		// 참여자 목록 (모든 사용자 노출)
 		fetch("/api/participants").then((r) => r.json()).then((data) => {
-			setAllParticipants((data.participants ?? []).map((p: any) => p.name));
+			const participants = data.participants ?? [];
+			setAllParticipants(participants.map((p: any) => p.name));
+			// 참여자 정보 맵 생성
+			const map = new Map<string, { title?: string | null; color?: string | null }>();
+			participants.forEach((p: any) => {
+				map.set(p.name, { title: p.title, color: p.color });
+			});
+			setParticipantMap(map);
 		});
 
 		// 드래프트 복원
@@ -369,17 +377,37 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 							</select>
 						</div>
 						<div className="flex gap-2 flex-wrap mt-2">
-							{participants.map((p) => (
-								<span key={p} className="px-2 py-0.5 text-xs rounded-full bg-zinc-200 dark:bg-zinc-700">
-									{p}
-									<button
-										className="ml-1 text-zinc-500 hover:text-zinc-700"
-										onClick={() => setParticipants(participants.filter(x => x !== p))}
+							{participants.map((p) => {
+								const participantInfo = participantMap.get(p);
+								const bgColor = participantInfo?.color || "#e5e7eb";
+								return (
+									<span 
+										key={p} 
+										className="px-2 py-0.5 text-xs rounded-full"
+										style={{ backgroundColor: bgColor, color: "#000" }}
 									>
-										×
-									</button>
-								</span>
-							))}
+										<span>{p}</span>
+										{participantInfo?.title && (
+											<span 
+												className="font-bold ml-0.5 px-1 rounded"
+												style={{ 
+													textShadow: "0 1px 2px rgba(0,0,0,0.4)",
+													backgroundColor: "rgba(0,0,0,0.15)",
+													letterSpacing: "0.5px"
+												}}
+											>
+												{participantInfo.title}
+											</span>
+										)}
+										<button
+											className="ml-1 text-zinc-500 hover:text-zinc-700"
+											onClick={() => setParticipants(participants.filter(x => x !== p))}
+										>
+											×
+										</button>
+									</span>
+								);
+							})}
 						</div>
 					</div>
 
