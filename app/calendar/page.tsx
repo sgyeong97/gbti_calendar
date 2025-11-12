@@ -921,18 +921,31 @@ export default function CalendarPage() {
 																				} : { r: 255, g: 0, b: 255 };
 																			};
 																			const rgb = hexToRgb(glowColor);
-																			const textShadow = `0 0 5px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}), 0 0 10px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}), 0 0 15px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}), 0 0 20px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}), 0 0 35px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}), 0 0 40px rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+																			// 텍스트 테두리 효과를 위한 검은색 그림자 + 네온 글로우
+																			const textShadow = `
+																				1px 1px 2px rgba(0, 0, 0, 0.9),
+																				-1px -1px 2px rgba(0, 0, 0, 0.9),
+																				1px -1px 2px rgba(0, 0, 0, 0.9),
+																				-1px 1px 2px rgba(0, 0, 0, 0.9),
+																				0 0 5px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}),
+																				0 0 10px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}),
+																				0 0 15px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}),
+																				0 0 20px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}),
+																				0 0 35px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}),
+																				0 0 40px rgb(${rgb.r}, ${rgb.g}, ${rgb.b})
+																			`;
 																			const bgColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)`;
 																			return (
 																				<span 
 																					className="font-bold ml-0.5 px-1.5 py-0.5 rounded"
 																					style={{ 
 																						color: "#fff",
-																						textShadow,
+																						textShadow: textShadow.trim(),
 																						backgroundColor: bgColor,
 																						letterSpacing: "0.5px",
 																						fontWeight: "700",
-																						animation: "glow-pulse 2s ease-in-out infinite"
+																						animation: "glow-pulse 2s ease-in-out infinite",
+																						WebkitTextStroke: "0.5px rgba(0, 0, 0, 0.8)"
 																					}}
 																				>
 																					{participantInfo.title}
