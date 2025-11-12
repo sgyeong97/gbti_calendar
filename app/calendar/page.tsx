@@ -380,10 +380,8 @@ export default function CalendarPage() {
 
     // 공지사항 fetch 제거
 
-	useEffect(() => {
-        fetchParticipants();
-
-		// localStorage에서 즐겨찾기 로드
+	// 즐겨찾기 목록 새로고침 함수
+	const refreshFavorites = () => {
 		const savedFavorites = localStorage.getItem("gbti_favorites");
 		if (savedFavorites) {
 			const parsed = JSON.parse(savedFavorites);
@@ -391,13 +389,37 @@ export default function CalendarPage() {
 			const cleaned = parsed.map((f: any) => ({ name: f.name }));
 			setFavoriteUsers(cleaned);
 			localStorage.setItem("gbti_favorites", JSON.stringify(cleaned));
+		} else {
+			setFavoriteUsers([]);
 		}
+	};
+
+	useEffect(() => {
+        fetchParticipants();
+		refreshFavorites();
+
+		// 즐겨찾기 변경 이벤트 리스너
+		const handleFavoritesUpdated = () => {
+			refreshFavorites();
+		};
+		window.addEventListener('favoritesUpdated', handleFavoritesUpdated);
+		return () => {
+			window.removeEventListener('favoritesUpdated', handleFavoritesUpdated);
+		};
 	}, []);
 
 	// 즐겨찾기 모드로 전환 시 모든 즐겨찾기 항목 자동 선택
 	useEffect(() => {
-		if (viewMode === "favorites" && favoriteUsers.length > 0 && selectedParticipants.size === 0) {
-			setSelectedParticipants(new Set(favoriteUsers.map(f => f.name)));
+		if (viewMode === "favorites" && favoriteUsers.length > 0) {
+			// 즐겨찾기 모드일 때는 항상 즐겨찾기된 유저들을 선택
+			const favoriteNames = new Set(favoriteUsers.map(f => f.name));
+			// 현재 선택된 항목이 즐겨찾기 목록과 다르면 업데이트
+			const currentSelected = Array.from(selectedParticipants);
+			const needsUpdate = favoriteNames.size !== selectedParticipants.size || 
+				!currentSelected.every(name => favoriteNames.has(name));
+			if (needsUpdate) {
+				setSelectedParticipants(favoriteNames);
+			}
 		}
 	}, [viewMode, favoriteUsers]);
 

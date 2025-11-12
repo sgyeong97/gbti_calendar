@@ -53,6 +53,9 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 		
 		setFavoriteUsers(newFavorites);
 		localStorage.setItem("gbti_favorites", JSON.stringify(newFavorites));
+		
+		// 부모 컴포넌트에 즐겨찾기 변경 알림
+		window.dispatchEvent(new CustomEvent('favoritesUpdated'));
 	};
 
 	useEffect(() => {
@@ -503,13 +506,20 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 										return (
 											<span 
 												key={p} 
-												className="px-2 py-0.5 text-xs rounded-full flex items-center gap-1"
+												className="px-2 py-0.5 text-xs rounded-full relative"
 												style={{ backgroundColor: bgColor, color: "#000" }}
 											>
-												{isFavorite && <span className="text-yellow-500">⭐</span>}
+												{isFavorite && (
+													<span 
+														className="absolute -top-0.5 -left-0.5 text-yellow-500 text-[10px] leading-none"
+														style={{ textShadow: '0 0 2px rgba(0,0,0,0.3)' }}
+													>
+														⭐
+													</span>
+												)}
 												<span 
 													onDoubleClick={() => toggleFavorite(p)}
-													className="cursor-pointer"
+													className="cursor-pointer inline-flex items-center gap-1"
 													title="더블클릭하여 즐겨찾기 추가/제거"
 												>
 													{participantInfo?.title && (() => {
@@ -565,13 +575,20 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 								return (
 									<span 
 										key={a.participant.id} 
-										className="px-2 py-0.5 text-xs rounded-full flex items-center gap-1"
+										className="px-2 py-0.5 text-xs rounded-full relative"
 										style={{ backgroundColor: bgColor, color: "#000" }}
 									>
-										{isFavorite && <span className="text-yellow-500">⭐</span>}
+										{isFavorite && (
+											<span 
+												className="absolute -top-0.5 -left-0.5 text-yellow-500 text-[10px] leading-none"
+												style={{ textShadow: '0 0 2px rgba(0,0,0,0.3)' }}
+											>
+												⭐
+											</span>
+										)}
 										<span 
 											onDoubleClick={() => toggleFavorite(a.participant.name)}
-											className="cursor-pointer"
+											className="cursor-pointer inline-flex items-center gap-1"
 											title="더블클릭하여 즐겨찾기 추가/제거"
 										>
 											{participantInfo?.title && (() => {
