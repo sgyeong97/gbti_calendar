@@ -387,18 +387,34 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 										style={{ backgroundColor: bgColor, color: "#000" }}
 									>
 										<span>{p}</span>
-										{participantInfo?.title && (
-											<span 
-												className="font-bold ml-0.5 px-1 rounded"
-												style={{ 
-													textShadow: "0 1px 2px rgba(0,0,0,0.4)",
-													backgroundColor: "rgba(0,0,0,0.15)",
-													letterSpacing: "0.5px"
-												}}
-											>
-												{participantInfo.title}
-											</span>
-										)}
+										{participantInfo?.title && (() => {
+											const glowColor = participantInfo?.color || "#ff00ff";
+											const hexToRgb = (hex: string) => {
+												const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+												return result ? {
+													r: parseInt(result[1], 16),
+													g: parseInt(result[2], 16),
+													b: parseInt(result[3], 16)
+												} : { r: 255, g: 0, b: 255 };
+											};
+											const rgb = hexToRgb(glowColor);
+											const textShadow = `0 0 5px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}), 0 0 10px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}), 0 0 15px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}), 0 0 20px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}), 0 0 35px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}), 0 0 40px rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+											const bgColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)`;
+											return (
+												<span 
+													className="font-bold ml-0.5 px-1.5 py-0.5 rounded"
+													style={{ 
+														color: "#fff",
+														textShadow,
+														backgroundColor: bgColor,
+														letterSpacing: "0.5px",
+														fontWeight: "700"
+													}}
+												>
+													{participantInfo.title}
+												</span>
+											);
+										})()}
 										<button
 											className="ml-1 text-zinc-500 hover:text-zinc-700"
 											onClick={() => setParticipants(participants.filter(x => x !== p))}
