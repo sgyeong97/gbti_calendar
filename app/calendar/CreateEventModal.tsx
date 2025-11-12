@@ -206,9 +206,10 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 				/>
 						<LocalizationProvider dateAdapter={AdapterDayjs}>
 						<div className="space-y-3 relative">
-                        {/* 날짜와 시간 한 줄 표시 */}
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-2 flex-wrap">
+                        {/* 시작: 날짜 + 시간 */}
+                        <div>
+                            <strong>시작:</strong>{" "}
+                            <div className="mt-1 flex items-center gap-2 flex-wrap relative">
                                 <button 
                                     type="button" 
                                     className="px-3 py-1.5 border rounded text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
@@ -218,7 +219,7 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
                                 </button>
                                 {openStartDate && (
                                     <div className="absolute z-50 mt-1 p-2 rounded border bg-white dark:bg-zinc-800 shadow-lg" style={{width:'min(320px,90vw)'}}>
-                                        <DateCalendar value={startAt} onChange={(v)=>{ if(v){ setStartAt(startAt.year(v.year()).month(v.month()).date(v.date())); setOpenEndDate(false);} }} />
+                                        <DateCalendar value={startAt} onChange={(v)=>{ if(v){ setStartAt(startAt.year(v.year()).month(v.month()).date(v.date())); setOpenStartDate(false);} }} />
                                     </div>
                                 )}
                                 <div className="relative">
@@ -253,7 +254,31 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
                                         </div>
                                     )}
                                 </div>
-                                <span className="text-zinc-500">-</span>
+                                {openStartDate && (
+                                    <div className="fixed inset-0 z-40" onClick={()=>setOpenStartDate(false)} />
+                                )}
+                                {openStartTime && (
+                                    <div className="fixed inset-0 z-40" onClick={()=>setOpenStartTime(false)} />
+                                )}
+                            </div>
+                        </div>
+                        
+                        {/* 종료: 날짜 + 시간 */}
+                        <div>
+                            <strong>종료:</strong>{" "}
+                            <div className="mt-1 flex items-center gap-2 flex-wrap relative">
+                                <button 
+                                    type="button" 
+                                    className="px-3 py-1.5 border rounded text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                                    onClick={()=>setOpenEndDate(!openEndDate)}
+                                >
+                                    {endAt.format('M월 D일')} ({['일','월','화','수','목','금','토'][endAt.day()]})
+                                </button>
+                                {openEndDate && (
+                                    <div className="absolute z-50 mt-1 p-2 rounded border bg-white dark:bg-zinc-800 shadow-lg" style={{width:'min(320px,90vw)'}}>
+                                        <DateCalendar value={endAt} onChange={(v)=>{ if(v){ setEndAt(endAt.year(v.year()).month(v.month()).date(v.date())); setOpenEndDate(false);} }} />
+                                    </div>
+                                )}
                                 <div className="relative">
                                     <button 
                                         type="button" 
@@ -286,13 +311,13 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
                                         </div>
                                     )}
                                 </div>
+                                {openEndDate && (
+                                    <div className="fixed inset-0 z-40" onClick={()=>setOpenEndDate(false)} />
+                                )}
+                                {openEndTime && (
+                                    <div className="fixed inset-0 z-40" onClick={()=>setOpenEndTime(false)} />
+                                )}
                             </div>
-                            {openStartDate && (
-                                <div className="fixed inset-0 z-40" onClick={()=>setOpenStartDate(false)} />
-                            )}
-                            {(openStartTime || openEndTime) && (
-                                <div className="fixed inset-0 z-40" onClick={()=>{setOpenStartTime(false); setOpenEndTime(false);}} />
-                            )}
                         </div>
 						</div>
 					</LocalizationProvider>

@@ -233,69 +233,75 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 								})()}</span>
 							)}
 						</div>
-						{!isSameDay && (
-							<div>
-								<strong>종료:</strong>{" "}
-								{isEditing ? (
-									<div className="mt-1 flex items-center gap-2 flex-wrap relative">
+						<div>
+							<strong>종료:</strong>{" "}
+							{isEditing ? (
+								<div className="mt-1 flex items-center gap-2 flex-wrap relative">
+									<button 
+										type="button" 
+										className="px-3 py-1.5 border rounded text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+										onClick={()=>setOpenEndDate(!openEndDate)}
+									>
+										{editEndAt ? `${editEndAt.format('M월 D일')} (${['일','월','화','수','목','금','토'][editEndAt.day()]})` : ''}
+									</button>
+									{openEndDate && editEndAt && (
+										<div className="absolute z-50 mt-1 p-2 rounded border bg-white dark:bg-zinc-800 shadow-lg" style={{width:'min(320px,90vw)'}}>
+											<DateCalendar value={editEndAt} onChange={(v)=>{ if(v && editEndAt){ setEditEndAt(editEndAt.year(v.year()).month(v.month()).date(v.date())); setOpenEndDate(false);} }} />
+										</div>
+									)}
+									<div className="relative">
 										<button 
 											type="button" 
-											className="px-3 py-1.5 border rounded text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-											onClick={()=>setOpenEndDate(!openEndDate)}
+											className="px-3 py-1.5 border rounded text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors min-w-[100px]"
+											onClick={()=>setOpenEndTime(!openEndTime)}
 										>
-											{editEndAt ? `${editEndAt.format('M월 D일')} (${['일','월','화','수','목','금','토'][editEndAt.day()]})` : ''}
+											{editEndAt?.format('A h:mm')}
 										</button>
-										{openEndDate && editEndAt && (
-											<div className="absolute z-50 mt-1 p-2 rounded border bg-white dark:bg-zinc-800 shadow-lg" style={{width:'min(320px,90vw)'}}>
-												<DateCalendar value={editEndAt} onChange={(v)=>{ if(v && editEndAt){ setEditEndAt(editEndAt.year(v.year()).month(v.month()).date(v.date())); setOpenEndDate(false);} }} />
+										{openEndTime && editEndAt && (
+											<div className="absolute z-50 mt-1 bg-white dark:bg-zinc-800 border rounded shadow-lg max-h-60 overflow-y-auto min-w-[120px]">
+												{Array.from({ length: 24 * 4 }, (_, i) => {
+													const hour = Math.floor(i / 4);
+													const minute = (i % 4) * 15;
+													const time = dayjs().hour(hour).minute(minute);
+													const isSelected = editEndAt.hour() === hour && editEndAt.minute() === minute;
+													return (
+														<button
+															key={i}
+															type="button"
+															className={`w-full px-3 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-700 ${isSelected ? 'bg-blue-100 dark:bg-blue-900/30' : ''}`}
+															onClick={() => {
+																if (editEndAt) {
+																	setEditEndAt(editEndAt.hour(hour).minute(minute));
+																	setOpenEndTime(false);
+																}
+															}}
+														>
+															{time.format('A h:mm')}
+														</button>
+													);
+												})}
 											</div>
 										)}
-										<div className="relative">
-											<button 
-												type="button" 
-												className="px-3 py-1.5 border rounded text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors min-w-[100px]"
-												onClick={()=>setOpenEndTime(!openEndTime)}
-											>
-												{editEndAt?.format('A h:mm')}
-											</button>
-											{openEndTime && editEndAt && (
-												<div className="absolute z-50 mt-1 bg-white dark:bg-zinc-800 border rounded shadow-lg max-h-60 overflow-y-auto min-w-[120px]">
-													{Array.from({ length: 24 * 4 }, (_, i) => {
-														const hour = Math.floor(i / 4);
-														const minute = (i % 4) * 15;
-														const time = dayjs().hour(hour).minute(minute);
-														const isSelected = editEndAt.hour() === hour && editEndAt.minute() === minute;
-														return (
-															<button
-																key={i}
-																type="button"
-																className={`w-full px-3 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-700 ${isSelected ? 'bg-blue-100 dark:bg-blue-900/30' : ''}`}
-																onClick={() => {
-																	if (editEndAt) {
-																		setEditEndAt(editEndAt.hour(hour).minute(minute));
-																		setOpenEndTime(false);
-																	}
-																}}
-															>
-																{time.format('A h:mm')}
-															</button>
-														);
-													})}
-												</div>
-											)}
-										</div>
-										{openEndDate && (
-											<div className="fixed inset-0 z-40" onClick={()=>setOpenEndDate(false)} />
-										)}
-										{openEndTime && (
-											<div className="fixed inset-0 z-40" onClick={()=>setOpenEndTime(false)} />
-										)}
 									</div>
-								) : (
-									<span>{endDate.toLocaleString('ko-KR')}</span>
-								)}
-							</div>
-						)}
+									{openEndDate && (
+										<div className="fixed inset-0 z-40" onClick={()=>setOpenEndDate(false)} />
+									)}
+									{openEndTime && (
+										<div className="fixed inset-0 z-40" onClick={()=>setOpenEndTime(false)} />
+									)}
+								</div>
+							) : (
+								<span>{(() => {
+									// 같은 날이면 시간만 표시
+									if (isSameDay) {
+										return endDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+									} else {
+										// 다른 날이면 날짜와 시간 모두 표시
+										return endDate.toLocaleString('ko-KR');
+									}
+								})()}</span>
+							)}
+						</div>
 					</>
 				);
 			})()}

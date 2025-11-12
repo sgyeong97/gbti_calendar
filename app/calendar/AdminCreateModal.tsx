@@ -26,7 +26,8 @@ const PASTEL_COLORS = [
 
 export default function CreateEventModal({ selectedDate, onClose, onCreated }: Props) {
 	const [title, setTitle] = useState("");
-	const [date, setDate] = useState(selectedDate ? format(selectedDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"));
+	const [startDate, setStartDate] = useState(selectedDate ? format(selectedDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"));
+	const [endDate, setEndDate] = useState(selectedDate ? format(selectedDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"));
 	const [start, setStart] = useState("09:00");
 	const [end, setEnd] = useState("10:00");
 	const [participantInput, setParticipantInput] = useState("");
@@ -39,10 +40,12 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 	const [openStartTime, setOpenStartTime] = useState(false);
 	const [openEndTime, setOpenEndTime] = useState(false);
 
-	// 선택된 날짜가 변경되면 date 상태 업데이트
+	// 선택된 날짜가 변경되면 시작/종료 날짜 상태 업데이트
 	useEffect(() => {
 		if (selectedDate) {
-			setDate(format(selectedDate, "yyyy-MM-dd"));
+			const dateStr = format(selectedDate, "yyyy-MM-dd");
+			setStartDate(dateStr);
+			setEndDate(dateStr);
 		}
 	}, [selectedDate]);
 
@@ -71,8 +74,8 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 
 		setLoading(true);
 		try {
-			const startAt = new Date(`${date}T${start}:00`);
-			const endAt = new Date(`${date}T${end}:00`);
+			const startAt = new Date(`${startDate}T${start}:00`);
+			const endAt = new Date(`${endDate}T${end}:00`);
 			const res = await fetch("/api/events", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -118,97 +121,116 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 					value={title}
 					onChange={(e) => setTitle(e.target.value)}
 				/>
-				<div className="flex items-center gap-2 flex-wrap relative">
-					<input
-						className="border rounded px-3 py-1.5"
-						type="date"
-						value={date}
-						onChange={(e) => setDate(e.target.value)}
-					/>
-					<div className="relative">
-						<button 
-							type="button"
-							className="px-3 py-1.5 border rounded text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors min-w-[100px]"
-							onClick={() => setOpenStartTime(!openStartTime)}
-						>
-							{(() => {
-								const [hours, minutes] = start.split(':');
-								const hour = parseInt(hours || '0');
-								const min = parseInt(minutes || '0');
-								return hour >= 12 ? `오후 ${hour === 12 ? 12 : hour - 12}:${String(min).padStart(2, '0')}` : `오전 ${hour === 0 ? 12 : hour}:${String(min).padStart(2, '0')}`;
-							})()}
-						</button>
+				{/* 시작: 날짜 + 시간 */}
+				<div>
+					<strong>시작:</strong>{" "}
+					<div className="mt-1 flex items-center gap-2 flex-wrap relative">
+						<input
+							className="border rounded px-3 py-1.5"
+							type="date"
+							value={startDate}
+							onChange={(e) => setStartDate(e.target.value)}
+						/>
+						<div className="relative">
+							<button 
+								type="button"
+								className="px-3 py-1.5 border rounded text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors min-w-[100px]"
+								onClick={() => setOpenStartTime(!openStartTime)}
+							>
+								{(() => {
+									const [hours, minutes] = start.split(':');
+									const hour = parseInt(hours || '0');
+									const min = parseInt(minutes || '0');
+									return hour >= 12 ? `오후 ${hour === 12 ? 12 : hour - 12}:${String(min).padStart(2, '0')}` : `오전 ${hour === 0 ? 12 : hour}:${String(min).padStart(2, '0')}`;
+								})()}
+							</button>
+							{openStartTime && (
+								<div className="absolute z-50 mt-1 bg-white dark:bg-zinc-800 border rounded shadow-lg max-h-60 overflow-y-auto min-w-[120px]">
+									{Array.from({ length: 24 * 4 }, (_, i) => {
+										const hour = Math.floor(i / 4);
+										const minute = (i % 4) * 15;
+										const timeStr = hour >= 12 ? `오후 ${hour === 12 ? 12 : hour - 12}:${String(minute).padStart(2, '0')}` : `오전 ${hour === 0 ? 12 : hour}:${String(minute).padStart(2, '0')}`;
+										const [currentHours, currentMinutes] = start.split(':');
+										const currentHour = parseInt(currentHours || '0');
+										const currentMin = parseInt(currentMinutes || '0');
+										const isSelected = currentHour === hour && currentMin === minute;
+										return (
+											<button
+												key={i}
+												type="button"
+												className={`w-full px-3 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-700 ${isSelected ? 'bg-blue-100 dark:bg-blue-900/30' : ''}`}
+												onClick={() => {
+													setStart(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
+													setOpenStartTime(false);
+												}}
+											>
+												{timeStr}
+											</button>
+										);
+									})}
+								</div>
+							)}
+						</div>
 						{openStartTime && (
-							<div className="absolute z-50 mt-1 bg-white dark:bg-zinc-800 border rounded shadow-lg max-h-60 overflow-y-auto min-w-[120px]">
-								{Array.from({ length: 24 * 4 }, (_, i) => {
-									const hour = Math.floor(i / 4);
-									const minute = (i % 4) * 15;
-									const timeStr = hour >= 12 ? `오후 ${hour === 12 ? 12 : hour - 12}:${String(minute).padStart(2, '0')}` : `오전 ${hour === 0 ? 12 : hour}:${String(minute).padStart(2, '0')}`;
-									const [currentHours, currentMinutes] = start.split(':');
-									const currentHour = parseInt(currentHours || '0');
-									const currentMin = parseInt(currentMinutes || '0');
-									const isSelected = currentHour === hour && currentMin === minute;
-									return (
-										<button
-											key={i}
-											type="button"
-											className={`w-full px-3 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-700 ${isSelected ? 'bg-blue-100 dark:bg-blue-900/30' : ''}`}
-											onClick={() => {
-												setStart(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
-												setOpenStartTime(false);
-											}}
-										>
-											{timeStr}
-										</button>
-									);
-								})}
-							</div>
+							<div className="fixed inset-0 z-40" onClick={() => setOpenStartTime(false)} />
 						)}
 					</div>
-					<span className="text-zinc-500">-</span>
-					<div className="relative">
-						<button 
-							type="button"
-							className="px-3 py-1.5 border rounded text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors min-w-[100px]"
-							onClick={() => setOpenEndTime(!openEndTime)}
-						>
-							{(() => {
-								const [hours, minutes] = end.split(':');
-								const hour = parseInt(hours || '0');
-								const min = parseInt(minutes || '0');
-								return hour >= 12 ? `오후 ${hour === 12 ? 12 : hour - 12}:${String(min).padStart(2, '0')}` : `오전 ${hour === 0 ? 12 : hour}:${String(min).padStart(2, '0')}`;
-							})()}
-						</button>
+				</div>
+				
+				{/* 종료: 날짜 + 시간 */}
+				<div>
+					<strong>종료:</strong>{" "}
+					<div className="mt-1 flex items-center gap-2 flex-wrap relative">
+						<input
+							className="border rounded px-3 py-1.5"
+							type="date"
+							value={endDate}
+							onChange={(e) => setEndDate(e.target.value)}
+						/>
+						<div className="relative">
+							<button 
+								type="button"
+								className="px-3 py-1.5 border rounded text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors min-w-[100px]"
+								onClick={() => setOpenEndTime(!openEndTime)}
+							>
+								{(() => {
+									const [hours, minutes] = end.split(':');
+									const hour = parseInt(hours || '0');
+									const min = parseInt(minutes || '0');
+									return hour >= 12 ? `오후 ${hour === 12 ? 12 : hour - 12}:${String(min).padStart(2, '0')}` : `오전 ${hour === 0 ? 12 : hour}:${String(min).padStart(2, '0')}`;
+								})()}
+							</button>
+							{openEndTime && (
+								<div className="absolute z-50 mt-1 bg-white dark:bg-zinc-800 border rounded shadow-lg max-h-60 overflow-y-auto min-w-[120px]">
+									{Array.from({ length: 24 * 4 }, (_, i) => {
+										const hour = Math.floor(i / 4);
+										const minute = (i % 4) * 15;
+										const timeStr = hour >= 12 ? `오후 ${hour === 12 ? 12 : hour - 12}:${String(minute).padStart(2, '0')}` : `오전 ${hour === 0 ? 12 : hour}:${String(minute).padStart(2, '0')}`;
+										const [currentHours, currentMinutes] = end.split(':');
+										const currentHour = parseInt(currentHours || '0');
+										const currentMin = parseInt(currentMinutes || '0');
+										const isSelected = currentHour === hour && currentMin === minute;
+										return (
+											<button
+												key={i}
+												type="button"
+												className={`w-full px-3 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-700 ${isSelected ? 'bg-blue-100 dark:bg-blue-900/30' : ''}`}
+												onClick={() => {
+													setEnd(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
+													setOpenEndTime(false);
+												}}
+											>
+												{timeStr}
+											</button>
+										);
+									})}
+								</div>
+							)}
+						</div>
 						{openEndTime && (
-							<div className="absolute z-50 mt-1 bg-white dark:bg-zinc-800 border rounded shadow-lg max-h-60 overflow-y-auto min-w-[120px]">
-								{Array.from({ length: 24 * 4 }, (_, i) => {
-									const hour = Math.floor(i / 4);
-									const minute = (i % 4) * 15;
-									const timeStr = hour >= 12 ? `오후 ${hour === 12 ? 12 : hour - 12}:${String(minute).padStart(2, '0')}` : `오전 ${hour === 0 ? 12 : hour}:${String(minute).padStart(2, '0')}`;
-									const [currentHours, currentMinutes] = end.split(':');
-									const currentHour = parseInt(currentHours || '0');
-									const currentMin = parseInt(currentMinutes || '0');
-									const isSelected = currentHour === hour && currentMin === minute;
-									return (
-										<button
-											key={i}
-											type="button"
-											className={`w-full px-3 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-700 ${isSelected ? 'bg-blue-100 dark:bg-blue-900/30' : ''}`}
-											onClick={() => {
-												setEnd(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
-												setOpenEndTime(false);
-											}}
-										>
-											{timeStr}
-										</button>
-									);
-								})}
-							</div>
+							<div className="fixed inset-0 z-40" onClick={() => setOpenEndTime(false)} />
 						)}
 					</div>
-					{(openStartTime || openEndTime) && (
-						<div className="fixed inset-0 z-40" onClick={() => {setOpenStartTime(false); setOpenEndTime(false);}} />
-					)}
 				</div>
 
 				{/* 참여자 태그 입력 */}
