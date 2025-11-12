@@ -398,31 +398,33 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 												} : { r: 255, g: 0, b: 255 };
 											};
 											const rgb = hexToRgb(glowColor);
-											// 텍스트 테두리 효과를 위한 검은색 그림자 + 네온 글로우
+											// 네온 라이트 효과: 부드러운 글로우, 검은 테두리 없음
+											// 텍스트 색상: 거의 흰색에 약간의 색상 틴트
+											const textColor = `rgb(${Math.min(255, rgb.r + 200)}, ${Math.min(255, rgb.g + 200)}, ${Math.min(255, rgb.b + 200)})`;
+											// 다층 네온 글로우 효과 (내부 밝게, 외부로 퍼지며 부드럽게)
 											const textShadow = `
-												1px 1px 2px rgba(0, 0, 0, 0.9),
-												-1px -1px 2px rgba(0, 0, 0, 0.9),
-												1px -1px 2px rgba(0, 0, 0, 0.9),
-												-1px 1px 2px rgba(0, 0, 0, 0.9),
-												0 0 5px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}),
+												0 0 2px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}),
+												0 0 4px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}),
+												0 0 6px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}),
 												0 0 10px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}),
-												0 0 15px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}),
-												0 0 20px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}),
-												0 0 35px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}),
-												0 0 40px rgb(${rgb.r}, ${rgb.g}, ${rgb.b})
+												0 0 20px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.8),
+												0 0 30px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6),
+												0 0 40px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4),
+												0 0 50px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)
 											`;
-											const bgColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)`;
+											// 배경: 어두운 색상으로 네온 효과 강조
+											const bgColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15)`;
 											return (
 												<span 
 													className="font-bold ml-0.5 px-1.5 py-0.5 rounded"
 													style={{ 
-														color: "#fff",
+														color: textColor,
 														textShadow: textShadow.trim(),
 														backgroundColor: bgColor,
 														letterSpacing: "0.5px",
 														fontWeight: "700",
 														animation: "glow-pulse 2s ease-in-out infinite",
-														WebkitTextStroke: "0.5px rgba(0, 0, 0, 0.8)"
+														boxShadow: `0 0 10px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3), inset 0 0 10px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)`
 													}}
 												>
 													{participantInfo.title}
