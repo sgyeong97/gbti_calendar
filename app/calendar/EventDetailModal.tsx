@@ -119,26 +119,27 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 						</div>
 						<div><strong>캘린더:</strong> {data.event.calendar?.name || "기본 캘린더"}</div>
 				<LocalizationProvider dateAdapter={AdapterDayjs}>
-				<div>
-					<strong>시작:</strong>{" "}
-					{isEditing && !data.event.isRecurring ? (
-						<div className="mt-1 grid grid-cols-2 gap-2 relative">
-							<div className="space-y-1">
-								<label className="text-xs text-zinc-600">시작 날짜</label>
-								<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenStartDate(!openStartDate)}>
-									{editStartAt?.format('YYYY-MM-DD')}
-								</button>
-								{openStartDate && editStartAt && (
-									<div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow" style={{width:'min(320px,90vw)'}}>
-										<DateCalendar value={editStartAt} onChange={(v)=>{ if(v){ setEditStartAt(editStartAt.year(v.year()).month(v.month()).date(v.date())); setOpenStartDate(false);} }} />
-									</div>
-								)}
-							</div>
-							<div className="space-y-1">
-								<label className="text-xs text-zinc-600">시작 시간</label>
-								<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenStartTime(!openStartTime)}>
-									{editStartAt?.format('HH:mm')}
-								</button>
+				{!data.event.isRecurring && (
+					<div>
+						<strong>시작:</strong>{" "}
+						{isEditing ? (
+							<div className="mt-1 grid grid-cols-2 gap-2 relative">
+								<div className="space-y-1">
+									<label className="text-xs text-zinc-600">시작 날짜</label>
+									<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenStartDate(!openStartDate)}>
+										{editStartAt?.format('YYYY-MM-DD')}
+									</button>
+									{openStartDate && editStartAt && (
+										<div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow" style={{width:'min(320px,90vw)'}}>
+											<DateCalendar value={editStartAt} onChange={(v)=>{ if(v){ setEditStartAt(editStartAt.year(v.year()).month(v.month()).date(v.date())); setOpenStartDate(false);} }} />
+										</div>
+									)}
+								</div>
+								<div className="space-y-1">
+									<label className="text-xs text-zinc-600">시작 시간</label>
+									<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenStartTime(!openStartTime)}>
+										{editStartAt?.format('HH:mm')}
+									</button>
                                     {openStartTime && editStartAt && (
                                         <div className="fixed inset-0 z-[60] flex items-center justify-center">
                                             <div className="absolute inset-0 bg-black/30" onClick={()=>setOpenStartTime(false)} />
@@ -187,10 +188,85 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 								)}
 							</div>
 						</div>
-					) : (
-						<span>{new Date(data.event.startAt).toLocaleString()}</span>
-					)}
-				</div>
+						) : (
+							<span>{new Date(data.event.startAt).toLocaleString()}</span>
+						)}
+					</div>
+				)}
+				{!data.event.isRecurring && (
+					<div>
+						<strong>종료:</strong>{" "}
+						{isEditing ? (
+							<div className="mt-1 grid grid-cols-2 gap-2 relative">
+								<div className="space-y-1">
+									<label className="text-xs text-zinc-600">종료 날짜</label>
+									<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenEndDate(!openEndDate)}>
+										{editEndAt?.format('YYYY-MM-DD')}
+									</button>
+									{openEndDate && editEndAt && (
+										<div className="absolute z-50 mt-1 p-2 rounded border bg-white shadow" style={{width:'min(320px,90vw)'}}>
+											<DateCalendar value={editEndAt} onChange={(v)=>{ if(v){ setEditEndAt(editEndAt.year(v.year()).month(v.month()).date(v.date())); setOpenEndDate(false);} }} />
+										</div>
+									)}
+								</div>
+								<div className="space-y-1">
+									<label className="text-xs text-zinc-600">종료 시간</label>
+									<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenEndTime(!openEndTime)}>
+										{editEndAt?.format('HH:mm')}
+									</button>
+                                    {openEndTime && editEndAt && (
+                                        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+                                            <div className="absolute inset-0 bg-black/30" onClick={()=>setOpenEndTime(false)} />
+                                            <div className="relative z-[61] p-3 rounded border bg-white shadow">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex flex-col items-center">
+                                                        <button type="button" onClick={()=>setEditEndAt(editEndAt.add(1,'hour'))}>▲</button>
+                                                        <input
+                                                            className="w-12 text-center border rounded px-1 py-0.5"
+                                                            value={editEndAt.format('HH')}
+                                                            onChange={(e)=>{
+                                                                const v = e.target.value.replace(/\D/g,'');
+                                                                const n = Math.min(23, Math.max(0, Number(v||'0')));
+                                                                setEditEndAt(editEndAt.hour(n));
+                                                            }}
+                                                        />
+                                                        <button type="button" onClick={()=>setEditEndAt(editEndAt.subtract(1,'hour'))}>▼</button>
+                                                    </div>
+                                                    <span>:</span>
+                                                    <div className="flex flex-col items-center">
+                                                        <button type="button" onClick={()=>setEditEndAt(editEndAt.add(1,'minute'))}>▲</button>
+                                                        <input
+                                                            className="w-12 text-center border rounded px-1 py-0.5"
+                                                            value={editEndAt.format('mm')}
+                                                            onChange={(e)=>{
+                                                                const v = e.target.value.replace(/\D/g,'');
+                                                                const n = Math.min(59, Math.max(0, Number(v||'0')));
+                                                                setEditEndAt(editEndAt.minute(n));
+                                                            }}
+                                                        />
+                                                        <button type="button" onClick={()=>setEditEndAt(editEndAt.subtract(1,'minute'))}>▼</button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 justify-between mt-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditEndAt(editEndAt.add(5,'minute'))}>+5분</button>
+                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditEndAt(editEndAt.add(10,'minute'))}>+10분</button>
+                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>setEditEndAt(editEndAt.add(30,'minute'))}>+30분</button>
+                                                    </div>
+                                                    <div className="text-right">
+                                                    <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenEndTime(false)}>확인</button>
+                                                    </div>
+                                                </div>
+										</div>
+									</div>
+								)}
+							</div>
+						</div>
+						) : (
+							<span>{new Date(data.event.endAt).toLocaleString()}</span>
+						)}
+					</div>
+				)}
 
 					{isEditing && data.event.isRecurring && (
 						<div className="space-y-2">
