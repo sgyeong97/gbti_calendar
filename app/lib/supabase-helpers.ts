@@ -62,10 +62,17 @@ export function expandRecurringSlots(slots: any[], start?: string, end?: string)
       
       if (compareDayDate < startsOnDate || !isWithinEndDate) continue;
       
+      // 타임존 문제 해결: 날짜는 로컬 기준으로 유지하고, 시간만 분 단위로 설정
+      // slot.startMinutes는 분 단위 (예: 21:00 = 1260분)
       const startAt = new Date(compareDay);
-      startAt.setHours(0, slot.startMinutes, 0, 0);
+      const startHours = Math.floor(slot.startMinutes / 60);
+      const startMins = slot.startMinutes % 60;
+      startAt.setHours(startHours, startMins, 0, 0);
+      
       const endAt = new Date(compareDay);
-      endAt.setHours(0, slot.endMinutes, 0, 0);
+      const endHours = Math.floor(slot.endMinutes / 60);
+      const endMins = slot.endMinutes % 60;
+      endAt.setHours(endHours, endMins, 0, 0);
       
       let participants: string[] = [];
       if (slot.participantNames) {

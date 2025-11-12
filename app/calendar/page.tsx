@@ -221,12 +221,44 @@ export default function CalendarPage() {
 		} catch { }
 	}
 
-	// KST(Asia/Seoul) 고정 변환: 어떤 사용자의 로컬 타임존에서도 한국 시간 기준으로 계산되도록 함
-	function toKstDate(d: Date) {
-		// KST 벽시각을 문자열로 만든 뒤 Date로 재생성
-		// 주의: 생성된 Date는 로컬 타임존으로 파싱되지만, 우리는 getTime()만 사용해 상대 시간 계산에 활용
-		const kstString = d.toLocaleString("en-US", { timeZone: "Asia/Seoul" });
-		return new Date(kstString);
+	// KST(Asia/Seoul) 시간을 정확하게 계산
+	// e.startAt은 UTC ISO 문자열이므로, 이를 KST 기준으로 해석하여 정확한 알림 시간 계산
+	function getKstTimeFromUtcIso(utcIsoString: string): { kstMs: number; kstHours: number; kstMinutes: number } {
+		// UTC 시간을 파싱
+		const utcDate = new Date(utcIsoString);
+		
+		// UTC 시간의 연/월/일/시/분 추출
+		const utcYear = utcDate.getUTCFullYear();
+		const utcMonth = utcDate.getUTCMonth();
+		const utcDateNum = utcDate.getUTCDate();
+		const utcHours = utcDate.getUTCHours();
+		const utcMinutes = utcDate.getUTCMinutes();
+		
+		// KST 시간 계산 (UTC + 9시간)
+		let kstHours = utcHours + 9;
+		let kstDateNum = utcDateNum;
+		let kstMonth = utcMonth;
+		let kstYear = utcYear;
+		
+		// 시간 오버플로우 처리
+		if (kstHours >= 24) {
+			kstHours -= 24;
+			kstDateNum += 1;
+		}
+		
+		// KST 시간을 표시용으로 사용 (알림 메시지에 표시)
+		// 실제 알림 시간 계산을 위해 UTC Date 객체를 그대로 사용
+		// e.startAt은 이미 올바른 UTC 시간이므로, 이를 그대로 사용하면 됨
+		// 하지만 사용자가 설정한 시간이 KST 기준이므로, KST 시간을 표시
+		
+		// UTC 시간을 그대로 사용 (이미 올바른 절대 시간)
+		const kstMs = utcDate.getTime();
+		
+		return {
+			kstMs,
+			kstHours,
+			kstMinutes: utcMinutes
+		};
 	}
 
 	// 선택 대상 일정의 알림 스케줄링 (탭이 열려 있는 동안 동작)
@@ -244,24 +276,22 @@ export default function CalendarPage() {
 		const now = Date.now();
 		const maxDelayMs = 24 * 60 * 60 * 1000; // 최대 24시간까지만 예약
 
-			events.forEach((e) => {
+		events.forEach((e) => {
 			if (!e.participants || e.participants.length === 0) return;
 			if (targetNames.size === 0) return; // 대상이 없으면 예약 안 함
 			const hasTarget = e.participants.some((p) => targetNames.has(p));
 			if (!hasTarget) return;
 
-				// 한국시간 기준으로 고정된 시작 시각 계산
-				const startUtc = new Date(e.startAt);
-				const startKst = toKstDate(startUtc);
-				const startMs = startKst.getTime();
-				const startTimeText = `${String(startKst.getHours()).padStart(2, '0')}:${String(startKst.getMinutes()).padStart(2, '0')}`;
+			// 한국시간 기준으로 고정된 시작 시각 계산
+			const { kstMs, kstHours, kstMinutes } = getKstTimeFromUtcIso(e.startAt);
+			const startTimeText = `${String(kstHours).padStart(2, '0')}:${String(kstMinutes).padStart(2, '0')}`;
 
 			const leads = (notificationLeadMinutesList.length > 0 ? notificationLeadMinutesList : [notificationLeadMinutes])
 				.filter((m, idx, arr) => arr.indexOf(m) === idx)
 				.sort((a, b) => a - b);
 
 			leads.forEach((m) => {
-				const triggerAt = startMs - m * 60 * 1000;
+				const triggerAt = kstMs - m * 60 * 1000;
 				const delay = triggerAt - now;
 				if (delay <= 0 || delay > maxDelayMs) return;
 				const key = `${e.id}:${m}`;
