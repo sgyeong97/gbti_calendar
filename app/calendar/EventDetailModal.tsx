@@ -20,6 +20,7 @@ export default function EventDetailModal({ eventId, onClose, onChanged }: Props)
 	const [participantMap, setParticipantMap] = useState<Map<string, { title?: string | null; color?: string | null }>>(new Map());
 	const [isEditingRecurrence, setIsEditingRecurrence] = useState(false);
 	const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
+	const [favoriteUsers, setFavoriteUsers] = useState<{ name: string }[]>([]);
 const [editStartAt, setEditStartAt] = useState<Dayjs | null>(null);
 const [editEndAt, setEditEndAt] = useState<Dayjs | null>(null);
 // 팝업 제어 (일반 이벤트)
@@ -30,8 +31,29 @@ const [openEndTime, setOpenEndTime] = useState(false);
 // 반복 이벤트 시간 편집 팝업
 const [openRecurringStartTime, setOpenRecurringStartTime] = useState(false);
 const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
-const [editRecurringStart, setEditRecurringStart] = useState<string>("");
-const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
+	const [editRecurringStart, setEditRecurringStart] = useState<string>("");
+	const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
+
+	// 즐겨찾기 토글 함수
+	const toggleFavorite = (name: string) => {
+		const isFavorite = favoriteUsers.find(f => f.name === name);
+		let newFavorites: { name: string }[];
+		
+		if (isFavorite) {
+			// 즐겨찾기 제거
+			newFavorites = favoriteUsers.filter(f => f.name !== name);
+		} else {
+			// 즐겨찾기 추가
+			if (favoriteUsers.length >= 3) {
+				alert("즐겨찾기는 최대 3명까지 추가할 수 있습니다.");
+				return;
+			}
+			newFavorites = [...favoriteUsers, { name }];
+		}
+		
+		setFavoriteUsers(newFavorites);
+		localStorage.setItem("gbti_favorites", JSON.stringify(newFavorites));
+	};
 
 	useEffect(() => {
 		if (!eventId) {
@@ -83,6 +105,19 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 			});
 			setParticipantMap(map);
 		});
+
+		// 즐겨찾기 목록 불러오기
+		try {
+			const saved = localStorage.getItem("gbti_favorites");
+			if (saved) {
+				const favorites = JSON.parse(saved);
+				if (Array.isArray(favorites)) {
+					setFavoriteUsers(favorites);
+				}
+			}
+		} catch (e) {
+			console.error("Failed to load favorites", e);
+		}
 	}, [eventId]);
 
 	if (!eventId) return null;
@@ -329,167 +364,95 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 							<div className="grid grid-cols-2 gap-2 relative">
 								<div className="space-y-1">
 									<label className="text-xs text-zinc-600">시작 시간</label>
-									<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenRecurringStartTime(!openRecurringStartTime)}>
-										{editRecurringStart || "--:--"}
-									</button>
-                                    {openRecurringStartTime && (
-                                        <div className="fixed inset-0 z-[60] flex items-center justify-center">
-                                            <div className="absolute inset-0 bg-black/30" onClick={()=>setOpenRecurringStartTime(false)} />
-                                            <div className="relative z-[61] p-3 rounded border bg-white shadow">
-                                                <div className="flex items-center gap-2">
-													<div className="flex flex-col items-center">
-                                                        <button type="button" onClick={()=>{
-															const [hh,mm]= (editRecurringStart||"00:00").split(":").map(Number);
-															const d = dayjs().hour(hh).minute(mm).add(1,'hour');
-															setEditRecurringStart(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
-														}}>▲</button>
-                                                        <input
-                                                            className="w-12 text-center border rounded px-1 py-0.5"
-                                                            value={(editRecurringStart||"00:00").split(":")[0]}
-                                                            onChange={(e)=>{
-                                                                const v = e.target.value.replace(/\D/g,'');
-                                                                const n = Math.min(23, Math.max(0, Number(v||'0')));
-                                                                const mins = (editRecurringStart||"00:00").split(":")[1];
-                                                                setEditRecurringStart(`${String(n).padStart(2,'0')}:${mins}`);
-                                                            }}
-                                                        />
-														<button type="button" onClick={()=>{
-															const [hh,mm]= (editRecurringStart||"00:00").split(":").map(Number);
-															const d = dayjs().hour(hh).minute(mm).subtract(1,'hour');
-															setEditRecurringStart(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
-														}}>▼</button>
-													</div>
-													<span>:</span>
-													<div className="flex flex-col items-center">
-														<button type="button" onClick={()=>{
-															const [hh,mm]= (editRecurringStart||"00:00").split(":").map(Number);
-															const d = dayjs().hour(hh).minute(mm).add(1,'minute');
-															setEditRecurringStart(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
-														}}>▲</button>
-                                                        <input
-                                                            className="w-12 text-center border rounded px-1 py-0.5"
-                                                            value={(editRecurringStart||"00:00").split(":")[1]}
-                                                            onChange={(e)=>{
-                                                                const v = e.target.value.replace(/\D/g,'');
-                                                                const n = Math.min(59, Math.max(0, Number(v||'0')));
-                                                                const hrs = (editRecurringStart||"00:00").split(":")[0];
-                                                                setEditRecurringStart(`${hrs}:${String(n).padStart(2,'0')}`);
-                                                            }}
-                                                        />
-														<button type="button" onClick={()=>{
-															const [hh,mm]= (editRecurringStart||"00:00").split(":").map(Number);
-															const d = dayjs().hour(hh).minute(mm).subtract(1,'minute');
-															setEditRecurringStart(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
-														}}>▼</button>
-													</div>
-                                                </div>
-                                                <div className="flex items-center gap-2 justify-between mt-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>{
-                                                            const [hh,mm]= (editRecurringStart||"00:00").split(":").map(Number);
-                                                            const d = dayjs().hour(hh).minute(mm).add(5,'minute');
-                                                            setEditRecurringStart(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
-                                                        }}>+5분</button>
-                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>{
-                                                            const [hh,mm]= (editRecurringStart||"00:00").split(":").map(Number);
-                                                            const d = dayjs().hour(hh).minute(mm).add(10,'minute');
-                                                            setEditRecurringStart(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
-                                                        }}>+10분</button>
-                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>{
-                                                            const [hh,mm]= (editRecurringStart||"00:00").split(":").map(Number);
-                                                            const d = dayjs().hour(hh).minute(mm).add(30,'minute');
-                                                            setEditRecurringStart(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
-                                                        }}>+30분</button>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenRecurringStartTime(false)}>확인</button>
-                                                    </div>
-                                                </div>
+									<div className="relative">
+										<button 
+											type="button" 
+											className="w-full border rounded px-2 py-1 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+											onClick={()=>setOpenRecurringStartTime(!openRecurringStartTime)}
+										>
+											{editRecurringStart ? (() => {
+												const [hh, mm] = editRecurringStart.split(':').map(Number);
+												const hour = hh || 0;
+												const min = mm || 0;
+												return hour >= 12 ? `오후 ${hour === 12 ? 12 : hour - 12}:${String(min).padStart(2, '0')}` : `오전 ${hour === 0 ? 12 : hour}:${String(min).padStart(2, '0')}`;
+											})() : "--:--"}
+										</button>
+										{openRecurringStartTime && (
+											<div className="absolute z-50 mt-1 bg-white dark:bg-zinc-800 border rounded shadow-lg max-h-60 overflow-y-auto min-w-[120px]">
+												{Array.from({ length: 24 * 4 }, (_, i) => {
+													const hour = Math.floor(i / 4);
+													const minute = (i % 4) * 15;
+													const timeStr = hour >= 12 ? `오후 ${hour === 12 ? 12 : hour - 12}:${String(minute).padStart(2, '0')}` : `오전 ${hour === 0 ? 12 : hour}:${String(minute).padStart(2, '0')}`;
+													const [currentHours, currentMinutes] = (editRecurringStart || "00:00").split(':');
+													const currentHour = parseInt(currentHours || '0');
+													const currentMin = parseInt(currentMinutes || '0');
+													const isSelected = currentHour === hour && currentMin === minute;
+													return (
+														<button
+															key={i}
+															type="button"
+															className={`w-full px-3 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-700 ${isSelected ? 'bg-blue-100 dark:bg-blue-900/30' : ''}`}
+															onClick={() => {
+																setEditRecurringStart(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
+																setOpenRecurringStartTime(false);
+															}}
+														>
+															{timeStr}
+														</button>
+													);
+												})}
 											</div>
-										</div>
-									)}
+										)}
+										{openRecurringStartTime && (
+											<div className="fixed inset-0 z-40" onClick={()=>setOpenRecurringStartTime(false)} />
+										)}
+									</div>
 								</div>
 								<div className="space-y-1">
 									<label className="text-xs text-zinc-600">종료 시간</label>
-									<button type="button" className="w-full border rounded px-2 py-1 text-left" onClick={()=>setOpenRecurringEndTime(!openRecurringEndTime)}>
-										{editRecurringEnd || "--:--"}
-									</button>
-                                    {openRecurringEndTime && (
-                                        <div className="fixed inset-0 z-[60] flex items-center justify-center">
-                                            <div className="absolute inset-0 bg-black/30" onClick={()=>setOpenRecurringEndTime(false)} />
-                                            <div className="relative z-[61] p-3 rounded border bg-white shadow">
-                                                <div className="flex items-center gap-2">
-													<div className="flex flex-col items-center">
-														<button type="button" onClick={()=>{
-															const [hh,mm]= (editRecurringEnd||"00:00").split(":").map(Number);
-															const d = dayjs().hour(hh).minute(mm).add(1,'hour');
-															setEditRecurringEnd(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
-														}}>▲</button>
-                                                        <input
-                                                            className="w-12 text-center border rounded px-1 py-0.5"
-                                                            value={(editRecurringEnd||"00:00").split(":")[0]}
-                                                            onChange={(e)=>{
-                                                                const v = e.target.value.replace(/\D/g,'');
-                                                                const n = Math.min(23, Math.max(0, Number(v||'0')));
-                                                                const mins = (editRecurringEnd||"00:00").split(":")[1];
-                                                                setEditRecurringEnd(`${String(n).padStart(2,'0')}:${mins}`);
-                                                            }}
-                                                        />
-														<button type="button" onClick={()=>{
-															const [hh,mm]= (editRecurringEnd||"00:00").split(":").map(Number);
-															const d = dayjs().hour(hh).minute(mm).subtract(1,'hour');
-															setEditRecurringEnd(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
-														}}>▼</button>
-													</div>
-													<span>:</span>
-													<div className="flex flex-col items-center">
-														<button type="button" onClick={()=>{
-															const [hh,mm]= (editRecurringEnd||"00:00").split(":").map(Number);
-															const d = dayjs().hour(hh).minute(mm).add(1,'minute');
-															setEditRecurringEnd(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
-														}}>▲</button>
-                                                        <input
-                                                            className="w-12 text-center border rounded px-1 py-0.5"
-                                                            value={(editRecurringEnd||"00:00").split(":")[1]}
-                                                            onChange={(e)=>{
-                                                                const v = e.target.value.replace(/\D/g,'');
-                                                                const n = Math.min(59, Math.max(0, Number(v||'0')));
-                                                                const hrs = (editRecurringEnd||"00:00").split(":")[0];
-                                                                setEditRecurringEnd(`${hrs}:${String(n).padStart(2,'0')}`);
-                                                            }}
-                                                        />
-														<button type="button" onClick={()=>{
-															const [hh,mm]= (editRecurringEnd||"00:00").split(":").map(Number);
-															const d = dayjs().hour(hh).minute(mm).subtract(1,'minute');
-															setEditRecurringEnd(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
-														}}>▼</button>
-													</div>
-                                                </div>
-                                                <div className="flex items-center gap-2 justify-between mt-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>{
-                                                            const [hh,mm]= (editRecurringEnd||"00:00").split(":").map(Number);
-                                                            const d = dayjs().hour(hh).minute(mm).add(5,'minute');
-                                                            setEditRecurringEnd(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
-                                                        }}>+5분</button>
-                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>{
-                                                            const [hh,mm]= (editRecurringEnd||"00:00").split(":").map(Number);
-                                                            const d = dayjs().hour(hh).minute(mm).add(10,'minute');
-                                                            setEditRecurringEnd(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
-                                                        }}>+10분</button>
-                                                        <button type="button" className="px-2 py-1 rounded border" onClick={()=>{
-                                                            const [hh,mm]= (editRecurringEnd||"00:00").split(":").map(Number);
-                                                            const d = dayjs().hour(hh).minute(mm).add(30,'minute');
-                                                            setEditRecurringEnd(`${String(d.hour()).padStart(2,'0')}:${String(d.minute()).padStart(2,'0')}`);
-                                                        }}>+30분</button>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <button type="button" className="px-3 py-1 rounded border" onClick={()=>setOpenRecurringEndTime(false)}>확인</button>
-                                                    </div>
-                                                </div>
+									<div className="relative">
+										<button 
+											type="button" 
+											className="w-full border rounded px-2 py-1 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+											onClick={()=>setOpenRecurringEndTime(!openRecurringEndTime)}
+										>
+											{editRecurringEnd ? (() => {
+												const [hh, mm] = editRecurringEnd.split(':').map(Number);
+												const hour = hh || 0;
+												const min = mm || 0;
+												return hour >= 12 ? `오후 ${hour === 12 ? 12 : hour - 12}:${String(min).padStart(2, '0')}` : `오전 ${hour === 0 ? 12 : hour}:${String(min).padStart(2, '0')}`;
+											})() : "--:--"}
+										</button>
+										{openRecurringEndTime && (
+											<div className="absolute z-50 mt-1 bg-white dark:bg-zinc-800 border rounded shadow-lg max-h-60 overflow-y-auto min-w-[120px]">
+												{Array.from({ length: 24 * 4 }, (_, i) => {
+													const hour = Math.floor(i / 4);
+													const minute = (i % 4) * 15;
+													const timeStr = hour >= 12 ? `오후 ${hour === 12 ? 12 : hour - 12}:${String(minute).padStart(2, '0')}` : `오전 ${hour === 0 ? 12 : hour}:${String(minute).padStart(2, '0')}`;
+													const [currentHours, currentMinutes] = (editRecurringEnd || "00:00").split(':');
+													const currentHour = parseInt(currentHours || '0');
+													const currentMin = parseInt(currentMinutes || '0');
+													const isSelected = currentHour === hour && currentMin === minute;
+													return (
+														<button
+															key={i}
+															type="button"
+															className={`w-full px-3 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-700 ${isSelected ? 'bg-blue-100 dark:bg-blue-900/30' : ''}`}
+															onClick={() => {
+																setEditRecurringEnd(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
+																setOpenRecurringEndTime(false);
+															}}
+														>
+															{timeStr}
+														</button>
+													);
+												})}
 											</div>
-										</div>
-									)}
+										)}
+										{openRecurringEndTime && (
+											<div className="fixed inset-0 z-40" onClick={()=>setOpenRecurringEndTime(false)} />
+										)}
+									</div>
 								</div>
 							</div>
 						</div>
@@ -536,13 +499,20 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 									editParticipants.map((p) => {
 										const participantInfo = participantMap.get(p);
 										const bgColor = participantInfo?.color || "#e5e7eb";
+										const isFavorite = favoriteUsers.find(f => f.name === p);
 										return (
 											<span 
 												key={p} 
 												className="px-2 py-0.5 text-xs rounded-full flex items-center gap-1"
 												style={{ backgroundColor: bgColor, color: "#000" }}
 											>
-												{participantInfo?.title && (() => {
+												{isFavorite && <span className="text-yellow-500">⭐</span>}
+												<span 
+													onDoubleClick={() => toggleFavorite(p)}
+													className="cursor-pointer"
+													title="더블클릭하여 즐겨찾기 추가/제거"
+												>
+													{participantInfo?.title && (() => {
 													const glowColor = participantInfo?.color || "#ff00ff";
 													const hexToRgb = (hex: string) => {
 														const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -571,7 +541,8 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 														</span>
 													);
 												})()}
-												<span>{p}</span>
+													<span>{p}</span>
+												</span>
 												<button
 													className="ml-1 hover:text-red-600 cursor-pointer"
 													onClick={() => setEditParticipants(editParticipants.filter(x => x !== p))}
@@ -590,13 +561,20 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 							{(data.event.attendees ?? []).map((a: any) => {
 								const participantInfo = participantMap.get(a.participant.name);
 								const bgColor = participantInfo?.color || "#e5e7eb";
+								const isFavorite = favoriteUsers.find(f => f.name === a.participant.name);
 								return (
 									<span 
 										key={a.participant.id} 
-										className="px-2 py-0.5 text-xs rounded-full"
+										className="px-2 py-0.5 text-xs rounded-full flex items-center gap-1"
 										style={{ backgroundColor: bgColor, color: "#000" }}
 									>
-										{participantInfo?.title && (() => {
+										{isFavorite && <span className="text-yellow-500">⭐</span>}
+										<span 
+											onDoubleClick={() => toggleFavorite(a.participant.name)}
+											className="cursor-pointer"
+											title="더블클릭하여 즐겨찾기 추가/제거"
+										>
+											{participantInfo?.title && (() => {
 											const glowColor = participantInfo?.color || "#ff00ff";
 											const hexToRgb = (hex: string) => {
 												const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -640,7 +618,8 @@ const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 												</span>
 											);
 										})()}
-										<span>{a.participant.name}</span>
+											<span>{a.participant.name}</span>
+										</span>
 									</span>
 								);
 							})}
