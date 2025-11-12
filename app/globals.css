@@ -38,3 +38,15 @@ body {
 
 /* 어두운 테마에서 경계선 대비 강화 */
 .dark .border { border-color: #3f3f46 !important; }
+
+/* 칭호 네온 글로우 깜빡이는 애니메이션 */
+@keyframes glow-pulse {
+  0%, 100% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 0.8;
+    filter: brightness(1.3);
+  }
+}

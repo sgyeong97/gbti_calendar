@@ -931,7 +931,8 @@ export default function CalendarPage() {
 																						textShadow,
 																						backgroundColor: bgColor,
 																						letterSpacing: "0.5px",
-																						fontWeight: "700"
+																						fontWeight: "700",
+																						animation: "glow-pulse 2s ease-in-out infinite"
 																					}}
 																				>
 																					{participantInfo.title}
