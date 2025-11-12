@@ -22,8 +22,6 @@ type Event = {
 	color?: string;
 };
 
-type ViewMode = "month" | "favorites";
-
 type FavoriteUser = {
 	name: string;
 };
@@ -36,19 +34,17 @@ export default function CalendarPage() {
 	const [events, setEvents] = useState<Event[]>([]);
 	const [selectedParticipant, setSelectedParticipant] = useState<string>("");
 	const [selectedParticipants, setSelectedParticipants] = useState<Set<string>>(new Set());
-	const [viewMode, setViewMode] = useState<ViewMode>("month");
 	const [favoriteUsers, setFavoriteUsers] = useState<FavoriteUser[]>([]);
-	const [showFavorites, setShowFavorites] = useState(false);
 	// 관리자 버튼은 라우팅으로 대체
     // 공지사항 상태 제거
-	const days = useMemo(() => {
+		const days = useMemo(() => {
 		{
 			// 월간 뷰: 월 전체 표시 (이전/다음 달 일부 포함)
 			const start = startOfWeek(startOfMonth(current), { weekStartsOn: 1 });
 			const end = endOfWeek(endOfMonth(current), { weekStartsOn: 1 });
 			return eachDayOfInterval({ start, end });
 		}
-	}, [current, viewMode]);
+	}, [current]);
 
 	useEffect(() => {
 		const fetchEvents = async () => {
@@ -66,25 +62,24 @@ export default function CalendarPage() {
 			let fetchedEvents = json.events ?? [];
 
 			// 필터링: 참가자 선택 시 해당 참가자가 포함된 이벤트만 표시
-			if (selectedParticipant && selectedParticipant !== "") {
+			if (selectedParticipants.size > 0) {
+				// 선택된 참가자 중 하나라도 참여하는 이벤트만 표시
+				fetchedEvents = fetchedEvents.filter((event: Event) => {
+					if (!event.participants || event.participants.length === 0) return false;
+					return event.participants.some(p => selectedParticipants.has(p));
+				});
+			} else if (selectedParticipant && selectedParticipant !== "") {
 				// 참가자 필터링: 선택된 참가자가 participants 배열에 포함된 이벤트만
 				fetchedEvents = fetchedEvents.filter((event: Event) => {
 					if (!event.participants || event.participants.length === 0) return false;
 					return event.participants.includes(selectedParticipant);
-				});
-			} else if (viewMode === "favorites" && selectedParticipants.size > 0) {
-				// 즐겨찾기 모드에서 여러 참가자 필터링
-				fetchedEvents = fetchedEvents.filter((event: Event) => {
-					if (!event.participants || event.participants.length === 0) return false;
-					// 선택된 참가자 중 하나라도 참여하는 이벤트만 표시
-					return event.participants.some(p => selectedParticipants.has(p));
 				});
 			}
 
 			setEvents(fetchedEvents);
 		};
 		fetchEvents();
-	}, [current, selectedParticipant, selectedParticipants, viewMode]);
+	}, [current, selectedParticipant, selectedParticipants]);
 
 	const [participantList, setParticipantList] = useState<string[]>([]);
 	const [participantMap, setParticipantMap] = useState<Map<string, { title?: string | null; color?: string | null }>>(new Map());
@@ -408,20 +403,6 @@ export default function CalendarPage() {
 		};
 	}, []);
 
-	// 즐겨찾기 모드로 전환 시 모든 즐겨찾기 항목 자동 선택
-	useEffect(() => {
-		if (viewMode === "favorites" && favoriteUsers.length > 0) {
-			// 즐겨찾기 모드일 때는 항상 즐겨찾기된 유저들을 선택
-			const favoriteNames = new Set(favoriteUsers.map(f => f.name));
-			// 현재 선택된 항목이 즐겨찾기 목록과 다르면 업데이트
-			const currentSelected = Array.from(selectedParticipants);
-			const needsUpdate = favoriteNames.size !== selectedParticipants.size || 
-				!currentSelected.every(name => favoriteNames.has(name));
-			if (needsUpdate) {
-				setSelectedParticipants(favoriteNames);
-			}
-		}
-	}, [viewMode, favoriteUsers]);
 
 	// 즐겨찾기 관리 함수들
 	const addFavorite = (name: string) => {
@@ -529,23 +510,6 @@ export default function CalendarPage() {
 			<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4">
 				<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
 					<h1 className="text-base sm:text-2xl font-semibold">달력</h1>
-                    <div className="w-full sm:w-auto grid grid-cols-2 gap-1">
-                        <button
-                            className={`h-9 px-4 min-w-16 text-xs sm:text-sm border rounded-md transition-colors cursor-pointer ${viewMode === "month" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
-							style={viewMode === "month" ? { backgroundColor: BRAND_COLOR, color: "#111", borderColor: BRAND_COLOR } : undefined}
-							onClick={() => setViewMode("month")}
-						>
-							월간
-						</button>
-                        
-                        <button
-                            className={`h-9 px-4 min-w-16 text-xs sm:text-sm border rounded-md transition-colors cursor-pointer ${viewMode === "favorites" ? "" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
-							style={viewMode === "favorites" ? { backgroundColor: BRAND_COLOR, color: "#111", borderColor: BRAND_COLOR } : undefined}
-							onClick={() => setViewMode("favorites")}
-						>
-							즐겨찾기
-						</button>
-					</div>
 				</div>
 				<div className="flex gap-1.5 sm:gap-2 items-center">
 					<button
@@ -616,75 +580,94 @@ export default function CalendarPage() {
 				</div>
 			</div>
 
-			<div className="mb-4 flex items-center gap-2">
-				{viewMode === "favorites" ? (
-					// 즐겨찾기 모드: 즐겨찾기 유저 목록
-					<div className="flex items-center gap-2">
-						<label className="text-sm text-zinc-600">즐겨찾기:</label>
-						{favoriteUsers.length === 0 ? (
-							<span className="text-sm text-zinc-500">즐겨찾기가 없습니다</span>
-						) : (
-							<div className="flex gap-2 flex-wrap">
-								{favoriteUsers.map((user) => {
-									const isSelected = selectedParticipants.has(user.name);
+			{/* 참여자 선택 UI */}
+			<div className="mb-4 space-y-2">
+				{/* 선택된 유저들 (위쪽) */}
+				{selectedParticipants.size > 0 && (
+					<div className="flex items-center gap-2 flex-wrap">
+						<label className="text-sm text-zinc-600">선택된 참여자:</label>
+						{Array.from(selectedParticipants).map((name) => {
+							const participantInfo = participantMap.get(name);
+							const bgColor = participantInfo?.color || "#e5e7eb";
+							return (
+								<button
+									key={name}
+									onClick={() => {
+										const newSelected = new Set(selectedParticipants);
+										newSelected.delete(name);
+										setSelectedParticipants(newSelected);
+									}}
+									className="px-2 py-1 text-xs rounded-full flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer"
+									style={{ backgroundColor: bgColor, color: "#000" }}
+								>
+									{participantInfo?.title && (
+										<span className="font-bold">{participantInfo.title}</span>
+									)}
+									<span>{name}</span>
+									<span className="text-zinc-500">×</span>
+								</button>
+							);
+						})}
+					</div>
+				)}
+
+				{/* 선택 가능한 유저들 (아래쪽, 가로 스크롤) */}
+				<div className="flex items-center gap-2">
+					<label className="text-sm text-zinc-600 whitespace-nowrap">참여자:</label>
+					<div className="flex-1 overflow-x-auto">
+						<div className="flex gap-2 pb-1">
+							{/* 즐겨찾기 유저들 먼저 */}
+							{favoriteUsers.map((user) => {
+								if (selectedParticipants.has(user.name)) return null;
+								const participantInfo = participantMap.get(user.name);
+								const bgColor = participantInfo?.color || "#e5e7eb";
+								return (
+									<button
+										key={user.name}
+										onClick={() => {
+											const newSelected = new Set(selectedParticipants);
+											newSelected.add(user.name);
+											setSelectedParticipants(newSelected);
+										}}
+										className="px-2 py-1 text-xs rounded-full flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer whitespace-nowrap"
+										style={{ backgroundColor: bgColor, color: "#000" }}
+									>
+										<span className="text-yellow-500 text-[10px]">⭐</span>
+										{participantInfo?.title && (
+											<span className="font-bold">{participantInfo.title}</span>
+										)}
+										<span>{user.name}</span>
+									</button>
+								);
+							})}
+							
+							{/* 일반 유저들 */}
+							{participantList
+								.filter(p => !favoriteUsers.find(f => f.name === p) && !selectedParticipants.has(p))
+								.map((name) => {
+									const participantInfo = participantMap.get(name);
+									const bgColor = participantInfo?.color || "#e5e7eb";
 									return (
-										<div key={user.name} className="flex items-center gap-1 px-2 py-1 border rounded bg-white dark:bg-zinc-800">
-											<button
-												className={`px-2 py-1 text-xs rounded transition-colors cursor-pointer ${isSelected ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"}`}
-												onClick={() => {
-													const newSelected = new Set(selectedParticipants);
-													if (isSelected) {
-														newSelected.delete(user.name);
-													} else {
-														newSelected.add(user.name);
-													}
-													setSelectedParticipants(newSelected);
-												}}
-											>
-												{user.name}
-											</button>
-											<button
-												className="px-1 py-1 text-xs text-red-600 hover:text-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors cursor-pointer"
-												onClick={() => removeFavorite(user.name)}
-												title="삭제"
-											>
-												×
-											</button>
-										</div>
+										<button
+											key={name}
+											onClick={() => {
+												const newSelected = new Set(selectedParticipants);
+												newSelected.add(name);
+												setSelectedParticipants(newSelected);
+											}}
+											className="px-2 py-1 text-xs rounded-full flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer whitespace-nowrap"
+											style={{ backgroundColor: bgColor, color: "#000" }}
+										>
+											{participantInfo?.title && (
+												<span className="font-bold">{participantInfo.title}</span>
+											)}
+											<span>{name}</span>
+										</button>
 									);
 								})}
-							</div>
-						)}
-						<select
-							className="border rounded px-2 py-1 text-sm"
-							onChange={(e) => {
-								if (e.target.value) {
-									addFavorite(e.target.value);
-									e.target.selectedIndex = 0;
-								}
-							}}
-						>
-							<option value="">참여자 추가</option>
-							{participantList
-								.filter(p => !favoriteUsers.find(f => f.name === p))
-								.map((p) => (
-									<option key={p} value={p}>{p}</option>
-								))
-							}
-						</select>
+						</div>
 					</div>
-				) : (
-					// 일반 모드: 참가자 선택 드롭다운
-					<>
-						<label className="text-sm text-zinc-600">참여자:</label>
-						<select className="border rounded px-2 py-1" value={selectedParticipant} onChange={(e) => setSelectedParticipant(e.target.value)}>
-							<option value="">전체</option>
-							{participantList.map((p) => (
-								<option key={p} value={p}>{p}</option>
-							))}
-						</select>
-					</>
-				)}
+				</div>
 			</div>
 
 			{/* 알림 설정 모달 */}
