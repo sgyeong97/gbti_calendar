@@ -589,6 +589,19 @@ export default function CalendarPage() {
 						{Array.from(selectedParticipants).map((name) => {
 							const participantInfo = participantMap.get(name);
 							const bgColor = participantInfo?.color || "#e5e7eb";
+							// 배경색 밝기에 따라 글자색 결정
+							const hexToRgb = (hex: string) => {
+								const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+								return result ? {
+									r: parseInt(result[1], 16),
+									g: parseInt(result[2], 16),
+									b: parseInt(result[3], 16)
+								} : { r: 229, g: 231, b: 235 }; // 기본값
+							};
+							const rgb = hexToRgb(bgColor);
+							// 상대적 밝기 계산 (0-255)
+							const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+							const textColor = brightness > 128 ? "#000" : "#fff";
 							return (
 								<button
 									key={name}
@@ -598,13 +611,13 @@ export default function CalendarPage() {
 										setSelectedParticipants(newSelected);
 									}}
 									className="px-2 py-1 text-xs rounded-full flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer"
-									style={{ backgroundColor: bgColor, color: "#000" }}
+									style={{ backgroundColor: bgColor, color: textColor }}
 								>
 									{participantInfo?.title && (
 										<span className="font-bold">{participantInfo.title}</span>
 									)}
 									<span>{name}</span>
-									<span className="text-zinc-500">×</span>
+									<span style={{ opacity: 0.7 }}>×</span>
 								</button>
 							);
 						})}
@@ -621,6 +634,18 @@ export default function CalendarPage() {
 								if (selectedParticipants.has(user.name)) return null;
 								const participantInfo = participantMap.get(user.name);
 								const bgColor = participantInfo?.color || "#e5e7eb";
+								// 배경색 밝기에 따라 글자색 결정
+								const hexToRgb = (hex: string) => {
+									const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+									return result ? {
+										r: parseInt(result[1], 16),
+										g: parseInt(result[2], 16),
+										b: parseInt(result[3], 16)
+									} : { r: 229, g: 231, b: 235 }; // 기본값
+								};
+								const rgb = hexToRgb(bgColor);
+								const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+								const textColor = brightness > 128 ? "#000" : "#fff";
 								return (
 									<button
 										key={user.name}
@@ -630,7 +655,7 @@ export default function CalendarPage() {
 											setSelectedParticipants(newSelected);
 										}}
 										className="px-2 py-1 text-xs rounded-full flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer whitespace-nowrap"
-										style={{ backgroundColor: bgColor, color: "#000" }}
+										style={{ backgroundColor: bgColor, color: textColor }}
 									>
 										<span className="text-yellow-500 text-[10px]">⭐</span>
 										{participantInfo?.title && (
@@ -647,6 +672,18 @@ export default function CalendarPage() {
 								.map((name) => {
 									const participantInfo = participantMap.get(name);
 									const bgColor = participantInfo?.color || "#e5e7eb";
+									// 배경색 밝기에 따라 글자색 결정
+									const hexToRgb = (hex: string) => {
+										const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+										return result ? {
+											r: parseInt(result[1], 16),
+											g: parseInt(result[2], 16),
+											b: parseInt(result[3], 16)
+										} : { r: 229, g: 231, b: 235 }; // 기본값
+									};
+									const rgb = hexToRgb(bgColor);
+									const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+									const textColor = brightness > 128 ? "#000" : "#fff";
 									return (
 										<button
 											key={name}
@@ -656,7 +693,7 @@ export default function CalendarPage() {
 												setSelectedParticipants(newSelected);
 											}}
 											className="px-2 py-1 text-xs rounded-full flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer whitespace-nowrap"
-											style={{ backgroundColor: bgColor, color: "#000" }}
+											style={{ backgroundColor: bgColor, color: textColor }}
 										>
 											{participantInfo?.title && (
 												<span className="font-bold">{participantInfo.title}</span>
