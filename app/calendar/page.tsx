@@ -601,7 +601,30 @@ export default function CalendarPage() {
 							const rgb = hexToRgb(bgColor);
 							// 상대적 밝기 계산 (0-255)
 							const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
-							const textColor = brightness > 128 ? "#000" : "#fff";
+							const isBright = brightness > 128;
+							const textColor = isBright ? "#000" : "#fff";
+							
+							// 칭호 네온 효과 (배경 밝기에 따라 조정)
+							const titleGlowColor = participantInfo?.color || "#ff00ff";
+							const titleRgb = hexToRgb(titleGlowColor);
+							// 배경이 밝으면 어두운 네온, 어두우면 밝은 네온
+							const titleTextColor = isBright 
+								? `rgb(${Math.max(0, titleRgb.r - 100)}, ${Math.max(0, titleRgb.g - 100)}, ${Math.max(0, titleRgb.b - 100)})`
+								: `rgb(${Math.min(255, titleRgb.r + 200)}, ${Math.min(255, titleRgb.g + 200)}, ${Math.min(255, titleRgb.b + 200)})`;
+							const titleTextShadow = isBright
+								? `0 0 2px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.8),
+								   0 0 4px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.6),
+								   0 0 6px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.4)`
+								: `0 0 2px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
+								   0 0 4px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
+								   0 0 6px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
+								   0 0 10px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
+								   0 0 20px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.8),
+								   0 0 30px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.6)`;
+							const titleBgColor = isBright
+								? `rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.3)`
+								: `rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.15)`;
+							
 							return (
 								<button
 									key={name}
@@ -611,13 +634,28 @@ export default function CalendarPage() {
 										setSelectedParticipants(newSelected);
 									}}
 									className="px-2 py-1 text-xs rounded-full flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer"
-									style={{ backgroundColor: bgColor, color: textColor }}
+									style={{ backgroundColor: bgColor }}
 								>
 									{participantInfo?.title && (
-										<span className="font-bold">{participantInfo.title}</span>
+										<span
+											className="font-bold mr-0.5 px-1.5 py-0.5 rounded"
+											style={{
+												color: titleTextColor,
+												textShadow: titleTextShadow.trim(),
+												backgroundColor: titleBgColor,
+												letterSpacing: "0.5px",
+												fontWeight: "700",
+												animation: "glow-pulse 2s ease-in-out infinite",
+												boxShadow: isBright 
+													? `0 0 5px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.3)`
+													: `0 0 10px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.3), inset 0 0 10px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.1)`
+											}}
+										>
+											{participantInfo.title}
+										</span>
 									)}
-									<span>{name}</span>
-									<span style={{ opacity: 0.7 }}>×</span>
+									<span style={{ color: textColor }}>{name}</span>
+									<span style={{ color: textColor, opacity: 0.7 }}>×</span>
 								</button>
 							);
 						})}
@@ -645,7 +683,29 @@ export default function CalendarPage() {
 								};
 								const rgb = hexToRgb(bgColor);
 								const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
-								const textColor = brightness > 128 ? "#000" : "#fff";
+								const isBright = brightness > 128;
+								const textColor = isBright ? "#000" : "#fff";
+								
+								// 칭호 네온 효과 (배경 밝기에 따라 조정)
+								const titleGlowColor = participantInfo?.color || "#ff00ff";
+								const titleRgb = hexToRgb(titleGlowColor);
+								const titleTextColor = isBright 
+									? `rgb(${Math.max(0, titleRgb.r - 100)}, ${Math.max(0, titleRgb.g - 100)}, ${Math.max(0, titleRgb.b - 100)})`
+									: `rgb(${Math.min(255, titleRgb.r + 200)}, ${Math.min(255, titleRgb.g + 200)}, ${Math.min(255, titleRgb.b + 200)})`;
+								const titleTextShadow = isBright
+									? `0 0 2px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.8),
+									   0 0 4px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.6),
+									   0 0 6px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.4)`
+									: `0 0 2px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
+									   0 0 4px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
+									   0 0 6px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
+									   0 0 10px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
+									   0 0 20px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.8),
+									   0 0 30px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.6)`;
+								const titleBgColor = isBright
+									? `rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.3)`
+									: `rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.15)`;
+								
 								return (
 									<button
 										key={user.name}
@@ -655,13 +715,28 @@ export default function CalendarPage() {
 											setSelectedParticipants(newSelected);
 										}}
 										className="px-2 py-1 text-xs rounded-full flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer whitespace-nowrap"
-										style={{ backgroundColor: bgColor, color: textColor }}
+										style={{ backgroundColor: bgColor }}
 									>
 										<span className="text-yellow-500 text-[10px]">⭐</span>
 										{participantInfo?.title && (
-											<span className="font-bold">{participantInfo.title}</span>
+											<span
+												className="font-bold mr-0.5 px-1.5 py-0.5 rounded"
+												style={{
+													color: titleTextColor,
+													textShadow: titleTextShadow.trim(),
+													backgroundColor: titleBgColor,
+													letterSpacing: "0.5px",
+													fontWeight: "700",
+													animation: "glow-pulse 2s ease-in-out infinite",
+													boxShadow: isBright 
+														? `0 0 5px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.3)`
+														: `0 0 10px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.3), inset 0 0 10px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.1)`
+												}}
+											>
+												{participantInfo.title}
+											</span>
 										)}
-										<span>{user.name}</span>
+										<span style={{ color: textColor }}>{user.name}</span>
 									</button>
 								);
 							})}
@@ -683,7 +758,29 @@ export default function CalendarPage() {
 									};
 									const rgb = hexToRgb(bgColor);
 									const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
-									const textColor = brightness > 128 ? "#000" : "#fff";
+									const isBright = brightness > 128;
+									const textColor = isBright ? "#000" : "#fff";
+									
+									// 칭호 네온 효과 (배경 밝기에 따라 조정)
+									const titleGlowColor = participantInfo?.color || "#ff00ff";
+									const titleRgb = hexToRgb(titleGlowColor);
+									const titleTextColor = isBright 
+										? `rgb(${Math.max(0, titleRgb.r - 100)}, ${Math.max(0, titleRgb.g - 100)}, ${Math.max(0, titleRgb.b - 100)})`
+										: `rgb(${Math.min(255, titleRgb.r + 200)}, ${Math.min(255, titleRgb.g + 200)}, ${Math.min(255, titleRgb.b + 200)})`;
+									const titleTextShadow = isBright
+										? `0 0 2px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.8),
+										   0 0 4px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.6),
+										   0 0 6px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.4)`
+										: `0 0 2px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
+										   0 0 4px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
+										   0 0 6px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
+										   0 0 10px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
+										   0 0 20px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.8),
+										   0 0 30px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.6)`;
+									const titleBgColor = isBright
+										? `rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.3)`
+										: `rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.15)`;
+									
 									return (
 										<button
 											key={name}
@@ -693,12 +790,27 @@ export default function CalendarPage() {
 												setSelectedParticipants(newSelected);
 											}}
 											className="px-2 py-1 text-xs rounded-full flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer whitespace-nowrap"
-											style={{ backgroundColor: bgColor, color: textColor }}
+											style={{ backgroundColor: bgColor }}
 										>
 											{participantInfo?.title && (
-												<span className="font-bold">{participantInfo.title}</span>
+												<span
+													className="font-bold mr-0.5 px-1.5 py-0.5 rounded"
+													style={{
+														color: titleTextColor,
+														textShadow: titleTextShadow.trim(),
+														backgroundColor: titleBgColor,
+														letterSpacing: "0.5px",
+														fontWeight: "700",
+														animation: "glow-pulse 2s ease-in-out infinite",
+														boxShadow: isBright 
+															? `0 0 5px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.3)`
+															: `0 0 10px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.3), inset 0 0 10px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.1)`
+													}}
+												>
+													{participantInfo.title}
+												</span>
 											)}
-											<span>{name}</span>
+											<span style={{ color: textColor }}>{name}</span>
 										</button>
 									);
 								})}
