@@ -1058,6 +1058,66 @@ export default function CalendarPage() {
 													scale: 2,
 													useCORS: true,
 													logging: false,
+													onclone: (clonedDoc) => {
+														// lab() 색상 함수를 사용하는 모든 요소 찾아서 처리
+														const styleProps = [
+															"color",
+															"backgroundColor",
+															"borderColor",
+															"borderTopColor",
+															"borderRightColor",
+															"borderBottomColor",
+															"borderLeftColor",
+														];
+														
+														const allElements = clonedDoc.querySelectorAll("*");
+														allElements.forEach((el) => {
+															const htmlEl = el as HTMLElement;
+															
+															// 인라인 스타일 확인 및 수정
+															if (htmlEl.style && htmlEl.style.cssText) {
+																const inlineStyle = htmlEl.style.cssText;
+																if (inlineStyle.includes("lab(")) {
+																	// lab() 색상이 포함된 속성 제거
+																	const styleRules = inlineStyle.split(";");
+																	const cleanedRules = styleRules
+																		.filter((rule) => !rule.trim().includes("lab("))
+																		.join(";");
+																	htmlEl.style.cssText = cleanedRules;
+																}
+															}
+															
+															// 스타일 속성 직접 확인
+															styleProps.forEach((prop) => {
+																const value = htmlEl.style.getPropertyValue(prop);
+																if (value && value.includes("lab(")) {
+																	// lab() 색상을 제거
+																	htmlEl.style.removeProperty(prop);
+																}
+															});
+														});
+														
+														// 스타일시트의 lab() 색상도 처리
+														const styleSheets = Array.from(clonedDoc.styleSheets || []);
+														styleSheets.forEach((sheet) => {
+															try {
+																const rules = Array.from(sheet.cssRules || []);
+																rules.forEach((rule) => {
+																	if (rule instanceof CSSStyleRule) {
+																		const style = rule.style;
+																		styleProps.forEach((prop) => {
+																			const value = style.getPropertyValue(prop);
+																			if (value && value.includes("lab(")) {
+																				style.removeProperty(prop);
+																			}
+																		});
+																	}
+																});
+															} catch (e) {
+																// Cross-origin 스타일시트는 접근 불가
+															}
+														});
+													},
 												});
 												
 												const link = document.createElement("a");
