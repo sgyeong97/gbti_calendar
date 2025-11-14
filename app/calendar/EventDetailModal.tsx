@@ -518,13 +518,15 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 										const isBright = brightness > 128;
 										const textColor = isBright ? "#000" : "#fff";
 										
-										// 칭호 네온 효과 (배경 밝기에 따라 조정)
+										// 칭호 네온 효과 (배경이 너무 밝을 때만 어두운 색, 그 외에는 흰색 네온)
 										const titleGlowColor = participantInfo?.color || "#ff00ff";
 										const titleRgb = hexToRgb(titleGlowColor);
-										const titleTextColor = isBright 
+										const isVeryBright = brightness > 200; // 너무 밝은 배경(흰색 계열)일 때만 어두운 색 사용
+										// 기본적으로는 흰색 계열로 네온 효과, 너무 밝은 배경일 때만 어두운 색
+										const titleTextColor = isVeryBright 
 											? `rgb(${Math.max(0, titleRgb.r - 100)}, ${Math.max(0, titleRgb.g - 100)}, ${Math.max(0, titleRgb.b - 100)})`
 											: `rgb(${Math.min(255, titleRgb.r + 200)}, ${Math.min(255, titleRgb.g + 200)}, ${Math.min(255, titleRgb.b + 200)})`;
-										const titleTextShadow = isBright
+										const titleTextShadow = isVeryBright
 											? `0 0 2px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.8),
 											   0 0 4px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.6),
 											   0 0 6px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.4)`
@@ -534,7 +536,7 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 											   0 0 10px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
 											   0 0 20px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.8),
 											   0 0 30px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.6)`;
-										const titleBgColor = isBright
+										const titleBgColor = isVeryBright
 											? `rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.3)`
 											: `rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.15)`;
 										
@@ -612,13 +614,15 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 								const isBright = brightness > 128;
 								const textColor = isBright ? "#000" : "#fff";
 								
-								// 칭호 네온 효과 (배경 밝기에 따라 조정)
+								// 칭호 네온 효과 (배경이 너무 밝을 때만 어두운 색, 그 외에는 흰색 네온)
 								const titleGlowColor = participantInfo?.color || "#ff00ff";
 								const titleRgb = hexToRgb(titleGlowColor);
-								const titleTextColor = isBright 
+								const isVeryBright = brightness > 200; // 너무 밝은 배경(흰색 계열)일 때만 어두운 색 사용
+								// 기본적으로는 흰색 계열로 네온 효과, 너무 밝은 배경일 때만 어두운 색
+								const titleTextColor = isVeryBright 
 									? `rgb(${Math.max(0, titleRgb.r - 100)}, ${Math.max(0, titleRgb.g - 100)}, ${Math.max(0, titleRgb.b - 100)})`
 									: `rgb(${Math.min(255, titleRgb.r + 200)}, ${Math.min(255, titleRgb.g + 200)}, ${Math.min(255, titleRgb.b + 200)})`;
-								const titleTextShadow = isBright
+								const titleTextShadow = isVeryBright
 									? `0 0 2px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.8),
 									   0 0 4px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.6),
 									   0 0 6px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.4)`
@@ -628,7 +632,7 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 									   0 0 10px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
 									   0 0 20px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.8),
 									   0 0 30px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.6)`;
-								const titleBgColor = isBright
+								const titleBgColor = isVeryBright
 									? `rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.3)`
 									: `rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.15)`;
 								

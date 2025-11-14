@@ -6,6 +6,7 @@ import CreateEventModal from "@/app/calendar/CreateEventModal";
 import EventDetailModal from "@/app/calendar/EventDetailModal";
 // 공지사항 관련 import 제거
 import { addDays, eachDayOfInterval, endOfDay, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, isToday, startOfDay, startOfMonth, startOfWeek } from "date-fns";
+import html2canvas from "html2canvas";
 const BRAND_COLOR = "#FDC205"; // rgb(253,194,5)
 const NOTIF_ICON = "/gbti_small.jpg"; // public 경로의 아이콘
 const NOTIF_BADGE = "/gbti_small.jpg";  // 작은 배지 아이콘(없으면 아이콘과 동일하게 사용)
@@ -604,14 +605,15 @@ export default function CalendarPage() {
 							const isBright = brightness > 128;
 							const textColor = isBright ? "#000" : "#fff";
 							
-							// 칭호 네온 효과 (배경 밝기에 따라 조정)
+							// 칭호 네온 효과 (배경이 너무 밝을 때만 어두운 색, 그 외에는 흰색 네온)
 							const titleGlowColor = participantInfo?.color || "#ff00ff";
 							const titleRgb = hexToRgb(titleGlowColor);
-							// 배경이 밝으면 어두운 네온, 어두우면 밝은 네온
-							const titleTextColor = isBright 
+							const isVeryBright = brightness > 200; // 너무 밝은 배경(흰색 계열)일 때만 어두운 색 사용
+							// 기본적으로는 흰색 계열로 네온 효과, 너무 밝은 배경일 때만 어두운 색
+							const titleTextColor = isVeryBright 
 								? `rgb(${Math.max(0, titleRgb.r - 100)}, ${Math.max(0, titleRgb.g - 100)}, ${Math.max(0, titleRgb.b - 100)})`
 								: `rgb(${Math.min(255, titleRgb.r + 200)}, ${Math.min(255, titleRgb.g + 200)}, ${Math.min(255, titleRgb.b + 200)})`;
-							const titleTextShadow = isBright
+							const titleTextShadow = isVeryBright
 								? `0 0 2px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.8),
 								   0 0 4px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.6),
 								   0 0 6px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.4)`
@@ -621,7 +623,7 @@ export default function CalendarPage() {
 								   0 0 10px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
 								   0 0 20px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.8),
 								   0 0 30px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.6)`;
-							const titleBgColor = isBright
+							const titleBgColor = isVeryBright
 								? `rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.3)`
 								: `rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.15)`;
 							
@@ -686,13 +688,15 @@ export default function CalendarPage() {
 								const isBright = brightness > 128;
 								const textColor = isBright ? "#000" : "#fff";
 								
-								// 칭호 네온 효과 (배경 밝기에 따라 조정)
+								// 칭호 네온 효과 (배경이 너무 밝을 때만 어두운 색, 그 외에는 흰색 네온)
 								const titleGlowColor = participantInfo?.color || "#ff00ff";
 								const titleRgb = hexToRgb(titleGlowColor);
-								const titleTextColor = isBright 
+								const isVeryBright = brightness > 200; // 너무 밝은 배경(흰색 계열)일 때만 어두운 색 사용
+								// 기본적으로는 흰색 계열로 네온 효과, 너무 밝은 배경일 때만 어두운 색
+								const titleTextColor = isVeryBright 
 									? `rgb(${Math.max(0, titleRgb.r - 100)}, ${Math.max(0, titleRgb.g - 100)}, ${Math.max(0, titleRgb.b - 100)})`
 									: `rgb(${Math.min(255, titleRgb.r + 200)}, ${Math.min(255, titleRgb.g + 200)}, ${Math.min(255, titleRgb.b + 200)})`;
-								const titleTextShadow = isBright
+								const titleTextShadow = isVeryBright
 									? `0 0 2px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.8),
 									   0 0 4px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.6),
 									   0 0 6px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.4)`
@@ -702,7 +706,7 @@ export default function CalendarPage() {
 									   0 0 10px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
 									   0 0 20px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.8),
 									   0 0 30px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.6)`;
-								const titleBgColor = isBright
+								const titleBgColor = isVeryBright
 									? `rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.3)`
 									: `rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.15)`;
 								
@@ -761,13 +765,15 @@ export default function CalendarPage() {
 									const isBright = brightness > 128;
 									const textColor = isBright ? "#000" : "#fff";
 									
-									// 칭호 네온 효과 (배경 밝기에 따라 조정)
+									// 칭호 네온 효과 (배경이 너무 밝을 때만 어두운 색, 그 외에는 흰색 네온)
 									const titleGlowColor = participantInfo?.color || "#ff00ff";
 									const titleRgb = hexToRgb(titleGlowColor);
-									const titleTextColor = isBright 
+									const isVeryBright = brightness > 200; // 너무 밝은 배경(흰색 계열)일 때만 어두운 색 사용
+									// 기본적으로는 흰색 계열로 네온 효과, 너무 밝은 배경일 때만 어두운 색
+									const titleTextColor = isVeryBright 
 										? `rgb(${Math.max(0, titleRgb.r - 100)}, ${Math.max(0, titleRgb.g - 100)}, ${Math.max(0, titleRgb.b - 100)})`
 										: `rgb(${Math.min(255, titleRgb.r + 200)}, ${Math.min(255, titleRgb.g + 200)}, ${Math.min(255, titleRgb.b + 200)})`;
-									const titleTextShadow = isBright
+									const titleTextShadow = isVeryBright
 										? `0 0 2px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.8),
 										   0 0 4px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.6),
 										   0 0 6px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.4)`
@@ -777,7 +783,7 @@ export default function CalendarPage() {
 										   0 0 10px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
 										   0 0 20px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.8),
 										   0 0 30px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.6)`;
-									const titleBgColor = isBright
+									const titleBgColor = isVeryBright
 										? `rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.3)`
 										: `rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.15)`;
 									
@@ -1032,96 +1038,150 @@ export default function CalendarPage() {
 
 					{/* 오늘의 파티 목록 */}
 					<div className="mt-6">
-						<h2 className="text-lg font-semibold mb-3">오늘의 파티 ({format(new Date(), "MM월 dd일")})</h2>
+						<div className="flex items-center justify-between mb-3">
+							<h2 className="text-lg font-semibold">오늘의 파티 ({format(new Date(), "MM월 dd일")})</h2>
+							{(() => {
+								const todayEvents = events.filter((e) => isSameDay(new Date(e.startAt), new Date()));
+								if (todayEvents.length === 0) return null;
+								return (
+									<button
+										onClick={async () => {
+											const todayEvents = events.filter((e) => isSameDay(new Date(e.startAt), new Date()));
+											if (todayEvents.length === 0) return;
+											
+											const container = document.getElementById("today-events-container");
+											if (!container) return;
+											
+											try {
+												const canvas = await html2canvas(container, {
+													backgroundColor: "#ffffff",
+													scale: 2,
+													useCORS: true,
+													logging: false,
+												});
+												
+												const link = document.createElement("a");
+												link.download = `오늘의_파티_${format(new Date(), "MM월dd일")}.png`;
+												link.href = canvas.toDataURL("image/png");
+												link.click();
+											} catch (error) {
+												console.error("이미지 저장 실패:", error);
+												alert("이미지 저장에 실패했습니다.");
+											}
+										}}
+										className="px-3 py-1.5 rounded text-sm border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer flex items-center gap-1.5"
+									>
+										<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+											<path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+										</svg>
+										저장
+									</button>
+								);
+							})()}
+						</div>
 						{(() => {
 							const todayEvents = events.filter((e) => isSameDay(new Date(e.startAt), new Date()));
 							if (todayEvents.length === 0) {
 								return <div className="text-sm text-zinc-500 dark:text-zinc-400">오늘 예정된 파티가 없습니다.</div>;
 							}
 							return (
-								<div className="space-y-2">
-									{todayEvents.map((e) => (
-										<div
-											key={e.id}
-											className="border rounded p-3 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-											onClick={() => setActiveEventId(e.id)}
-										>
-											<div className="flex items-start justify-between">
-												<div className="flex-1">
-													<div className="font-medium text-sm">{e.title}</div>
-													<div className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+								<div id="today-events-container" className="flex gap-3 overflow-x-auto pb-2">
+									{todayEvents.map((e) => {
+										// 배경색 밝기에 따라 글자색 결정을 위한 함수
+										const hexToRgb = (hex: string) => {
+											const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+											return result ? {
+												r: parseInt(result[1], 16),
+												g: parseInt(result[2], 16),
+												b: parseInt(result[3], 16)
+											} : { r: 229, g: 231, b: 235 }; // 기본값
+										};
+										
+										return (
+											<div
+												key={e.id}
+												className="border rounded-lg p-4 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors min-w-[280px] flex-shrink-0 shadow-sm"
+												onClick={() => setActiveEventId(e.id)}
+											>
+												<div className="flex flex-col gap-2">
+													<div className="flex items-start justify-between">
+														<div className="font-medium text-base">{e.title}</div>
+														{e.allDay && (
+															<span className="px-2 py-0.5 text-xs rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 flex-shrink-0">
+																종일
+															</span>
+														)}
+													</div>
+													<div className="text-sm text-zinc-600 dark:text-zinc-400">
 														{format(new Date(e.startAt), "HH:mm")} - {format(new Date(e.endAt), "HH:mm")}
 													</div>
 													{e.participants && e.participants.length > 0 && (
-														<div className="flex gap-1 flex-wrap mt-1">
+														<div className="flex gap-1.5 flex-wrap mt-1">
 															{e.participants.map((p) => {
 																const participantInfo = participantMap.get(p);
 																const bgColor = participantInfo?.color || "#e5e7eb";
+																
+																const rgb = hexToRgb(bgColor);
+																const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+																const isBright = brightness > 128;
+																const textColor = isBright ? "#000" : "#fff";
+																
+																// 칭호 네온 효과 (배경이 너무 밝을 때만 어두운 색, 그 외에는 흰색 네온)
+																const titleGlowColor = participantInfo?.color || "#ff00ff";
+																const titleRgb = hexToRgb(titleGlowColor);
+																const isVeryBright = brightness > 200; // 너무 밝은 배경(흰색 계열)일 때만 어두운 색 사용
+																// 기본적으로는 흰색 계열로 네온 효과, 너무 밝은 배경일 때만 어두운 색
+																const titleTextColor = isVeryBright 
+																	? `rgb(${Math.max(0, titleRgb.r - 100)}, ${Math.max(0, titleRgb.g - 100)}, ${Math.max(0, titleRgb.b - 100)})`
+																	: `rgb(${Math.min(255, titleRgb.r + 200)}, ${Math.min(255, titleRgb.g + 200)}, ${Math.min(255, titleRgb.b + 200)})`;
+																const titleTextShadow = isVeryBright
+																	? `0 0 2px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.8),
+																	   0 0 4px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.6),
+																	   0 0 6px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.4)`
+																	: `0 0 2px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
+																	   0 0 4px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
+																	   0 0 6px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
+																	   0 0 10px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
+																	   0 0 20px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.8),
+																	   0 0 30px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.6)`;
+																const titleBgColor = isVeryBright
+																	? `rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.3)`
+																	: `rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.15)`;
+																
 																return (
 																	<span 
 																		key={p} 
 																		className="px-2 py-0.5 text-xs rounded-full"
-																		style={{ backgroundColor: bgColor, color: "#000" }}
+																		style={{ backgroundColor: bgColor }}
 																	>
-																		{participantInfo?.title && (() => {
-																			const glowColor = participantInfo?.color || "#ff00ff";
-																			const hexToRgb = (hex: string) => {
-																				const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-																				return result ? {
-																					r: parseInt(result[1], 16),
-																					g: parseInt(result[2], 16),
-																					b: parseInt(result[3], 16)
-																				} : { r: 255, g: 0, b: 255 };
-																			};
-																			const rgb = hexToRgb(glowColor);
-																			// 네온 라이트 효과: 부드러운 글로우, 검은 테두리 없음
-																			// 텍스트 색상: 거의 흰색에 약간의 색상 틴트
-																			const textColor = `rgb(${Math.min(255, rgb.r + 200)}, ${Math.min(255, rgb.g + 200)}, ${Math.min(255, rgb.b + 200)})`;
-																			// 다층 네온 글로우 효과 (내부 밝게, 외부로 퍼지며 부드럽게)
-																			const textShadow = `
-																				0 0 2px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}),
-																				0 0 4px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}),
-																				0 0 6px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}),
-																				0 0 10px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}),
-																				0 0 20px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.8),
-																				0 0 30px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6),
-																				0 0 40px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4),
-																				0 0 50px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)
-																			`;
-																			// 배경: 어두운 색상으로 네온 효과 강조
-																			const bgColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15)`;
-																			return (
-																				<span 
-																					className="font-bold mr-0.5 px-1.5 py-0.5 rounded"
-																					style={{ 
-																						color: textColor,
-																						textShadow: textShadow.trim(),
-																						backgroundColor: bgColor,
-																						letterSpacing: "0.5px",
-																						fontWeight: "700",
-																						animation: "glow-pulse 2s ease-in-out infinite",
-																						boxShadow: `0 0 10px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3), inset 0 0 10px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)`
-																					}}
-																				>
-																					{participantInfo.title}
-																				</span>
-																			);
-																		})()}
-																		<span>{p}</span>
+																		{participantInfo?.title && (
+																			<span
+																				className="font-bold mr-0.5 px-1.5 py-0.5 rounded"
+																				style={{
+																					color: titleTextColor,
+																					textShadow: titleTextShadow.trim(),
+																					backgroundColor: titleBgColor,
+																					letterSpacing: "0.5px",
+																					fontWeight: "700",
+																					animation: "glow-pulse 2s ease-in-out infinite",
+																					boxShadow: isBright 
+																						? `0 0 5px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.3)`
+																						: `0 0 10px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.3), inset 0 0 10px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.1)`
+																				}}
+																			>
+																				{participantInfo.title}
+																			</span>
+																		)}
+																		<span style={{ color: textColor }}>{p}</span>
 																	</span>
 																);
 															})}
 														</div>
 													)}
 												</div>
-												{e.allDay && (
-													<span className="px-2 py-0.5 text-xs rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200">
-														종일
-													</span>
-												)}
 											</div>
-										</div>
-									))}
+										);
+									})}
 								</div>
 							);
 						})()}

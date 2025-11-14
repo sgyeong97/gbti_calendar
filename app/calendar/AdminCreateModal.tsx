@@ -272,57 +272,68 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 						{participants.map((p) => {
 							const participantInfo = participantMap.get(p);
 							const bgColor = participantInfo?.color || "#e5e7eb";
+							
+							// 배경색 밝기에 따라 글자색 결정
+							const hexToRgb = (hex: string) => {
+								const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+								return result ? {
+									r: parseInt(result[1], 16),
+									g: parseInt(result[2], 16),
+									b: parseInt(result[3], 16)
+								} : { r: 229, g: 231, b: 235 }; // 기본값
+							};
+							const rgb = hexToRgb(bgColor);
+							const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+							const isBright = brightness > 128;
+							const textColor = isBright ? "#000" : "#fff";
+							
+							// 칭호 네온 효과 (배경이 너무 밝을 때만 어두운 색, 그 외에는 흰색 네온)
+							const titleGlowColor = participantInfo?.color || "#ff00ff";
+							const titleRgb = hexToRgb(titleGlowColor);
+							const isVeryBright = brightness > 200; // 너무 밝은 배경(흰색 계열)일 때만 어두운 색 사용
+							// 기본적으로는 흰색 계열로 네온 효과, 너무 밝은 배경일 때만 어두운 색
+							const titleTextColor = isVeryBright 
+								? `rgb(${Math.max(0, titleRgb.r - 100)}, ${Math.max(0, titleRgb.g - 100)}, ${Math.max(0, titleRgb.b - 100)})`
+								: `rgb(${Math.min(255, titleRgb.r + 200)}, ${Math.min(255, titleRgb.g + 200)}, ${Math.min(255, titleRgb.b + 200)})`;
+							const titleTextShadow = isVeryBright
+								? `0 0 2px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.8),
+								   0 0 4px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.6),
+								   0 0 6px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.4)`
+								: `0 0 2px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
+								   0 0 4px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
+								   0 0 6px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
+								   0 0 10px rgb(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}),
+								   0 0 20px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.8),
+								   0 0 30px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.6)`;
+							const titleBgColor = isVeryBright
+								? `rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.3)`
+								: `rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.15)`;
+							
 							return (
 								<span 
 									key={p} 
 									className="px-2 py-0.5 text-xs rounded-full"
-									style={{ backgroundColor: bgColor, color: "#000" }}
+									style={{ backgroundColor: bgColor }}
 								>
-									{participantInfo?.title && (() => {
-										const glowColor = participantInfo?.color || "#ff00ff";
-										const hexToRgb = (hex: string) => {
-											const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-											return result ? {
-												r: parseInt(result[1], 16),
-												g: parseInt(result[2], 16),
-												b: parseInt(result[3], 16)
-											} : { r: 255, g: 0, b: 255 };
-										};
-										const rgb = hexToRgb(glowColor);
-										// 네온 라이트 효과: 부드러운 글로우, 검은 테두리 없음
-										// 텍스트 색상: 거의 흰색에 약간의 색상 틴트
-										const textColor = `rgb(${Math.min(255, rgb.r + 200)}, ${Math.min(255, rgb.g + 200)}, ${Math.min(255, rgb.b + 200)})`;
-										// 다층 네온 글로우 효과 (내부 밝게, 외부로 퍼지며 부드럽게)
-										const textShadow = `
-											0 0 2px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}),
-											0 0 4px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}),
-											0 0 6px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}),
-											0 0 10px rgb(${rgb.r}, ${rgb.g}, ${rgb.b}),
-											0 0 20px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.8),
-											0 0 30px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6),
-											0 0 40px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4),
-											0 0 50px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)
-										`;
-										// 배경: 어두운 색상으로 네온 효과 강조
-										const bgColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15)`;
-										return (
-											<span 
-												className="font-bold mr-0.5 px-1.5 py-0.5 rounded"
-												style={{ 
-													color: textColor,
-													textShadow: textShadow.trim(),
-													backgroundColor: bgColor,
-													letterSpacing: "0.5px",
-													fontWeight: "700",
-													animation: "glow-pulse 2s ease-in-out infinite",
-													boxShadow: `0 0 10px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3), inset 0 0 10px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)`
-												}}
-											>
-												{participantInfo.title}
-											</span>
-										);
-									})()}
-									<span>{p}</span>
+									{participantInfo?.title && (
+										<span
+											className="font-bold mr-0.5 px-1.5 py-0.5 rounded"
+											style={{
+												color: titleTextColor,
+												textShadow: titleTextShadow.trim(),
+												backgroundColor: titleBgColor,
+												letterSpacing: "0.5px",
+												fontWeight: "700",
+												animation: "glow-pulse 2s ease-in-out infinite",
+												boxShadow: isVeryBright 
+													? `0 0 5px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.3)`
+													: `0 0 10px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.3), inset 0 0 10px rgba(${titleRgb.r}, ${titleRgb.g}, ${titleRgb.b}, 0.1)`
+											}}
+										>
+											{participantInfo.title}
+										</span>
+									)}
+									<span style={{ color: textColor }}>{p}</span>
 									<button
 										className="ml-1 text-zinc-500 hover:text-zinc-700"
 										onClick={() => setParticipants(participants.filter(x => x !== p))}
