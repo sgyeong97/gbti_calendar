@@ -23,7 +23,10 @@ function LadderGameContent() {
 		const dataParam = searchParams.get("data");
 		if (dataParam) {
 			try {
-				const decodedData = JSON.parse(atob(decodeURIComponent(dataParam)));
+				// base64 디코딩 후 UTF-8 디코딩 (한글 처리)
+				const decodedBase64 = atob(decodeURIComponent(dataParam));
+				const jsonString = decodeURIComponent(escape(decodedBase64));
+				const decodedData = JSON.parse(jsonString);
 				setGame({
 					title: decodedData.title,
 					winnerNames: decodedData.winnerNames,

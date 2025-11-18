@@ -98,7 +98,7 @@ function CreateLadderGameModal({
 			return;
 		}
 
-		// 데이터를 base64로 인코딩하여 URL 파라미터로 전달
+		// 데이터를 base64로 인코딩하여 URL 파라미터로 전달 (한글 처리)
 		const gameData = {
 			title,
 			winnerNames,
@@ -106,7 +106,9 @@ function CreateLadderGameModal({
 			allNames: [...winnerNames, ...loserNames],
 		};
 
-		const encodedData = btoa(JSON.stringify(gameData));
+		// UTF-8 인코딩 후 base64 변환 (한글 처리)
+		const jsonString = JSON.stringify(gameData);
+		const encodedData = btoa(unescape(encodeURIComponent(jsonString)));
 		
 		// 사다리타기 페이지로 이동
 		router.push(`/ladder-game?data=${encodeURIComponent(encodedData)}`);
