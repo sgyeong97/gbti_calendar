@@ -10,13 +10,13 @@ export default function LadderGameManagementPage() {
 	return (
 		<div className="p-6 max-w-6xl mx-auto">
 			<div className="flex items-center justify-between mb-6">
-				<h1 className="text-2xl font-semibold">사다리타기 만들기</h1>
+				<h1 className="text-2xl font-semibold">룰렛/사다리타기 만들기</h1>
 				<div className="flex gap-2">
 					<button
 						className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer"
 						onClick={() => setShowCreateModal(true)}
 					>
-						새 사다리타기 만들기
+						새로 만들기
 					</button>
 					<button
 						className="px-4 py-2 rounded text-black transition-colors cursor-pointer"
@@ -29,7 +29,7 @@ export default function LadderGameManagementPage() {
 			</div>
 
 			<div className="text-center py-8 text-zinc-500">
-				사다리타기를 만들고 결과를 확인하세요!
+				룰렛 또는 사다리타기를 만들고 결과를 확인하세요!
 			</div>
 
 			{showCreateModal && (
@@ -52,6 +52,7 @@ function CreateLadderGameModal({
 	onCreated: () => void;
 }) {
 	const router = useRouter();
+	const [gameType, setGameType] = useState<"roulette" | "ladder">("roulette");
 	const [title, setTitle] = useState("");
 	const [winnerInput, setWinnerInput] = useState("");
 	const [loserInput, setLoserInput] = useState("");
@@ -100,6 +101,7 @@ function CreateLadderGameModal({
 
 		// 데이터를 base64로 인코딩하여 URL 파라미터로 전달 (한글 처리)
 		const gameData = {
+			gameType,
 			title,
 			winnerNames,
 			loserNames,
@@ -110,7 +112,7 @@ function CreateLadderGameModal({
 		const jsonString = JSON.stringify(gameData);
 		const encodedData = btoa(unescape(encodeURIComponent(jsonString)));
 		
-		// 사다리타기 페이지로 이동
+		// 룰렛 페이지로 이동
 		router.push(`/ladder-game?data=${encodeURIComponent(encodedData)}`);
 		onCreated();
 	}
@@ -121,14 +123,42 @@ function CreateLadderGameModal({
 				className="rounded p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
 				style={{ background: "var(--background)", color: "var(--foreground)" }}
 			>
-				<h2 className="text-xl font-semibold mb-4">새 사다리타기 만들기</h2>
+				<h2 className="text-xl font-semibold mb-4">새로 만들기</h2>
 
 				<div className="space-y-4">
+					<div>
+						<label className="block text-sm font-medium mb-2">게임 타입</label>
+						<div className="flex gap-4">
+							<label className="flex items-center gap-2 cursor-pointer">
+								<input
+									type="radio"
+									name="gameType"
+									value="roulette"
+									checked={gameType === "roulette"}
+									onChange={(e) => setGameType(e.target.value as "roulette" | "ladder")}
+									className="w-4 h-4"
+								/>
+								<span>룰렛</span>
+							</label>
+							<label className="flex items-center gap-2 cursor-pointer">
+								<input
+									type="radio"
+									name="gameType"
+									value="ladder"
+									checked={gameType === "ladder"}
+									onChange={(e) => setGameType(e.target.value as "roulette" | "ladder")}
+									className="w-4 h-4"
+								/>
+								<span>사다리타기</span>
+							</label>
+						</div>
+					</div>
+
 					<div>
 						<label className="block text-sm font-medium mb-1">제목</label>
 						<input
 							className="w-full border rounded px-3 py-2"
-							placeholder="사다리타기 제목"
+							placeholder="제목"
 							value={title}
 							onChange={(e) => setTitle(e.target.value)}
 						/>
