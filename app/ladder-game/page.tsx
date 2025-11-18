@@ -11,6 +11,14 @@ type Game = {
 	allNames: string[];
 };
 
+type StoredGame = {
+	id: string;
+	createdAt: number;
+	data: Game;
+};
+
+const STORAGE_KEY = "gbti_games";
+
 function GameContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
@@ -22,28 +30,47 @@ function GameContent() {
 	const [spinningResult, setSpinningResult] = useState<"win" | "lose" | null>(null);
 
 	useEffect(() => {
-		const dataParam = searchParams.get("data");
-		if (dataParam) {
-			try {
-				// base64 디코딩 후 UTF-8 디코딩 (한글 처리)
-				const decodedBase64 = atob(decodeURIComponent(dataParam));
-				const jsonString = decodeURIComponent(escape(decodedBase64));
-				const decodedData = JSON.parse(jsonString);
-				setGame({
-					gameType: decodedData.gameType || "roulette",
-					title: decodedData.title,
-					winnerNames: decodedData.winnerNames,
-					loserNames: decodedData.loserNames,
-					allNames: decodedData.allNames || [...decodedData.winnerNames, ...decodedData.loserNames],
-				});
-			} catch (err) {
-				console.error("데이터 파싱 실패:", err);
-			} finally {
+		const loadGame = () => {
+			const idParam = searchParams.get("id");
+			if (idParam && typeof window !== "undefined") {
+				try {
+					const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "[]") as StoredGame[];
+					const entry = stored.find((g) => g.id === idParam);
+					if (entry) {
+						setGame(entry.data);
+						setLoading(false);
+						return;
+					}
+				} catch (err) {
+					console.error("저장된 게임을 불러오지 못했습니다.", err);
+				}
+			}
+
+			const dataParam = searchParams.get("data");
+			if (dataParam) {
+				try {
+					const decodedBase64 = atob(decodeURIComponent(dataParam));
+					const jsonString = decodeURIComponent(escape(decodedBase64));
+					const decodedData = JSON.parse(jsonString);
+					setGame({
+						gameType: decodedData.gameType || "roulette",
+						title: decodedData.title,
+						winnerNames: decodedData.winnerNames,
+						loserNames: decodedData.loserNames,
+						allNames:
+							decodedData.allNames || [...decodedData.winnerNames, ...decodedData.loserNames],
+					});
+				} catch (err) {
+					console.error("데이터 파싱 실패:", err);
+				} finally {
+					setLoading(false);
+				}
+			} else {
 				setLoading(false);
 			}
-		} else {
-			setLoading(false);
-		}
+		};
+
+		loadGame();
 	}, [searchParams]);
 
 	function getResult(name: string): "win" | "lose" {
@@ -112,8 +139,9 @@ function GameContent() {
 
 	// 참가자 순서를 랜덤하게 섞기 (당첨/탈락 구분이 보이지 않도록) - 한 번만 생성
 	const shuffledNames = useMemo(() => {
+		if (!game) return [];
 		return [...game.allNames].sort(() => Math.random() - 0.5);
-	}, [game.allNames]);
+	}, [game]);
 
 	return (
 		<div className="p-6 max-w-6xl mx-auto">

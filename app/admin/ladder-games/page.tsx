@@ -1,11 +1,62 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+
+type GameType = "roulette" | "ladder";
+
+type StoredGame = {
+	id: string;
+	createdAt: number;
+	data: {
+		gameType: GameType;
+		title: string;
+		winnerNames: string[];
+		loserNames: string[];
+		allNames: string[];
+	};
+};
+
+const STORAGE_KEY = "gbti_games";
 
 export default function LadderGameManagementPage() {
 	const router = useRouter();
 	const [showCreateModal, setShowCreateModal] = useState(false);
+	const [savedGames, setSavedGames] = useState<StoredGame[]>([]);
+
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		try {
+			const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "[]") as StoredGame[];
+			setSavedGames(stored);
+		} catch (err) {
+			console.error("저장된 게임을 불러오지 못했습니다.", err);
+		}
+	}, []);
+
+	function updateSavedGames(next: StoredGame[]) {
+		setSavedGames(next);
+		try {
+			window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+		} catch (err) {
+			console.error("저장된 게임을 저장하지 못했습니다.", err);
+			alert("로컬 저장에 실패했습니다. 브라우저 저장 공간을 확인해주세요.");
+		}
+	}
+
+	function handleDelete(id: string) {
+		if (!confirm("이 저장된 게임을 삭제하시겠습니까?")) return;
+		updateSavedGames(savedGames.filter((game) => game.id !== id));
+	}
+
+	function handleView(id: string) {
+		router.push(`/ladder-game?id=${id}`);
+	}
+
+	function handleClearAll() {
+		if (!confirm("모든 저장된 게임을 삭제하시겠습니까?")) return;
+		updateSavedGames([]);
+	}
 
 	return (
 		<div className="p-6 max-w-6xl mx-auto">
@@ -32,8 +83,57 @@ export default function LadderGameManagementPage() {
 				룰렛 또는 사다리타기를 만들고 결과를 확인하세요!
 			</div>
 
+			<div className="mt-8">
+				<div className="flex items-center justify-between mb-3">
+					<h2 className="text-lg font-semibold">저장된 게임</h2>
+					<button
+						className="text-sm text-zinc-500 hover:text-zinc-700 transition-colors"
+						onClick={handleClearAll}
+					>
+						전체 삭제
+					</button>
+				</div>
+				{savedGames.length === 0 ? (
+					<div className="text-sm text-zinc-500 border rounded p-4 bg-white dark:bg-zinc-900">
+						저장된 게임이 없습니다. 새로 만들어보세요!
+					</div>
+				) : (
+					<div className="space-y-3">
+						{savedGames.map((game) => (
+							<div
+								key={game.id}
+								className="flex items-center justify-between border rounded-lg p-4 bg-white dark:bg-zinc-900"
+							>
+								<div>
+									<div className="font-semibold">{game.data.title}</div>
+									<div className="text-sm text-zinc-500">
+										{game.data.gameType === "roulette" ? "룰렛" : "사다리타기"} ·{" "}
+										{new Date(game.createdAt).toLocaleString("ko-KR")}
+									</div>
+								</div>
+								<div className="flex gap-2">
+									<button
+										className="px-3 py-1 rounded border text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+										onClick={() => handleView(game.id)}
+									>
+										보기
+									</button>
+									<button
+										className="px-3 py-1 rounded border text-sm text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
+										onClick={() => handleDelete(game.id)}
+									>
+										삭제
+									</button>
+								</div>
+							</div>
+						))}
+					</div>
+				)}
+			</div>
+
 			{showCreateModal && (
 				<CreateLadderGameModal
+					onSaved={(games) => updateSavedGames(games)}
 					onClose={() => setShowCreateModal(false)}
 					onCreated={() => {
 						setShowCreateModal(false);
@@ -45,14 +145,16 @@ export default function LadderGameManagementPage() {
 }
 
 function CreateLadderGameModal({
+	onSaved,
 	onClose,
 	onCreated,
 }: {
+	onSaved: (games: StoredGame[]) => void;
 	onClose: () => void;
 	onCreated: () => void;
 }) {
 	const router = useRouter();
-	const [gameType, setGameType] = useState<"roulette" | "ladder">("roulette");
+	const [gameType, setGameType] = useState<GameType>("roulette");
 	const [title, setTitle] = useState("");
 	const [winnerInput, setWinnerInput] = useState("");
 	const [loserInput, setLoserInput] = useState("");
@@ -99,7 +201,9 @@ function CreateLadderGameModal({
 			return;
 		}
 
-		// 데이터를 base64로 인코딩하여 URL 파라미터로 전달 (한글 처리)
+		const id =
+			typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+
 		const gameData = {
 			gameType,
 			title,
@@ -108,12 +212,27 @@ function CreateLadderGameModal({
 			allNames: [...winnerNames, ...loserNames],
 		};
 
-		// UTF-8 인코딩 후 base64 변환 (한글 처리)
+		const storedGame: StoredGame = {
+			id,
+			createdAt: Date.now(),
+			data: gameData,
+		};
+
+		// UTF-8 인코딩 후 base64 변환 (한글 처리, 공유용)
 		const jsonString = JSON.stringify(gameData);
 		const encodedData = btoa(unescape(encodeURIComponent(jsonString)));
-		
-		// 룰렛 페이지로 이동
-		router.push(`/ladder-game?data=${encodeURIComponent(encodedData)}`);
+
+		try {
+			const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "[]") as StoredGame[];
+			const next = [storedGame, ...stored];
+			window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+			onSaved(next);
+		} catch (err) {
+			console.error("로컬 저장에 실패했습니다.", err);
+		}
+
+		// 게임 페이지로 이동 (id 기반, data는 fallback)
+		router.push(`/ladder-game?id=${id}&data=${encodeURIComponent(encodedData)}`);
 		onCreated();
 	}
 
@@ -135,7 +254,7 @@ function CreateLadderGameModal({
 									name="gameType"
 									value="roulette"
 									checked={gameType === "roulette"}
-									onChange={(e) => setGameType(e.target.value as "roulette" | "ladder")}
+									onChange={(e) => setGameType(e.target.value as GameType)}
 									className="w-4 h-4"
 								/>
 								<span>룰렛</span>
@@ -146,7 +265,7 @@ function CreateLadderGameModal({
 									name="gameType"
 									value="ladder"
 									checked={gameType === "ladder"}
-									onChange={(e) => setGameType(e.target.value as "roulette" | "ladder")}
+									onChange={(e) => setGameType(e.target.value as GameType)}
 									className="w-4 h-4"
 								/>
 								<span>사다리타기</span>
