@@ -23,6 +23,12 @@ export default function AdminPage() {
 			description: "게스트, 디코, 단톡방, 공지방 인원 관리",
 			icon: "👤",
 			path: "/admin/members"
+		},
+		{
+			title: "사다리타기",
+			description: "사다리타기 생성 및 관리",
+			icon: "🪜",
+			path: "/admin/ladder-games"
 		}
 	];
 
