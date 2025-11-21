@@ -449,8 +449,13 @@ function LadderVisualization({
 				{names.map((name, idx) => {
 					const x = startX + idx * lineSpacing;
 					const isRevealed = revealedResults.has(name);
-					// 각 이름의 미리 정해진 결과 사용 (사다리 경로와 무관하게)
+					// 각 이름의 미리 정해진 결과 사용
 					const result = getResult(name);
+					
+					// 이 이름이 도착하는 하단 인덱스 계산
+					const { finalIdx } = calculatePath(idx);
+					const bottomX = startX + finalIdx * lineSpacing;
+					
 					return (
 						<g key={idx}>
 							{/* 세로선 */}
@@ -483,70 +488,95 @@ function LadderVisualization({
 									{String(name)}
 								</text>
 							</g>
-							{/* 하단 원 또는 X */}
-							{isRevealed ? (
-								result === "win" ? (
-									<circle
-										cx={x}
-										cy={bottomY}
-										r="8"
-										fill="#10b981"
-										stroke="white"
-										strokeWidth="2"
-									/>
-								) : (
-									<g>
-										<circle
-											cx={x}
-											cy={bottomY}
-											r="8"
-											fill="#ef4444"
-											stroke="white"
-											strokeWidth="2"
-										/>
-										<line
-											x1={x - 5}
-											y1={bottomY - 5}
-											x2={x + 5}
-											y2={bottomY + 5}
-											stroke="white"
-											strokeWidth="2"
-										/>
-										<line
-											x1={x + 5}
-											y1={bottomY - 5}
-											x2={x - 5}
-											y2={bottomY + 5}
-											stroke="white"
-											strokeWidth="2"
-										/>
-									</g>
-								)
-							) : (
-								<circle
-									cx={x}
-									cy={bottomY}
-									r="8"
-									fill="currentColor"
-									className="text-zinc-400 dark:text-zinc-600"
-								/>
-							)}
-							{/* 결과 텍스트 */}
-							{isRevealed && (
-								<text
-									x={x}
-									y={bottomY + 30}
-									textAnchor="middle"
-									className={`text-sm font-bold ${
-										result === "win" ? "fill-green-600 dark:fill-green-400" : "fill-red-600 dark:fill-red-400"
-									}`}
-								>
-									{String(result === "win" ? "당첨" : "탈락")}
-								</text>
-							)}
 						</g>
 					);
 				})}
+
+				{/* 하단 결과 표시 (도착한 위치에 표시) */}
+				{(() => {
+					// 각 참가자가 도착하는 하단 인덱스 계산
+					const bottomIndexToName = new Map<number, string>();
+					names.forEach((name, idx) => {
+						const { finalIdx } = calculatePath(idx);
+						bottomIndexToName.set(finalIdx, name);
+					});
+					
+					// 하단 인덱스별로 결과 표시
+					return Array.from({ length: numPeople }, (_, bottomIdx) => {
+						const name = bottomIndexToName.get(bottomIdx);
+						if (!name) return null;
+						
+						const bottomX = startX + bottomIdx * lineSpacing;
+						const isRevealed = revealedResults.has(name);
+						const result = getResult(name);
+						
+						return (
+							<g key={`bottom-${bottomIdx}`}>
+								{/* 하단 원 또는 X */}
+								{isRevealed ? (
+									result === "win" ? (
+										<circle
+											cx={bottomX}
+											cy={bottomY}
+											r="8"
+											fill="#10b981"
+											stroke="white"
+											strokeWidth="2"
+										/>
+									) : (
+										<g>
+											<circle
+												cx={bottomX}
+												cy={bottomY}
+												r="8"
+												fill="#ef4444"
+												stroke="white"
+												strokeWidth="2"
+											/>
+											<line
+												x1={bottomX - 5}
+												y1={bottomY - 5}
+												x2={bottomX + 5}
+												y2={bottomY + 5}
+												stroke="white"
+												strokeWidth="2"
+											/>
+											<line
+												x1={bottomX + 5}
+												y1={bottomY - 5}
+												x2={bottomX - 5}
+												y2={bottomY + 5}
+												stroke="white"
+												strokeWidth="2"
+											/>
+										</g>
+									)
+								) : (
+									<circle
+										cx={bottomX}
+										cy={bottomY}
+										r="8"
+										fill="currentColor"
+										className="text-zinc-400 dark:text-zinc-600"
+									/>
+								)}
+								{/* 결과 텍스트 */}
+								{isRevealed && (
+									<text
+										x={bottomX}
+										y={bottomY + 30}
+										textAnchor="middle"
+										className={`text-sm font-bold ${
+											result === "win" ? "fill-green-600 dark:fill-green-400" : "fill-red-600 dark:fill-red-400"
+										}`}
+									>
+										{String(result === "win" ? "당첨" : "탈락")}
+									</text>
+								)}
+							</g>
+						);
+					});
+				})()}
 
 				{/* 가로선 */}
 				{horizontalLines.map((line, idx) => (
