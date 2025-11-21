@@ -28,6 +28,16 @@ function GameContent() {
 	const [revealedResults, setRevealedResults] = useState<Set<string>>(new Set());
 	const [spinning, setSpinning] = useState<string | null>(null);
 	const [spinningResult, setSpinningResult] = useState<"win" | "lose" | null>(null);
+	const [shuffledNames, setShuffledNames] = useState<string[]>([]);
+
+	useEffect(() => {
+		// 게임이 로드되면 참가자 순서를 랜덤하게 섞기 (한 번만)
+		if (game?.allNames && game.allNames.length > 0) {
+			setShuffledNames([...game.allNames].sort(() => Math.random() - 0.5));
+		} else {
+			setShuffledNames([]);
+		}
+	}, [game ? game.allNames?.join(",") : null]);
 
 	useEffect(() => {
 		const loadGame = () => {
@@ -137,11 +147,6 @@ function GameContent() {
 		);
 	}
 
-	// 참가자 순서를 랜덤하게 섞기 (당첨/탈락 구분이 보이지 않도록) - 한 번만 생성
-	const shuffledNames = useMemo(() => {
-		if (!game?.allNames) return [];
-		return [...game.allNames].sort(() => Math.random() - 0.5);
-	}, [game?.allNames]);
 
 	return (
 		<div className="p-6 max-w-6xl mx-auto">
