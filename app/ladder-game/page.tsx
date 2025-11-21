@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, Suspense, useRef } from "react";
+import { useEffect, useState, useMemo, Suspense, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type Game = {
@@ -101,9 +101,11 @@ function GameContent() {
 			setSpinning(name);
 			setSpinningResult(null);
 
+			// 룰렛 애니메이션 시간
 			const spinDuration = 2000 + Math.random() * 1000;
 
 			setTimeout(() => {
+				// 결과를 설정하여 룰렛이 정확한 위치로 조정되도록 함
 				setSpinningResult(finalResult);
 				setTimeout(() => {
 					setRevealedResults((prev) => {
@@ -113,7 +115,7 @@ function GameContent() {
 					});
 					setSpinning(null);
 					setSpinningResult(null);
-				}, 800);
+				}, 1000); // 조정 애니메이션을 위한 시간 증가
 			}, spinDuration);
 		} else {
 			// 사다리타기는 바로 결과 표시
@@ -122,7 +124,7 @@ function GameContent() {
 				next.add(name);
 				return next;
 			});
-		}
+		} 
 	}
 
 	if (loading) {
@@ -278,6 +280,8 @@ function LadderVisualization({
 	const topY = 80;
 	const bottomY = 500;
 	const lineHeight = bottomY - topY;
+	const [animatingName, setAnimatingName] = useState<string | null>(null);
+	const [dotPosition, setDotPosition] = useState<{ x: number; y: number } | null>(null);
 
 	// 가로선 생성 (깔끔하게)
 	const horizontalLines = useMemo(() => {
@@ -297,6 +301,113 @@ function LadderVisualization({
 
 		return lines.sort((a, b) => a.y - b.y);
 	}, [numPeople]);
+
+	// 사다리 경로 계산 함수
+	const calculatePath = useCallback((startIdx: number) => {
+		const path: { x: number; y: number }[] = [];
+		let currentX = startX + startIdx * lineSpacing;
+		let currentY = topY;
+		let currentLineIdx = startIdx;
+
+		path.push({ x: currentX, y: currentY });
+
+		// 가로선을 y 순서대로 확인하며 경로 계산
+		for (const hLine of horizontalLines) {
+			// 현재 위치에서 가로선까지 내려가기
+			if (currentY < hLine.y) {
+				path.push({ x: currentX, y: hLine.y });
+				currentY = hLine.y;
+			}
+
+			// 가로선이 현재 세로선과 연결되어 있는지 확인
+			const currentLineX = startX + currentLineIdx * lineSpacing;
+			const tolerance = 2; // 허용 오차
+			
+			if (Math.abs(hLine.x1 - currentLineX) < tolerance) {
+				// 왼쪽에서 오른쪽으로 이동
+				currentX = hLine.x2;
+				currentLineIdx++;
+				path.push({ x: currentX, y: currentY });
+			} else if (Math.abs(hLine.x2 - currentLineX) < tolerance) {
+				// 오른쪽에서 왼쪽으로 이동
+				currentX = hLine.x1;
+				currentLineIdx--;
+				path.push({ x: currentX, y: currentY });
+			}
+		}
+
+		// 마지막으로 하단까지 내려가기
+		if (currentY < bottomY) {
+			path.push({ x: currentX, y: bottomY });
+		}
+
+		return path;
+	}, [horizontalLines]);
+
+	// 애니메이션 처리
+	const handleNameClickWithAnimation = useCallback((name: string) => {
+		if (animatingName || revealedResults.has(name)) return;
+
+		const nameIdx = names.indexOf(name);
+		if (nameIdx === -1) return;
+
+		setAnimatingName(name);
+		const path = calculatePath(nameIdx);
+
+		// 경로를 따라 점 이동 애니메이션
+		const totalDuration = 2000; // 2초
+		const startTime = Date.now();
+
+		const animate = () => {
+			const elapsed = Date.now() - startTime;
+			const progress = Math.min(elapsed / totalDuration, 1);
+			
+			if (progress < 1) {
+				// 전체 경로에서 현재 위치 계산
+				const totalLength = path.reduce((sum, point, idx) => {
+					if (idx === 0) return 0;
+					const prev = path[idx - 1];
+					const dist = Math.sqrt(Math.pow(point.x - prev.x, 2) + Math.pow(point.y - prev.y, 2));
+					return sum + dist;
+				}, 0);
+				
+				let currentLength = totalLength * progress;
+				let currentPoint = path[0];
+				
+				for (let i = 1; i < path.length; i++) {
+					const prev = path[i - 1];
+					const curr = path[i];
+					const segmentLength = Math.sqrt(Math.pow(curr.x - prev.x, 2) + Math.pow(curr.y - prev.y, 2));
+					
+					if (currentLength <= segmentLength) {
+						// 현재 세그먼트 내에 있음
+						const segmentProgress = currentLength / segmentLength;
+						currentPoint = {
+							x: prev.x + (curr.x - prev.x) * segmentProgress,
+							y: prev.y + (curr.y - prev.y) * segmentProgress,
+						};
+						break;
+					} else {
+						currentLength -= segmentLength;
+						currentPoint = curr;
+					}
+				}
+				
+				setDotPosition(currentPoint);
+				requestAnimationFrame(animate);
+			} else {
+				// 애니메이션 완료
+				setDotPosition({ x: path[path.length - 1].x, y: path[path.length - 1].y });
+				setTimeout(() => {
+					onNameClick(name);
+					setAnimatingName(null);
+					setDotPosition(null);
+				}, 300);
+			}
+		};
+
+		requestAnimationFrame(animate);
+	}, [animatingName, revealedResults, names, calculatePath, onNameClick]);
 
 	return (
 		<div className="flex justify-center overflow-x-auto">
@@ -327,13 +438,13 @@ function LadderVisualization({
 								className="text-zinc-700 dark:text-zinc-300"
 							/>
 							{/* 이름 */}
-							<g onClick={() => onNameClick(name)} style={{ cursor: "pointer" }}>
+							<g onClick={() => handleNameClickWithAnimation(name)} style={{ cursor: animatingName ? "not-allowed" : "pointer" }}>
 								<text
 									x={x}
 									y={topY - 20}
 									textAnchor="middle"
 									className="text-base font-semibold fill-current"
-									style={{ pointerEvents: "all" }}
+									style={{ pointerEvents: "all", opacity: animatingName === name ? 0.5 : 1 }}
 								>
 									{String(name)}
 								</text>
@@ -416,6 +527,52 @@ function LadderVisualization({
 						className="text-zinc-700 dark:text-zinc-300"
 					/>
 				))}
+
+				{/* 애니메이션 점 */}
+				{dotPosition && (
+					<g>
+						<circle
+							cx={dotPosition.x}
+							cy={dotPosition.y}
+							r="8"
+							fill="#ef4444"
+							stroke="white"
+							strokeWidth="2"
+							style={{
+								filter: "drop-shadow(0 0 6px rgba(239, 68, 68, 0.9))",
+							}}
+						>
+							<animate
+								attributeName="r"
+								values="8;10;8"
+								dur="0.6s"
+								repeatCount="indefinite"
+							/>
+						</circle>
+						<circle
+							cx={dotPosition.x}
+							cy={dotPosition.y}
+							r="8"
+							fill="none"
+							stroke="#ef4444"
+							strokeWidth="2"
+							opacity="0.6"
+						>
+							<animate
+								attributeName="r"
+								values="8;16;8"
+								dur="1s"
+								repeatCount="indefinite"
+							/>
+							<animate
+								attributeName="opacity"
+								values="0.6;0;0.6"
+								dur="1s"
+								repeatCount="indefinite"
+							/>
+						</circle>
+					</g>
+				)}
 			</svg>
 		</div>
 	);
@@ -432,9 +589,14 @@ function RouletteWheel({ spinning, result }: { spinning: boolean; result: "win" 
 	const startRotationRef = useRef(0);
 	const targetRotationRef = useRef(0);
 	const startTimeRef = useRef(0);
+	const resultAppliedRef = useRef<string | null>(null);
 
 	useEffect(() => {
 		if (spinning) {
+			// 결과가 이미 적용되었는지 확인하고 리셋
+			resultAppliedRef.current = null;
+			
+			// 랜덤한 회전 (최소 5바퀴 이상)
 			const baseRotation = 1800 + Math.random() * 720;
 			startRotationRef.current = rotation;
 			targetRotationRef.current = rotation + baseRotation;
@@ -457,13 +619,6 @@ function RouletteWheel({ spinning, result }: { spinning: boolean; result: "win" 
 			};
 
 			animationRef.current = requestAnimationFrame(animate);
-		} else if (result !== null && !isAnimating) {
-			const targetAngle = result === "win" ? 0 : 180;
-			const currentAngle = rotation % 360;
-			let adjustment = targetAngle - currentAngle;
-			if (adjustment < 0) adjustment += 360;
-			if (adjustment > 180) adjustment -= 360;
-			setRotation((prev) => prev + adjustment + 360);
 		}
 
 		return () => {
@@ -471,7 +626,34 @@ function RouletteWheel({ spinning, result }: { spinning: boolean; result: "win" 
 				cancelAnimationFrame(animationRef.current);
 			}
 		};
-	}, [spinning, result]);
+	}, [spinning, rotation]);
+
+	// 결과에 따라 정확한 위치로 조정 (별도 useEffect로 분리)
+	useEffect(() => {
+		if (result !== null && !isAnimating && !spinning && resultAppliedRef.current !== result) {
+			// 결과가 이미 적용되었는지 확인
+			resultAppliedRef.current = result;
+			
+			// 결과에 따라 정확한 위치로 조정
+			// 화살표가 상단(0도)에 있으므로:
+			// - 당첨: 룰렛의 당첨 섹션 중앙(90도)이 상단에 오도록
+			// - 탈락: 룰렛의 탈락 섹션 중앙(270도)이 상단에 오도록
+			const targetAngle = result === "win" ? 90 : 270;
+			
+			// 현재 rotation 값을 직접 사용
+			setRotation((currentRotation) => {
+				const currentAngle = currentRotation % 360;
+				
+				// 현재 각도에서 목표 각도까지의 최단 거리 계산
+				let adjustment = targetAngle - currentAngle;
+				if (adjustment < 0) adjustment += 360;
+				if (adjustment > 180) adjustment -= 360;
+				
+				// 추가 회전을 더해서 자연스럽게 멈추도록 (최소 1바퀴 이상)
+				return currentRotation + adjustment + 360;
+			});
+		}
+	}, [result, isAnimating, spinning]);
 
 	const sections = [
 		{ label: "당첨", color: "#10b981", startAngle: 0, endAngle: 180 },
