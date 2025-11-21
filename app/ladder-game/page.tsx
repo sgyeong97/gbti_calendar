@@ -389,8 +389,8 @@ function LadderVisualization({
 		return lines.sort((a, b) => a.y - b.y);
 	}, [numPeople, names, winnerNames, lineHeight, lineSpacing, startX, topY]);
 
-	// 사다리 경로 계산 함수
-	const calculatePath = useCallback((startIdx: number) => {
+	// 사다리 경로 계산 함수 (경로와 최종 인덱스 반환)
+	const calculatePath = useCallback((startIdx: number): { path: { x: number; y: number }[]; finalIdx: number } => {
 		const path: { x: number; y: number }[] = [];
 		let currentX = startX + startIdx * lineSpacing;
 		let currentY = topY;
@@ -428,8 +428,15 @@ function LadderVisualization({
 			path.push({ x: currentX, y: bottomY });
 		}
 
-		return path;
+		return { path, finalIdx: currentLineIdx };
 	}, [horizontalLines, startX, lineSpacing, topY, bottomY]);
+
+	// 사다리 경로를 따라 결과 계산 함수
+	const getResultFromPath = useCallback((startIdx: number): "win" | "lose" => {
+		const { finalIdx } = calculatePath(startIdx);
+		// 하단 인덱스가 당첨 영역(0 ~ winnerNames.length - 1)이면 당첨
+		return finalIdx < winnerNames.length ? "win" : "lose";
+	}, [calculatePath, winnerNames.length]);
 
 	// 애니메이션 처리
 	const handleNameClickWithAnimation = useCallback((name: string) => {
@@ -439,7 +446,7 @@ function LadderVisualization({
 		if (nameIdx === -1) return;
 
 		setAnimatingName(name);
-		const path = calculatePath(nameIdx);
+		const { path } = calculatePath(nameIdx);
 
 		// 경로를 따라 점 이동 애니메이션
 		const totalDuration = 2000; // 2초
@@ -486,6 +493,7 @@ function LadderVisualization({
 				// 애니메이션 완료
 				setDotPosition({ x: path[path.length - 1].x, y: path[path.length - 1].y });
 				setTimeout(() => {
+					// onNameClick을 호출하여 결과 표시 (부모 컴포넌트에서 revealedResults 업데이트)
 					onNameClick(name);
 					setAnimatingName(null);
 					setDotPosition(null);
@@ -494,7 +502,7 @@ function LadderVisualization({
 		};
 
 		requestAnimationFrame(animate);
-	}, [animatingName, revealedResults, names, calculatePath, onNameClick]);
+	}, [animatingName, revealedResults, names, calculatePath, getResultFromPath]);
 
 	return (
 		<div className="flex justify-center overflow-x-auto">
@@ -503,7 +511,8 @@ function LadderVisualization({
 				{names.map((name, idx) => {
 					const x = startX + idx * lineSpacing;
 					const isRevealed = revealedResults.has(name);
-					const result = getResult(name);
+					// 사다리 경로를 따라 계산한 결과 사용 (항상 경로 기반으로 계산)
+					const result = getResultFromPath(idx);
 					return (
 						<g key={idx}>
 							{/* 세로선 */}
