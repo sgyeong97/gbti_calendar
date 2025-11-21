@@ -305,89 +305,24 @@ function LadderVisualization({
 		return currentLineIdx;
 	}, [lineSpacing]);
 
-	// 가로선 생성 (올바른 결과로 가도록)
+	// 가로선 생성 (랜덤하게 생성)
 	const horizontalLines = useMemo(() => {
 		if (numPeople < 2) return [];
-		
-		// 각 이름의 목표 결과 인덱스 계산
-		// 당첨자들은 앞쪽 인덱스, 탈락자들은 뒤쪽 인덱스
-		const targetIndices: Map<number, number> = new Map();
-		const winnerList: number[] = [];
-		const loserList: number[] = [];
-		
-		for (let i = 0; i < names.length; i++) {
-			const name = names[i];
-			if (winnerNames.includes(name)) {
-				winnerList.push(i);
-			} else {
-				loserList.push(i);
-			}
-		}
-		
-		// 목표 인덱스 설정
-		for (let i = 0; i < winnerList.length; i++) {
-			targetIndices.set(winnerList[i], i);
-		}
-		for (let i = 0; i < loserList.length; i++) {
-			targetIndices.set(loserList[i], winnerList.length + i);
-		}
-
-		// 역방향으로 사다리 생성 (하단에서 상단으로)
-		// 현재 위치: 각 이름이 어느 하단 인덱스에 있는지
-		let currentMapping = new Map<number, number>(); // [상단 인덱스] -> [하단 인덱스]
-		for (let i = 0; i < numPeople; i++) {
-			currentMapping.set(i, targetIndices.get(i)!);
-		}
-
 		const lines: { x1: number; x2: number; y: number }[] = [];
 		const numLines = Math.max(8, numPeople * 2);
 		const ySpacing = lineHeight / (numLines + 1);
-		
-		// 하단부터 상단으로 가로선 생성
-		const linePositions: number[] = [];
+
 		for (let i = 1; i <= numLines; i++) {
-			linePositions.push(topY + ySpacing * i);
+			const y = topY + ySpacing * i;
+			// 인접한 두 세로선 사이에 가로선 연결
+			const lineIndex = Math.floor(Math.random() * (numPeople - 1));
+			const x1 = startX + lineIndex * lineSpacing;
+			const x2 = startX + (lineIndex + 1) * lineSpacing;
+			lines.push({ x1, x2, y });
 		}
 
-		// 역방향으로 가로선 생성
-		for (let level = linePositions.length - 1; level >= 0; level--) {
-			const y = linePositions[level];
-			
-			// 필요한 교환 찾기
-			let swapFound = false;
-			for (let i = 0; i < numPeople - 1; i++) {
-				const posI = currentMapping.get(i);
-				const posJ = currentMapping.get(i + 1);
-				
-				// 교환이 필요한 경우 (목표 인덱스가 반대인 경우)
-				if (posI !== undefined && posJ !== undefined && posI > posJ) {
-					// 교환
-					currentMapping.set(i, posJ);
-					currentMapping.set(i + 1, posI);
-					lines.push({
-						x1: startX + i * lineSpacing,
-						x2: startX + (i + 1) * lineSpacing,
-						y: y,
-					});
-					swapFound = true;
-					break; // 한 번에 하나씩만 교환
-				}
-			}
-			
-			// 교환이 필요 없으면 랜덤하게 가로선 추가 (시각적 효과, 결과에 영향 없음)
-			if (!swapFound && Math.random() > 0.4) {
-				const lineIndex = Math.floor(Math.random() * (numPeople - 1));
-				lines.push({
-					x1: startX + lineIndex * lineSpacing,
-					x2: startX + (lineIndex + 1) * lineSpacing,
-					y: y,
-				});
-			}
-		}
-
-		// y 순서대로 정렬 (상단부터)
 		return lines.sort((a, b) => a.y - b.y);
-	}, [numPeople, names, winnerNames, lineHeight, lineSpacing, startX, topY]);
+	}, [numPeople, lineHeight, lineSpacing, startX, topY]);
 
 	// 사다리 경로 계산 함수 (경로와 최종 인덱스 반환)
 	const calculatePath = useCallback((startIdx: number): { path: { x: number; y: number }[]; finalIdx: number } => {
@@ -432,9 +367,12 @@ function LadderVisualization({
 	}, [horizontalLines, startX, lineSpacing, topY, bottomY]);
 
 	// 사다리 경로를 따라 결과 계산 함수
+	// 각 이름이 도착하는 하단 인덱스에 따라 결과 매핑
 	const getResultFromPath = useCallback((startIdx: number): "win" | "lose" => {
 		const { finalIdx } = calculatePath(startIdx);
-		// 하단 인덱스가 당첨 영역(0 ~ winnerNames.length - 1)이면 당첨
+		// 하단 인덱스에 따라 결과 매핑
+		// 하단 인덱스 0 ~ (winnerNames.length - 1) -> 당첨
+		// 하단 인덱스 winnerNames.length ~ (numPeople - 1) -> 탈락
 		return finalIdx < winnerNames.length ? "win" : "lose";
 	}, [calculatePath, winnerNames.length]);
 
@@ -511,8 +449,8 @@ function LadderVisualization({
 				{names.map((name, idx) => {
 					const x = startX + idx * lineSpacing;
 					const isRevealed = revealedResults.has(name);
-					// 사다리 경로를 따라 계산한 결과 사용 (항상 경로 기반으로 계산)
-					const result = getResultFromPath(idx);
+					// 각 이름의 미리 정해진 결과 사용 (사다리 경로와 무관하게)
+					const result = getResult(name);
 					return (
 						<g key={idx}>
 							{/* 세로선 */}
