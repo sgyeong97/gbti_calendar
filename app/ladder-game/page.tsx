@@ -276,6 +276,7 @@ function LadderVisualization({
 
 	// 가로선 생성 (깔끔하게)
 	const horizontalLines = useMemo(() => {
+		if (numPeople < 2) return [];
 		const lines: { x1: number; x2: number; y: number }[] = [];
 		const numLines = Math.max(8, numPeople * 2);
 		const ySpacing = lineHeight / (numLines + 1);
@@ -290,7 +291,7 @@ function LadderVisualization({
 		}
 
 		return lines.sort((a, b) => a.y - b.y);
-	}, [numPeople, lineHeight]);
+	}, [numPeople]);
 
 	return (
 		<div className="flex justify-center overflow-x-auto">
@@ -321,16 +322,17 @@ function LadderVisualization({
 								className="text-zinc-700 dark:text-zinc-300"
 							/>
 							{/* 이름 */}
-							<text
-								x={x}
-								y={topY - 20}
-								textAnchor="middle"
-								className="text-base font-semibold fill-current cursor-pointer"
-								onClick={() => onNameClick(name)}
-								style={{ pointerEvents: "all" }}
-							>
-								{name}
-							</text>
+							<g onClick={() => onNameClick(name)} style={{ cursor: "pointer" }}>
+								<text
+									x={x}
+									y={topY - 20}
+									textAnchor="middle"
+									className="text-base font-semibold fill-current"
+									style={{ pointerEvents: "all" }}
+								>
+									{String(name)}
+								</text>
+							</g>
 							{/* 하단 원 또는 X */}
 							{isRevealed ? (
 								result === "win" ? (
@@ -389,7 +391,7 @@ function LadderVisualization({
 										result === "win" ? "fill-green-600 dark:fill-green-400" : "fill-red-600 dark:fill-red-400"
 									}`}
 								>
-									{result === "win" ? "당첨" : "탈락"}
+									{String(result === "win" ? "당첨" : "탈락")}
 								</text>
 							)}
 						</g>
