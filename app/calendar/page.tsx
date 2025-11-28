@@ -21,6 +21,11 @@ type Event = {
 	calendarId: string;
 	participants?: string[];
 	color?: string;
+	isRecurring?: boolean;
+	recurringSlotId?: string;
+	recurringDays?: number[];
+	recurringStartMinutes?: number;
+	recurringEndMinutes?: number;
 };
 
 type FavoriteUser = {
@@ -128,6 +133,45 @@ export default function CalendarPage() {
 		g = Math.max(0, g - amount);
 		b = Math.max(0, b - amount);
 		return `rgb(${r}, ${g}, ${b})`;
+	}
+
+	// 반복 이벤트를 그룹화하는 함수
+	function groupRecurringEvents(events: Event[]): Event[] {
+		const recurringGroups = new Map<string, { count: number; rep: Event }>();
+		const regularEvents: Event[] = [];
+
+		events.forEach(event => {
+			if (event.isRecurring && event.recurringSlotId !== undefined) {
+				const startKey = event.recurringStartMinutes ?? new Date(event.startAt).getHours() * 60 + new Date(event.startAt).getMinutes();
+				const endKey = event.recurringEndMinutes ?? new Date(event.endAt).getHours() * 60 + new Date(event.endAt).getMinutes();
+				const groupKey = `${event.title}-${startKey}-${endKey}-${event.calendarId ?? ''}`;
+				if (!recurringGroups.has(groupKey)) {
+					recurringGroups.set(groupKey, { count: 1, rep: event });
+				} else {
+					const cur = recurringGroups.get(groupKey)!;
+					cur.count += 1;
+				}
+			} else {
+				regularEvents.push(event);
+			}
+		});
+
+		const groupedRecurringEvents: Event[] = [];
+		recurringGroups.forEach(({ count, rep }) => {
+			const groupedEvent: Event = {
+				...rep,
+				id: `recurring-${rep.recurringSlotId}`,
+				title: `${rep.title}`,
+				isRecurring: true,
+				recurringSlotId: rep.recurringSlotId,
+				recurringDays: rep.recurringDays,
+				recurringStartMinutes: rep.recurringStartMinutes,
+				recurringEndMinutes: rep.recurringEndMinutes,
+			};
+			groupedRecurringEvents.push(groupedEvent);
+		});
+
+		return [...regularEvents, ...groupedRecurringEvents];
 	}
 
 	useEffect(() => {
@@ -1116,86 +1160,119 @@ export default function CalendarPage() {
 					<div className="rounded p-4 w-full max-w-2xl max-h-[80vh] overflow-y-auto" style={{ background: "var(--background)", color: "var(--foreground)" }} onClick={(e) => e.stopPropagation()}>
 						<h2 className="text-lg font-semibold mb-3">파티 한눈에 보기 - {currentUserName}</h2>
 						<div className="space-y-2">
-							{events
-								.filter((e) => e.participants && e.participants.includes(currentUserName))
-								.sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())
-								.map((e) => {
-									const startDate = new Date(e.startAt);
-									const endDate = new Date(e.endAt);
-									const isSameDay = format(startDate, "yyyy-MM-dd") === format(endDate, "yyyy-MM-dd");
-									
-									return (
-										<div
-											key={e.id}
-											className="border rounded-lg p-3 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-											onClick={() => {
-												setActiveEventId(e.id);
-												setShowUserEventsView(false);
-											}}
-										>
-											<div className="flex items-start justify-between">
-												<div className="flex-1">
-													<div className="font-medium text-base mb-1">{e.title}</div>
-													<div className="text-sm text-zinc-600 dark:text-zinc-400">
-														{isSameDay ? (
-															<>
-																{format(startDate, "yyyy년 MM월 dd일")} {format(startDate, "HH:mm")} - {format(endDate, "HH:mm")}
-															</>
+							{(() => {
+								// 현재 사용자가 참여하는 이벤트 필터링
+								const userEvents = events.filter((e) => e.participants && e.participants.includes(currentUserName));
+								// 반복 이벤트 그룹화
+								const groupedEvents = groupRecurringEvents(userEvents);
+								// 정렬 (반복 이벤트는 제목으로, 일반 이벤트는 날짜로)
+								const sortedEvents = groupedEvents.sort((a, b) => {
+									if (a.isRecurring && !b.isRecurring) return -1;
+									if (!a.isRecurring && b.isRecurring) return 1;
+									if (a.isRecurring && b.isRecurring) {
+										return a.title.localeCompare(b.title);
+									}
+									return new Date(a.startAt).getTime() - new Date(b.startAt).getTime();
+								});
+								
+								return sortedEvents.length === 0 ? (
+									<div className="text-center text-zinc-500 dark:text-zinc-400 py-8">
+										참여 예정인 파티가 없습니다.
+									</div>
+								) : (
+									sortedEvents.map((e) => {
+										const startDate = new Date(e.startAt);
+										const endDate = new Date(e.endAt);
+										const isSameDay = format(startDate, "yyyy-MM-dd") === format(endDate, "yyyy-MM-dd");
+										
+										return (
+											<div
+												key={e.id}
+												className="border rounded-lg p-3 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+												onClick={() => {
+													// 반복 이벤트의 경우 첫 번째 인스턴스 ID 찾기
+													if (e.isRecurring && e.recurringSlotId) {
+														const firstInstance = userEvents.find(ev => 
+															ev.isRecurring && 
+															ev.recurringSlotId === e.recurringSlotId
+														);
+														if (firstInstance) {
+															setActiveEventId(firstInstance.id);
+														}
+													} else {
+														setActiveEventId(e.id);
+													}
+													setShowUserEventsView(false);
+												}}
+											>
+												<div className="flex items-start justify-between">
+													<div className="flex-1">
+														<div className="font-medium text-base mb-1">{e.title}</div>
+														{e.isRecurring ? (
+															<div className="text-sm text-zinc-600 dark:text-zinc-400">
+																반복 이벤트 - 요일: {e.recurringDays?.map(d => ['일', '월', '화', '수', '목', '금', '토'][d]).join(', ')}
+																<br />
+																시간: {Math.floor((e.recurringStartMinutes || 0) / 60)}:{(e.recurringStartMinutes || 0) % 60 < 10 ? '0' : ''}{(e.recurringStartMinutes || 0) % 60} - {Math.floor((e.recurringEndMinutes || 0) / 60)}:{(e.recurringEndMinutes || 0) % 60 < 10 ? '0' : ''}{(e.recurringEndMinutes || 0) % 60}
+															</div>
 														) : (
-															<>
-																{format(startDate, "yyyy년 MM월 dd일 HH:mm")} ~ {format(endDate, "yyyy년 MM월 dd일 HH:mm")}
-															</>
+															<div className="text-sm text-zinc-600 dark:text-zinc-400">
+																{isSameDay ? (
+																	<>
+																		{format(startDate, "yyyy년 MM월 dd일")} {format(startDate, "HH:mm")} - {format(endDate, "HH:mm")}
+																	</>
+																) : (
+																	<>
+																		{format(startDate, "yyyy년 MM월 dd일 HH:mm")} ~ {format(endDate, "yyyy년 MM월 dd일 HH:mm")}
+																	</>
+																)}
+															</div>
+														)}
+														{e.participants && e.participants.length > 0 && (
+															<div className="flex gap-1.5 flex-wrap mt-2">
+																{e.participants.map((p) => {
+																	const participantInfo = participantMap.get(p);
+																	const bgColor = participantInfo?.color || "#e5e7eb";
+																	
+																	const hexToRgb = (hex: string) => {
+																		const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+																		return result ? {
+																			r: parseInt(result[1], 16),
+																			g: parseInt(result[2], 16),
+																			b: parseInt(result[3], 16)
+																		} : { r: 229, g: 231, b: 235 };
+																	};
+																	
+																	const rgb = hexToRgb(bgColor);
+																	const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+																	const isBright = brightness > 128;
+																	const textColor = isBright ? "#000" : "#fff";
+																	
+																	return (
+																		<span
+																			key={p}
+																			className="px-2 py-0.5 text-xs rounded-full"
+																			style={{ backgroundColor: bgColor, color: textColor }}
+																		>
+																			{participantInfo?.title && (
+																				<span className="font-bold mr-0.5">{participantInfo.title}</span>
+																			)}
+																			{p}
+																		</span>
+																	);
+																})}
+															</div>
 														)}
 													</div>
-													{e.participants && e.participants.length > 0 && (
-														<div className="flex gap-1.5 flex-wrap mt-2">
-															{e.participants.map((p) => {
-																const participantInfo = participantMap.get(p);
-																const bgColor = participantInfo?.color || "#e5e7eb";
-																
-																const hexToRgb = (hex: string) => {
-																	const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-																	return result ? {
-																		r: parseInt(result[1], 16),
-																		g: parseInt(result[2], 16),
-																		b: parseInt(result[3], 16)
-																	} : { r: 229, g: 231, b: 235 };
-																};
-																
-																const rgb = hexToRgb(bgColor);
-																const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
-																const isBright = brightness > 128;
-																const textColor = isBright ? "#000" : "#fff";
-																
-																return (
-																	<span
-																		key={p}
-																		className="px-2 py-0.5 text-xs rounded-full"
-																		style={{ backgroundColor: bgColor, color: textColor }}
-																	>
-																		{participantInfo?.title && (
-																			<span className="font-bold mr-0.5">{participantInfo.title}</span>
-																		)}
-																		{p}
-																	</span>
-																);
-															})}
-														</div>
-													)}
+													<div
+														className="w-4 h-4 rounded ml-2 flex-shrink-0"
+														style={{ backgroundColor: e.color || "#93c5fd" }}
+													/>
 												</div>
-												<div
-													className="w-4 h-4 rounded ml-2 flex-shrink-0"
-													style={{ backgroundColor: e.color || "#93c5fd" }}
-												/>
 											</div>
-										</div>
-									);
-								})}
-							{events.filter((e) => e.participants && e.participants.includes(currentUserName)).length === 0 && (
-								<div className="text-center text-zinc-500 dark:text-zinc-400 py-8">
-									참여 예정인 파티가 없습니다.
-								</div>
-							)}
+										);
+									})
+								);
+							})()}
 						</div>
 						<div className="flex justify-end mt-4">
 							<button
