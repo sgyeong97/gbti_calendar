@@ -95,6 +95,10 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 			setParticipantMap(map);
 		});
 
+		// localStorage에서 현재 사용자명 가져오기
+		const savedUserName = localStorage.getItem("gbti_current_user_name");
+		const initialParticipants: string[] = [];
+		
 		// 드래프트 복원
 		try {
 			const raw = localStorage.getItem("gbti_create_event_draft");
@@ -104,12 +108,23 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 				if (typeof d.color === "string") setColor(d.color);
 				if (d.startAt) setStartAt(dayjs(d.startAt));
 				if (d.endAt) setEndAt(dayjs(d.endAt));
-				if (Array.isArray(d.participants)) setParticipants(d.participants);
+				if (Array.isArray(d.participants)) {
+					initialParticipants.push(...d.participants);
+				}
 				if (d.repeat && typeof d.repeat.enabled === 'boolean' && Array.isArray(d.repeat.days)) {
 					setRepeat({ enabled: d.repeat.enabled, days: new Set<number>(d.repeat.days) });
 				}
 			}
 		} catch {}
+		
+		// 드래프트에 참여자가 없고, localStorage에 사용자명이 있으면 기본 참여자로 추가
+		if (savedUserName && initialParticipants.length === 0 && !initialParticipants.includes(savedUserName)) {
+			initialParticipants.push(savedUserName);
+		}
+		
+		if (initialParticipants.length > 0) {
+			setParticipants(initialParticipants);
+		}
 	}, []);
 
 	// 드래프트 자동 저장
@@ -401,12 +416,12 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 								return (
 									<span 
 										key={p} 
-										className="px-2 py-0.5 text-xs rounded-full"
+										className="px-3 py-1.5 text-sm rounded-full flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
 										style={{ backgroundColor: bgColor }}
 									>
 										{participantInfo?.title && (
 											<span
-												className="font-bold mr-0.5 px-1.5 py-0.5 rounded"
+												className="font-bold mr-0.5 px-2 py-0.5 rounded"
 												style={{
 													color: titleTextColor,
 													textShadow: titleTextShadow.trim(),
@@ -424,8 +439,12 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 										)}
 										<span style={{ color: textColor }}>{p}</span>
 										<button
-											className="ml-1 text-zinc-500 hover:text-zinc-700"
-											onClick={() => setParticipants(participants.filter(x => x !== p))}
+											className="ml-1 text-zinc-500 hover:text-zinc-700 text-base font-bold"
+											onClick={(e) => {
+												e.stopPropagation();
+												setParticipants(participants.filter(x => x !== p));
+											}}
+											title="제거"
 										>
 											×
 										</button>
