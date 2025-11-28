@@ -987,6 +987,17 @@ export default function CalendarPage() {
                                         const en = new Date(e.endAt);
                                         const dayStart = startOfDay(d);
                                         const dayEnd = endOfDay(d);
+                                        
+                                        // 종일 이벤트의 경우: 시작일과 종료일 사이에 해당 날짜가 포함되면 표시
+                                        if (e.allDay) {
+                                            const startDate = startOfDay(s);
+                                            const endDate = endOfDay(en);
+                                            return startDate <= dayEnd && endDate >= dayStart;
+                                        }
+                                        
+                                        // 일반 이벤트의 경우: 이벤트 기간이 해당 날짜와 겹치면 표시
+                                        // s <= dayEnd: 이벤트 시작이 해당 날짜 끝 이전 또는 같음
+                                        // en >= dayStart: 이벤트 종료가 해당 날짜 시작 이후 또는 같음
                                         return s <= dayEnd && en >= dayStart;
                                     }).map((e) => {
                                         const s = new Date(e.startAt);
