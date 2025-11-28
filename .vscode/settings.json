@@ -1,0 +1,6 @@
+{
+  "git.enableCommitMessageTemplate": true,
+  "git.commitMessageTemplate": ".gitmessage",
+  "git.useCommitInputAsStashMessage": true
+}
+

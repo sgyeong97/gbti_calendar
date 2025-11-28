@@ -985,20 +985,34 @@ export default function CalendarPage() {
                                     {events.filter((e) => {
                                         const s = new Date(e.startAt);
                                         const en = new Date(e.endAt);
-                                        const dayStart = startOfDay(d);
-                                        const dayEnd = endOfDay(d);
                                         
                                         // 종일 이벤트의 경우: 시작일과 종료일 사이에 해당 날짜가 포함되면 표시
                                         if (e.allDay) {
                                             const startDate = startOfDay(s);
                                             const endDate = endOfDay(en);
+                                            const dayStart = startOfDay(d);
+                                            const dayEnd = endOfDay(d);
                                             return startDate <= dayEnd && endDate >= dayStart;
                                         }
                                         
-                                        // 일반 이벤트의 경우: 이벤트 기간이 해당 날짜와 겹치면 표시
-                                        // s <= dayEnd: 이벤트 시작이 해당 날짜 끝 이전 또는 같음
-                                        // en >= dayStart: 이벤트 종료가 해당 날짜 시작 이후 또는 같음
-                                        return s <= dayEnd && en >= dayStart;
+                                        // 일반 이벤트의 경우: 여러 방법으로 확인하여 더 확실하게 표시
+                                        const dayStart = startOfDay(d);
+                                        const dayEnd = endOfDay(d);
+                                        
+                                        // 방법 1: 시작일 또는 종료일이 해당 날짜와 정확히 같은지 확인
+                                        const isStartOnDay = isSameDay(s, d);
+                                        const isEndOnDay = isSameDay(en, d);
+                                        
+                                        // 방법 2: 이벤트 기간이 해당 날짜와 겹치는지 확인 (시간 포함)
+                                        const overlapsByTime = s <= dayEnd && en >= dayStart;
+                                        
+                                        // 방법 3: 날짜만 비교 (시간 무시)
+                                        const eventStartDay = startOfDay(s);
+                                        const eventEndDay = endOfDay(en);
+                                        const overlapsByDate = eventStartDay <= dayEnd && eventEndDay >= dayStart;
+                                        
+                                        // 세 가지 조건 중 하나라도 만족하면 표시
+                                        return isStartOnDay || isEndOnDay || overlapsByTime || overlapsByDate;
                                     }).map((e) => {
                                         const s = new Date(e.startAt);
                                         const en = new Date(e.endAt);
@@ -1066,10 +1080,57 @@ export default function CalendarPage() {
 												return;
 											}
 											
+											// 변수들을 try 블록 밖에서 선언하여 catch 블록에서도 접근 가능하도록 함
+											const originalClasses = container.className;
+											const allOriginalElements = container.querySelectorAll("*");
+											const originalStyles = new Map<HTMLElement, string>();
+											
 											try {
 												// 저장 전에 컨테이너 스타일을 조정하여 더 예쁘게 보이도록 함
-												const originalClasses = container.className;
 												container.className = "flex flex-col gap-4 pb-4 bg-white p-6 rounded-lg border-2 border-zinc-200 shadow-lg";
+												
+												// 원본 문서에서 모든 요소의 computed style을 읽어서 lab() 색상을 RGB로 변환하여 인라인 스타일로 설정
+												const styleProps = ["color", "backgroundColor", "borderColor", "borderTopColor", "borderRightColor", "borderBottomColor", "borderLeftColor"];
+												
+												allOriginalElements.forEach((el) => {
+													const htmlEl = el as HTMLElement;
+													const computed = window.getComputedStyle(htmlEl);
+													const originalStyle = htmlEl.style.cssText;
+													originalStyles.set(htmlEl, originalStyle);
+													
+													styleProps.forEach((prop) => {
+														const value = computed.getPropertyValue(prop);
+														if (value && value.includes("lab(")) {
+															// lab() 색상을 RGB로 변환 시도
+															try {
+																const tempEl = document.createElement("div");
+																tempEl.style.setProperty(prop, value, "important");
+																document.body.appendChild(tempEl);
+																const tempComputed = window.getComputedStyle(tempEl);
+																const rgb = tempComputed.getPropertyValue(prop);
+																document.body.removeChild(tempEl);
+																
+																if (rgb && !rgb.includes("lab(") && rgb !== "rgba(0, 0, 0, 0)" && rgb !== "transparent") {
+																	htmlEl.style.setProperty(prop, rgb, "important");
+																} else {
+																	// 변환 실패 시 기본값 설정
+																	if (prop === "color") {
+																		htmlEl.style.setProperty(prop, "#000000", "important");
+																	} else if (prop === "backgroundColor") {
+																		htmlEl.style.setProperty(prop, "#ffffff", "important");
+																	}
+																}
+															} catch (e) {
+																// 변환 실패 시 기본값 설정
+																if (prop === "color") {
+																	htmlEl.style.setProperty(prop, "#000000", "important");
+																} else if (prop === "backgroundColor") {
+																	htmlEl.style.setProperty(prop, "#ffffff", "important");
+																}
+															}
+														}
+													});
+												});
 												
 												const canvas = await html2canvas(container, {
 													backgroundColor: "#ffffff",
@@ -1098,66 +1159,16 @@ export default function CalendarPage() {
 																}
 															});
 														}
-														
-														// lab() 색상 함수를 사용하는 모든 요소 찾아서 처리
-														const styleProps = [
-															"color",
-															"backgroundColor",
-															"borderColor",
-															"borderTopColor",
-															"borderRightColor",
-															"borderBottomColor",
-															"borderLeftColor",
-														];
-														
-														const allElements = clonedDoc.querySelectorAll("*");
-														allElements.forEach((el) => {
-															const htmlEl = el as HTMLElement;
-															
-															// 인라인 스타일 확인 및 수정
-															if (htmlEl.style && htmlEl.style.cssText) {
-																const inlineStyle = htmlEl.style.cssText;
-																if (inlineStyle.includes("lab(")) {
-																	// lab() 색상이 포함된 속성 제거
-																	const styleRules = inlineStyle.split(";");
-																	const cleanedRules = styleRules
-																		.filter((rule) => !rule.trim().includes("lab("))
-																		.join(";");
-																	htmlEl.style.cssText = cleanedRules;
-																}
-															}
-															
-															// 스타일 속성 직접 확인
-															styleProps.forEach((prop) => {
-																const value = htmlEl.style.getPropertyValue(prop);
-																if (value && value.includes("lab(")) {
-																	// lab() 색상을 제거
-																	htmlEl.style.removeProperty(prop);
-																}
-															});
-														});
-														
-														// 스타일시트의 lab() 색상도 처리
-														const styleSheets = Array.from(clonedDoc.styleSheets || []);
-														styleSheets.forEach((sheet) => {
-															try {
-																const rules = Array.from(sheet.cssRules || []);
-																rules.forEach((rule) => {
-																	if (rule instanceof CSSStyleRule) {
-																		const style = rule.style;
-																		styleProps.forEach((prop) => {
-																			const value = style.getPropertyValue(prop);
-																			if (value && value.includes("lab(")) {
-																				style.removeProperty(prop);
-																			}
-																		});
-																	}
-																});
-															} catch (e) {
-																// Cross-origin 스타일시트는 접근 불가
-															}
-														});
 													},
+												});
+												
+												// 원본 스타일 복원
+												allOriginalElements.forEach((el) => {
+													const htmlEl = el as HTMLElement;
+													const originalStyle = originalStyles.get(htmlEl);
+													if (originalStyle !== undefined) {
+														htmlEl.style.cssText = originalStyle;
+													}
 												});
 												
 												// 원래 클래스 복원
@@ -1168,6 +1179,16 @@ export default function CalendarPage() {
 												link.href = canvas.toDataURL("image/png");
 												link.click();
 											} catch (error) {
+												// 에러 발생 시에도 원본 스타일 복원
+												allOriginalElements.forEach((el) => {
+													const htmlEl = el as HTMLElement;
+													const originalStyle = originalStyles.get(htmlEl);
+													if (originalStyle !== undefined) {
+														htmlEl.style.cssText = originalStyle;
+													}
+												});
+												container.className = originalClasses;
+												
 												console.error("이미지 저장 실패:", error);
 												alert("이미지 저장에 실패했습니다: " + (error instanceof Error ? error.message : String(error)));
 											}
