@@ -1084,6 +1084,12 @@ export default function CalendarPage() {
 											const originalClasses = container.className;
 											const allOriginalElements = container.querySelectorAll("*");
 											const originalStyles = new Map<HTMLElement, string>();
+											const originalStyleValues = new Map<CSSStyleRule, Map<string, string>>();
+											const styleProps = [
+												"color", "backgroundColor", "borderColor", 
+												"borderTopColor", "borderRightColor", "borderBottomColor", "borderLeftColor",
+												"outlineColor", "textDecorationColor", "columnRuleColor", "fill", "stroke"
+											];
 											
 											try {
 												// 저장 전에 컨테이너 스타일을 조정하여 더 예쁘게 보이도록 함
@@ -1117,11 +1123,6 @@ export default function CalendarPage() {
 												};
 												
 												// 원본 문서에서 모든 요소의 computed style을 읽어서 lab() 색상을 RGB로 변환하여 인라인 스타일로 설정
-												const styleProps = [
-													"color", "backgroundColor", "borderColor", 
-													"borderTopColor", "borderRightColor", "borderBottomColor", "borderLeftColor",
-													"outlineColor", "textDecorationColor", "columnRuleColor"
-												];
 												
 												allOriginalElements.forEach((el) => {
 													const htmlEl = el as HTMLElement;
@@ -1168,8 +1169,68 @@ export default function CalendarPage() {
 													});
 												});
 												
+												// 모든 스타일시트에서 lab() 색상 제거 (원본 저장 및 복원)
+												const styleSheets = Array.from(document.styleSheets);
+												
+												styleSheets.forEach((sheet) => {
+													try {
+														const rules = Array.from(sheet.cssRules || []);
+														rules.forEach((rule) => {
+															if (rule instanceof CSSStyleRule) {
+																const style = rule.style;
+																const originalValues = new Map<string, string>();
+																styleProps.forEach((prop) => {
+																	const value = style.getPropertyValue(prop);
+																	if (value && value.includes("lab(")) {
+																		// 원본 값 저장
+																		originalValues.set(prop, value);
+																		// lab() 색상을 RGB로 변환 시도
+																		const rgb = convertLabToRgb(value, prop);
+																		if (rgb) {
+																			style.setProperty(prop, rgb, "important");
+																		} else {
+																			// 변환 실패 시 제거
+																			style.removeProperty(prop);
+																		}
+																	}
+																});
+																if (originalValues.size > 0) {
+																	originalStyleValues.set(rule, originalValues);
+																}
+															} else if (rule instanceof CSSMediaRule) {
+																// 미디어 쿼리 내부 규칙도 처리
+																const mediaRules = Array.from(rule.cssRules);
+																mediaRules.forEach((mediaRule) => {
+																	if (mediaRule instanceof CSSStyleRule) {
+																		const style = mediaRule.style;
+																		const originalValues = new Map<string, string>();
+																		styleProps.forEach((prop) => {
+																			const value = style.getPropertyValue(prop);
+																			if (value && value.includes("lab(")) {
+																				// 원본 값 저장
+																				originalValues.set(prop, value);
+																				const rgb = convertLabToRgb(value, prop);
+																				if (rgb) {
+																					style.setProperty(prop, rgb, "important");
+																				} else {
+																					style.removeProperty(prop);
+																				}
+																			}
+																		});
+																		if (originalValues.size > 0) {
+																			originalStyleValues.set(mediaRule, originalValues);
+																		}
+																	}
+																});
+															}
+														});
+													} catch (e) {
+														// Cross-origin 스타일시트는 접근 불가
+													}
+												});
+												
 												// 스타일 적용을 위한 짧은 대기 시간
-												await new Promise(resolve => setTimeout(resolve, 100));
+												await new Promise(resolve => setTimeout(resolve, 200));
 												
 												const canvas = await html2canvas(container, {
 													backgroundColor: "#ffffff",
@@ -1290,6 +1351,16 @@ export default function CalendarPage() {
 													},
 												});
 												
+												// 원본 스타일시트 복원
+												originalStyleValues.forEach((originalValues: Map<string, string>, rule: CSSStyleRule) => {
+													if (rule instanceof CSSStyleRule) {
+														const style = rule.style;
+														originalValues.forEach((originalValue: string, prop: string) => {
+															style.setProperty(prop, originalValue);
+														});
+													}
+												});
+												
 												// 원본 스타일 복원
 												allOriginalElements.forEach((el) => {
 													const htmlEl = el as HTMLElement;
@@ -1307,6 +1378,16 @@ export default function CalendarPage() {
 												link.href = canvas.toDataURL("image/png");
 												link.click();
 											} catch (error) {
+												// 에러 발생 시에도 원본 스타일시트 복원
+												originalStyleValues.forEach((originalValues: Map<string, string>, rule: CSSStyleRule) => {
+													if (rule instanceof CSSStyleRule) {
+														const style = rule.style;
+														originalValues.forEach((originalValue: string, prop: string) => {
+															style.setProperty(prop, originalValue);
+														});
+													}
+												});
+												
 												// 에러 발생 시에도 원본 스타일 복원
 												allOriginalElements.forEach((el) => {
 													const htmlEl = el as HTMLElement;
