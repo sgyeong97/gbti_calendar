@@ -1050,15 +1050,44 @@ export default function CalendarPage() {
 											if (todayEvents.length === 0) return;
 											
 											const container = document.getElementById("today-events-container");
-											if (!container) return;
+											if (!container) {
+												alert("저장할 내용을 찾을 수 없습니다.");
+												return;
+											}
 											
 											try {
+												// 저장 전에 컨테이너 스타일을 조정하여 더 예쁘게 보이도록 함
+												const originalClasses = container.className;
+												container.className = "flex flex-col gap-4 pb-4 bg-white p-6 rounded-lg border-2 border-zinc-200 shadow-lg";
+												
 												const canvas = await html2canvas(container, {
 													backgroundColor: "#ffffff",
 													scale: 2,
 													useCORS: true,
 													logging: false,
+													width: container.scrollWidth,
+													height: container.scrollHeight,
 													onclone: (clonedDoc) => {
+														// 클론된 문서에서 다크모드 클래스 제거 및 밝은 배경으로 변경
+														const clonedContainer = clonedDoc.getElementById("today-events-container");
+														if (clonedContainer) {
+															clonedContainer.className = "flex flex-col gap-4 pb-4 bg-white p-6 rounded-lg border-2 border-zinc-200 shadow-lg";
+															// 모든 자식 요소의 다크모드 클래스 제거
+															const allElements = clonedContainer.querySelectorAll("*");
+															allElements.forEach((el) => {
+																const htmlEl = el as HTMLElement;
+																// 다크모드 관련 클래스 제거
+																htmlEl.classList.remove("dark:bg-zinc-900", "dark:text-zinc-400", "dark:border-zinc-700", "dark:hover:bg-zinc-800", "dark:bg-indigo-900/30", "dark:text-indigo-200", "dark:fill-green-400", "dark:fill-red-400");
+																// 텍스트 색상이 어두운 경우 밝게 조정
+																if (htmlEl.classList.contains("text-zinc-600") || htmlEl.classList.contains("text-zinc-500")) {
+																	htmlEl.style.color = "#52525b";
+																}
+																if (htmlEl.classList.contains("text-zinc-400")) {
+																	htmlEl.style.color = "#a1a1aa";
+																}
+															});
+														}
+														
 														// lab() 색상 함수를 사용하는 모든 요소 찾아서 처리
 														const styleProps = [
 															"color",
@@ -1120,13 +1149,16 @@ export default function CalendarPage() {
 													},
 												});
 												
+												// 원래 클래스 복원
+												container.className = originalClasses;
+												
 												const link = document.createElement("a");
 												link.download = `오늘의_파티_${format(new Date(), "MM월dd일")}.png`;
 												link.href = canvas.toDataURL("image/png");
 												link.click();
 											} catch (error) {
 												console.error("이미지 저장 실패:", error);
-												alert("이미지 저장에 실패했습니다.");
+												alert("이미지 저장에 실패했습니다: " + (error instanceof Error ? error.message : String(error)));
 											}
 										}}
 										className="px-3 py-1.5 rounded text-sm border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer flex items-center gap-1.5"
@@ -1145,7 +1177,10 @@ export default function CalendarPage() {
 								return <div className="text-sm text-zinc-500 dark:text-zinc-400">오늘 예정된 파티가 없습니다.</div>;
 							}
 							return (
-								<div id="today-events-container" className="flex gap-3 overflow-x-auto pb-2">
+								<div id="today-events-container" className="flex flex-col gap-3 pb-2 bg-white dark:bg-zinc-900 p-4 rounded-lg border">
+									<div className="text-xl font-bold mb-2 text-center pb-3 border-b">
+										오늘의 파티 ({format(new Date(), "MM월 dd일")})
+									</div>
 									{todayEvents.map((e) => {
 										// 배경색 밝기에 따라 글자색 결정을 위한 함수
 										const hexToRgb = (hex: string) => {
@@ -1160,7 +1195,7 @@ export default function CalendarPage() {
 										return (
 											<div
 												key={e.id}
-												className="border rounded-lg p-4 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors min-w-[280px] flex-shrink-0 shadow-sm"
+												className="border rounded-lg p-4 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors w-full shadow-sm"
 												onClick={() => setActiveEventId(e.id)}
 											>
 												<div className="flex flex-col gap-2">
