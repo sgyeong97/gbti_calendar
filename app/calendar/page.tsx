@@ -112,6 +112,7 @@ export default function CalendarPage() {
 	const [showSettings, setShowSettings] = useState<boolean>(false);
 	const [showUserInfoSettings, setShowUserInfoSettings] = useState<boolean>(false);
 	const [showUserNotificationSettings, setShowUserNotificationSettings] = useState<boolean>(false);
+	const [showUserEventsView, setShowUserEventsView] = useState<boolean>(false);
 	const [userInfoName, setUserInfoName] = useState<string>("");
 	const [userInfoTitle, setUserInfoTitle] = useState<string>("");
 	const [userInfoColor, setUserInfoColor] = useState<string>("#e5e7eb");
@@ -835,7 +836,7 @@ export default function CalendarPage() {
 											setShowUserInfoSettings(true);
 										}}
 									>
-										[유저 정보 설정]
+										닉네임/칭호 설정
 									</button>
 									<button
 										className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
@@ -844,7 +845,16 @@ export default function CalendarPage() {
 											setShowUserNotificationSettings(true);
 										}}
 									>
-										[유저 알람 설정]
+										알람 설정
+									</button>
+									<button
+										className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
+										onClick={() => {
+											setShowSettings(false);
+											setShowUserEventsView(true);
+										}}
+									>
+										파티 한눈에 보기
 									</button>
 								</div>
 								<div className="flex justify-end gap-2">
@@ -1046,6 +1056,23 @@ export default function CalendarPage() {
 						<div className="flex justify-end gap-2">
 							<button
 								className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
+								onClick={() => {
+									const run = () => showLocalNotification("테스트 알림", {
+										body: "알림이 정상 동작합니다.",
+										badge: NOTIF_BADGE,
+										icon: NOTIF_ICON,
+									});
+									if (Notification.permission !== "granted") {
+										requestNotificationPermission().then((ok) => { if (ok) run(); });
+									} else {
+										run();
+									}
+								}}
+							>
+								알람 테스트
+							</button>
+							<button
+								className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
 								onClick={async () => {
 									// 알림 대상은 현재 사용자로 고정
 									const targets = [currentUserName];
@@ -1077,6 +1104,105 @@ export default function CalendarPage() {
 								onClick={() => setShowUserNotificationSettings(false)}
 							>
 								취소
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* 파티 한눈에 보기 모달 */}
+			{showUserEventsView && (
+				<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowUserEventsView(false)}>
+					<div className="rounded p-4 w-full max-w-2xl max-h-[80vh] overflow-y-auto" style={{ background: "var(--background)", color: "var(--foreground)" }} onClick={(e) => e.stopPropagation()}>
+						<h2 className="text-lg font-semibold mb-3">파티 한눈에 보기 - {currentUserName}</h2>
+						<div className="space-y-2">
+							{events
+								.filter((e) => e.participants && e.participants.includes(currentUserName))
+								.sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())
+								.map((e) => {
+									const startDate = new Date(e.startAt);
+									const endDate = new Date(e.endAt);
+									const isSameDay = format(startDate, "yyyy-MM-dd") === format(endDate, "yyyy-MM-dd");
+									
+									return (
+										<div
+											key={e.id}
+											className="border rounded-lg p-3 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+											onClick={() => {
+												setActiveEventId(e.id);
+												setShowUserEventsView(false);
+											}}
+										>
+											<div className="flex items-start justify-between">
+												<div className="flex-1">
+													<div className="font-medium text-base mb-1">{e.title}</div>
+													<div className="text-sm text-zinc-600 dark:text-zinc-400">
+														{isSameDay ? (
+															<>
+																{format(startDate, "yyyy년 MM월 dd일")} {format(startDate, "HH:mm")} - {format(endDate, "HH:mm")}
+															</>
+														) : (
+															<>
+																{format(startDate, "yyyy년 MM월 dd일 HH:mm")} ~ {format(endDate, "yyyy년 MM월 dd일 HH:mm")}
+															</>
+														)}
+													</div>
+													{e.participants && e.participants.length > 0 && (
+														<div className="flex gap-1.5 flex-wrap mt-2">
+															{e.participants.map((p) => {
+																const participantInfo = participantMap.get(p);
+																const bgColor = participantInfo?.color || "#e5e7eb";
+																
+																const hexToRgb = (hex: string) => {
+																	const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+																	return result ? {
+																		r: parseInt(result[1], 16),
+																		g: parseInt(result[2], 16),
+																		b: parseInt(result[3], 16)
+																	} : { r: 229, g: 231, b: 235 };
+																};
+																
+																const rgb = hexToRgb(bgColor);
+																const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+																const isBright = brightness > 128;
+																const textColor = isBright ? "#000" : "#fff";
+																
+																return (
+																	<span
+																		key={p}
+																		className="px-2 py-0.5 text-xs rounded-full"
+																		style={{ backgroundColor: bgColor, color: textColor }}
+																	>
+																		{participantInfo?.title && (
+																			<span className="font-bold mr-0.5">{participantInfo.title}</span>
+																		)}
+																		{p}
+																	</span>
+																);
+															})}
+														</div>
+													)}
+												</div>
+												<div
+													className="w-4 h-4 rounded ml-2 flex-shrink-0"
+													style={{ backgroundColor: e.color || "#93c5fd" }}
+												/>
+											</div>
+										</div>
+									);
+								})}
+							{events.filter((e) => e.participants && e.participants.includes(currentUserName)).length === 0 && (
+								<div className="text-center text-zinc-500 dark:text-zinc-400 py-8">
+									참여 예정인 파티가 없습니다.
+								</div>
+							)}
+						</div>
+						<div className="flex justify-end mt-4">
+							<button
+								className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
+								onClick={() => setShowUserEventsView(false)}
+							>
+								닫기
 							</button>
 						</div>
 					</div>
