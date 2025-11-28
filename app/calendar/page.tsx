@@ -1160,7 +1160,20 @@ export default function CalendarPage() {
 						<div className="space-y-2">
 							{(() => {
 								// 현재 사용자가 참여하는 이벤트 필터링
-								const userEvents = events.filter((e) => e.participants && e.participants.includes(currentUserName));
+								const now = new Date();
+								const todayStart = startOfDay(now);
+								
+								const userEvents = events.filter((e) => {
+									if (!e.participants || !e.participants.includes(currentUserName)) return false;
+									
+									// 반복 이벤트는 항상 표시
+									if (e.isRecurring) return true;
+									
+									// 단일 이벤트는 오늘 이후 종료되는 이벤트만 표시 (진행 중이거나 예정인 이벤트)
+									const endDate = new Date(e.endAt);
+									return endDate >= todayStart;
+								});
+								
 								// 반복 이벤트 그룹화
 								const groupedEvents = groupRecurringEvents(userEvents);
 								// 정렬 (반복 이벤트는 제목으로, 일반 이벤트는 날짜로)
