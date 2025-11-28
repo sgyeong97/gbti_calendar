@@ -937,7 +937,9 @@ export default function CalendarPage() {
 									type="text"
 									value={userInfoName}
 									onChange={(e) => setUserInfoName(e.target.value)}
-									className="w-full border rounded px-3 py-2"
+									className="w-full border rounded px-3 py-2 bg-zinc-50 dark:bg-zinc-800"
+									readOnly
+									title="이름은 관리자만 변경할 수 있습니다"
 								/>
 							</div>
 							<div>
@@ -988,7 +990,8 @@ export default function CalendarPage() {
 													body: JSON.stringify({
 														name: userInfoName.trim(),
 														title: userInfoTitle.trim() || null,
-														color: userInfoColor || "#e5e7eb"
+														color: userInfoColor || "#e5e7eb",
+														currentUserName: currentUserName
 													}),
 												});
 												

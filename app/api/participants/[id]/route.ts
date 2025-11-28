@@ -6,10 +6,8 @@ type ParamsPromise = { params: Promise<{ id: string }> };
 
 export async function PUT(req: NextRequest, ctx: ParamsPromise) {
 	const role = req.cookies.get("gbti_role")?.value;
-	if (role !== "admin") return NextResponse.json({ error: "Admin only" }, { status: 403 });
-	
 	const { id } = await ctx.params;
-	const { name, title, color } = await req.json();
+	const { name, title, color, currentUserName } = await req.json();
 	
 	if (!name || !name.trim()) {
 		return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -24,6 +22,18 @@ export async function PUT(req: NextRequest, ctx: ParamsPromise) {
 	
 	if (fetchError || !oldParticipant) {
 		return NextResponse.json({ error: "Participant not found" }, { status: 404 });
+	}
+	
+	// 관리자가 아니면 자신의 정보만 수정 가능
+	if (role !== "admin") {
+		// currentUserName이 제공되고, 기존 이름과 일치하는지 확인
+		if (!currentUserName || oldParticipant.name !== currentUserName) {
+			return NextResponse.json({ error: "You can only update your own information" }, { status: 403 });
+		}
+		// 이름 변경은 관리자만 가능
+		if (name.trim() !== oldParticipant.name) {
+			return NextResponse.json({ error: "Only admins can change names" }, { status: 403 });
+		}
 	}
 	
 	const oldName = oldParticipant.name;
