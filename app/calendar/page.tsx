@@ -1089,8 +1089,39 @@ export default function CalendarPage() {
 												// 저장 전에 컨테이너 스타일을 조정하여 더 예쁘게 보이도록 함
 												container.className = "flex flex-col gap-4 pb-4 bg-white p-6 rounded-lg border-2 border-zinc-200 shadow-lg";
 												
+												// lab() 색상을 RGB로 변환하는 함수
+												const convertLabToRgb = (value: string, prop: string): string | null => {
+													if (!value || !value.includes("lab(")) return null;
+													
+													try {
+														// 임시 요소를 사용하여 computed style로 RGB 변환
+														const tempEl = document.createElement("div");
+														tempEl.style.setProperty(prop, value, "important");
+														tempEl.style.position = "absolute";
+														tempEl.style.visibility = "hidden";
+														tempEl.style.pointerEvents = "none";
+														document.body.appendChild(tempEl);
+														
+														const tempComputed = window.getComputedStyle(tempEl);
+														const rgb = tempComputed.getPropertyValue(prop);
+														
+														document.body.removeChild(tempEl);
+														
+														if (rgb && !rgb.includes("lab(") && rgb !== "rgba(0, 0, 0, 0)" && rgb !== "transparent" && rgb.trim() !== "") {
+															return rgb;
+														}
+													} catch (e) {
+														// 변환 실패
+													}
+													return null;
+												};
+												
 												// 원본 문서에서 모든 요소의 computed style을 읽어서 lab() 색상을 RGB로 변환하여 인라인 스타일로 설정
-												const styleProps = ["color", "backgroundColor", "borderColor", "borderTopColor", "borderRightColor", "borderBottomColor", "borderLeftColor"];
+												const styleProps = [
+													"color", "backgroundColor", "borderColor", 
+													"borderTopColor", "borderRightColor", "borderBottomColor", "borderLeftColor",
+													"outlineColor", "textDecorationColor", "columnRuleColor"
+												];
 												
 												allOriginalElements.forEach((el) => {
 													const htmlEl = el as HTMLElement;
@@ -1098,39 +1129,47 @@ export default function CalendarPage() {
 													const originalStyle = htmlEl.style.cssText;
 													originalStyles.set(htmlEl, originalStyle);
 													
+													// 모든 스타일 속성 확인
 													styleProps.forEach((prop) => {
 														const value = computed.getPropertyValue(prop);
 														if (value && value.includes("lab(")) {
-															// lab() 색상을 RGB로 변환 시도
-															try {
-																const tempEl = document.createElement("div");
-																tempEl.style.setProperty(prop, value, "important");
-																document.body.appendChild(tempEl);
-																const tempComputed = window.getComputedStyle(tempEl);
-																const rgb = tempComputed.getPropertyValue(prop);
-																document.body.removeChild(tempEl);
-																
-																if (rgb && !rgb.includes("lab(") && rgb !== "rgba(0, 0, 0, 0)" && rgb !== "transparent") {
-																	htmlEl.style.setProperty(prop, rgb, "important");
-																} else {
-																	// 변환 실패 시 기본값 설정
-																	if (prop === "color") {
-																		htmlEl.style.setProperty(prop, "#000000", "important");
-																	} else if (prop === "backgroundColor") {
-																		htmlEl.style.setProperty(prop, "#ffffff", "important");
-																	}
-																}
-															} catch (e) {
-																// 변환 실패 시 기본값 설정
+															// lab() 색상을 RGB로 변환
+															const rgb = convertLabToRgb(value, prop);
+															if (rgb) {
+																htmlEl.style.setProperty(prop, rgb, "important");
+															} else {
+																// 변환 실패 시 기본값 또는 제거
 																if (prop === "color") {
 																	htmlEl.style.setProperty(prop, "#000000", "important");
 																} else if (prop === "backgroundColor") {
-																	htmlEl.style.setProperty(prop, "#ffffff", "important");
+																	// 배경색은 투명하게 하거나 기본값 설정
+																	const bgValue = computed.getPropertyValue("backgroundColor");
+																	if (bgValue && bgValue !== "rgba(0, 0, 0, 0)" && bgValue !== "transparent") {
+																		htmlEl.style.setProperty(prop, "#ffffff", "important");
+																	}
+																} else {
+																	// 기타 색상 속성은 제거
+																	htmlEl.style.removeProperty(prop);
 																}
 															}
 														}
 													});
+													
+													// CSS 변수도 확인
+													const cssVars = Array.from(computed).filter(prop => prop.startsWith("--"));
+													cssVars.forEach((varName) => {
+														const varValue = computed.getPropertyValue(varName);
+														if (varValue && varValue.includes("lab(")) {
+															const rgb = convertLabToRgb(varValue, "color");
+															if (rgb) {
+																htmlEl.style.setProperty(varName, rgb, "important");
+															}
+														}
+													});
 												});
+												
+												// 스타일 적용을 위한 짧은 대기 시간
+												await new Promise(resolve => setTimeout(resolve, 100));
 												
 												const canvas = await html2canvas(container, {
 													backgroundColor: "#ffffff",
@@ -1139,7 +1178,11 @@ export default function CalendarPage() {
 													logging: false,
 													width: container.scrollWidth,
 													height: container.scrollHeight,
-													onclone: (clonedDoc) => {
+													ignoreElements: (element) => {
+														// lab() 색상이 있는 요소는 무시하지 않지만, 스타일은 이미 변환됨
+														return false;
+													},
+													onclone: (clonedDoc, clonedWindow) => {
 														// 클론된 문서에서 다크모드 클래스 제거 및 밝은 배경으로 변경
 														const clonedContainer = clonedDoc.getElementById("today-events-container");
 														if (clonedContainer) {
@@ -1158,6 +1201,91 @@ export default function CalendarPage() {
 																	htmlEl.style.color = "#a1a1aa";
 																}
 															});
+														}
+														
+														// 클론된 문서에서도 lab() 색상 제거
+														const allClonedElements = clonedDoc.querySelectorAll("*");
+														const styleProps = [
+															"color", "backgroundColor", "borderColor", 
+															"borderTopColor", "borderRightColor", "borderBottomColor", "borderLeftColor",
+															"outlineColor", "textDecorationColor", "columnRuleColor"
+														];
+														
+														allClonedElements.forEach((el) => {
+															const htmlEl = el as HTMLElement;
+															
+															// 인라인 스타일에서 lab() 제거
+															if (htmlEl.style && htmlEl.style.cssText) {
+																const inlineStyle = htmlEl.style.cssText;
+																if (inlineStyle.includes("lab(")) {
+																	// lab() 색상이 포함된 속성 제거
+																	const styleRules = inlineStyle.split(";");
+																	const cleanedRules = styleRules
+																		.filter((rule) => !rule.trim().includes("lab("))
+																		.join(";");
+																	htmlEl.style.cssText = cleanedRules;
+																}
+															}
+															
+															// 각 속성에서 lab() 제거
+															styleProps.forEach((prop) => {
+																const value = htmlEl.style.getPropertyValue(prop);
+																if (value && value.includes("lab(")) {
+																	htmlEl.style.removeProperty(prop);
+																}
+															});
+															
+															// computed style에서도 확인 (가능한 경우)
+															try {
+																if (clonedWindow && "getComputedStyle" in clonedWindow) {
+																	const getComputedStyleFn = (clonedWindow as any).getComputedStyle;
+																	if (typeof getComputedStyleFn === "function") {
+																		const computed = getComputedStyleFn(htmlEl);
+																		if (computed) {
+																			styleProps.forEach((prop) => {
+																				const value = computed.getPropertyValue(prop);
+																				if (value && value.includes("lab(")) {
+																					// lab() 색상이 있으면 제거하거나 기본값 설정
+																					if (prop === "color") {
+																						htmlEl.style.setProperty(prop, "#000000", "important");
+																					} else if (prop === "backgroundColor") {
+																						htmlEl.style.setProperty(prop, "#ffffff", "important");
+																					} else {
+																						htmlEl.style.removeProperty(prop);
+																					}
+																				}
+																			});
+																		}
+																	}
+																}
+															} catch (e) {
+																// computed style 접근 실패 시 무시
+															}
+														});
+														
+														// 스타일시트의 lab() 색상도 처리
+														try {
+															const styleSheets = Array.from(clonedDoc.styleSheets || []);
+															styleSheets.forEach((sheet) => {
+																try {
+																	const rules = Array.from(sheet.cssRules || []);
+																	rules.forEach((rule) => {
+																		if (rule instanceof CSSStyleRule) {
+																			const style = rule.style;
+																			styleProps.forEach((prop) => {
+																				const value = style.getPropertyValue(prop);
+																				if (value && value.includes("lab(")) {
+																					style.removeProperty(prop);
+																				}
+																			});
+																		}
+																	});
+																} catch (e) {
+																	// Cross-origin 스타일시트는 접근 불가
+																}
+															});
+														} catch (e) {
+															// 스타일시트 접근 실패 시 무시
 														}
 													},
 												});
