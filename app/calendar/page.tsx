@@ -179,8 +179,6 @@ export default function CalendarPage() {
 		const savedUserName = localStorage.getItem("gbti_current_user_name");
 		if (savedUserName) {
 			setCurrentUserName(savedUserName);
-			// 기본 참여자로 설정
-			setSelectedParticipant(savedUserName);
 			// 저장된 사용자 정보 불러오기
 			const savedUserInfo = localStorage.getItem(`gbti_user_info_${savedUserName}`);
 			if (savedUserInfo) {
