@@ -106,6 +106,15 @@ export default function CalendarPage() {
 	const [notificationTargets, setNotificationTargets] = useState<string[]>([]);
 	const [showNotificationSettings, setShowNotificationSettings] = useState<boolean>(false);
 	const [showSaveToast, setShowSaveToast] = useState<boolean>(false);
+	
+	// 설정 관련 상태
+	const [currentUserName, setCurrentUserName] = useState<string>("");
+	const [showSettings, setShowSettings] = useState<boolean>(false);
+	const [showUserInfoSettings, setShowUserInfoSettings] = useState<boolean>(false);
+	const [showUserNotificationSettings, setShowUserNotificationSettings] = useState<boolean>(false);
+	const [userInfoName, setUserInfoName] = useState<string>("");
+	const [userInfoTitle, setUserInfoTitle] = useState<string>("");
+	const [userInfoColor, setUserInfoColor] = useState<string>("#e5e7eb");
 	// 도우미: 같은 색 이벤트가 겹칠 때 구분을 위한 진한 테두리 색 생성
 	function darkenColor(hex?: string, amount = 20) {
 		if (!hex) return "#000000";
@@ -121,6 +130,26 @@ export default function CalendarPage() {
 	}
 
 	useEffect(() => {
+		// 저장된 사용자명 불러오기
+		const savedUserName = localStorage.getItem("gbti_current_user_name");
+		if (savedUserName) {
+			setCurrentUserName(savedUserName);
+			// 기본 참여자로 설정
+			setSelectedParticipant(savedUserName);
+			// 저장된 사용자 정보 불러오기
+			const savedUserInfo = localStorage.getItem(`gbti_user_info_${savedUserName}`);
+			if (savedUserInfo) {
+				try {
+					const info = JSON.parse(savedUserInfo);
+					setUserInfoName(info.name || savedUserName);
+					setUserInfoTitle(info.title || "");
+					setUserInfoColor(info.color || "#e5e7eb");
+				} catch { }
+			} else {
+				setUserInfoName(savedUserName);
+			}
+		}
+		
 		// 저장된 설정 불러오기
 		const saved = localStorage.getItem("gbti_notifications_enabled");
 		setNotificationsEnabled(saved === "1");
@@ -371,6 +400,19 @@ export default function CalendarPage() {
 		participants.forEach((p: any) => {
 			map.set(p.name, { title: p.title, color: p.color });
 		});
+		
+		// localStorage에 저장된 사용자 정보도 병합
+		const savedUserName = localStorage.getItem("gbti_current_user_name");
+		if (savedUserName) {
+			const savedUserInfo = localStorage.getItem(`gbti_user_info_${savedUserName}`);
+			if (savedUserInfo) {
+				try {
+					const info = JSON.parse(savedUserInfo);
+					map.set(savedUserName, { title: info.title, color: info.color });
+				} catch { }
+			}
+		}
+		
 		setParticipantMap(map);
 	};
 
@@ -462,40 +504,11 @@ export default function CalendarPage() {
 						다음
 					</button>
 					<button
-						ref={bellBtnRef}
-						className={`h-9 w-9 rounded-md border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-lg sm:text-xl ${notificationsEnabled ? "text-yellow-600" : "text-zinc-600"}`}
-						onClick={async () => {
-							if (bellLongPressedRef.current) { bellLongPressedRef.current = false; return; }
-							if (Notification.permission !== "granted") {
-								const ok = await requestNotificationPermission();
-								if (!ok) return;
-							}
-							setShowNotificationSettings(true);
-						}}
-						onContextMenu={(e) => {
-							// 우클릭으로 리드타임 메뉴
-							e.preventDefault();
-							setNotifMenuOpen(true);
-							notifMenuOpenRef.current = true;
-							setNotifMenuPos({ x: e.clientX, y: e.clientY });
-						}}
-						onTouchStart={(e) => {
-							bellLongPressedRef.current = false;
-							if (bellLongPressTimerRef.current) clearTimeout(bellLongPressTimerRef.current);
-							bellLongPressTimerRef.current = setTimeout(() => {
-								bellLongPressedRef.current = true;
-								// 아이콘 기준 위치에 메뉴 표시
-								const rect = bellBtnRef.current?.getBoundingClientRect();
-								setNotifMenuPos(rect ? { x: rect.left, y: rect.bottom + 6 } : { x: 12, y: 12 });
-								setNotifMenuOpen(true);
-								notifMenuOpenRef.current = true;
-							}, 500);
-						}}
-						onTouchEnd={() => { if (bellLongPressTimerRef.current) clearTimeout(bellLongPressTimerRef.current); }}
-						onTouchCancel={() => { if (bellLongPressTimerRef.current) clearTimeout(bellLongPressTimerRef.current); }}
-						title="즐겨찾기 알림"
+						className="h-9 w-9 rounded-md border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-lg sm:text-xl text-zinc-600"
+						onClick={() => setShowSettings(true)}
+						title="설정"
 					>
-						{notificationsEnabled ? "🔔" : "🔕"}
+						⚙️
 					</button>
 					<button
 						className="h-9 w-9 rounded-md border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer text-lg sm:text-xl"
@@ -750,6 +763,325 @@ export default function CalendarPage() {
 					</div>
 				</div>
 			</div>
+
+			{/* 설정 모달 */}
+			{showSettings && (
+				<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowSettings(false)}>
+					<div className="rounded p-4 w-full max-w-sm space-y-3" style={{ background: "var(--background)", color: "var(--foreground)" }} onClick={(e) => e.stopPropagation()}>
+						<h2 className="text-lg font-semibold">설정</h2>
+						
+						{!currentUserName ? (
+							// 사용자명이 없는 경우: 입력/선택만 가능
+							<div className="space-y-3">
+								<div>
+									<label className="text-sm mb-1 block">사용자명</label>
+									<div className="flex gap-2">
+										<select
+											className="flex-1 border rounded px-3 py-2"
+											value={currentUserName}
+											onChange={(e) => {
+												if (e.target.value) {
+													setCurrentUserName(e.target.value);
+													localStorage.setItem("gbti_current_user_name", e.target.value);
+													setShowSettings(false);
+													window.location.reload(); // 참여자 정보 새로고침
+												}
+											}}
+										>
+											<option value="">선택하세요</option>
+											{participantList.map((name) => (
+												<option key={name} value={name}>{name}</option>
+											))}
+										</select>
+									</div>
+									<div className="mt-2 text-xs text-zinc-500">
+										또는 직접 입력:
+									</div>
+									<input
+										type="text"
+										placeholder="사용자명 입력"
+										className="w-full border rounded px-3 py-2 mt-1"
+										onKeyDown={(e) => {
+											if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
+												const name = (e.target as HTMLInputElement).value.trim();
+												setCurrentUserName(name);
+												localStorage.setItem("gbti_current_user_name", name);
+												setShowSettings(false);
+												window.location.reload();
+											}
+										}}
+									/>
+								</div>
+								<div className="flex justify-end">
+									<button
+										className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
+										onClick={() => setShowSettings(false)}
+									>
+										닫기
+									</button>
+								</div>
+							</div>
+						) : (
+							// 사용자명이 있는 경우: 설정 버튼 표시
+							<div className="space-y-3">
+								<div className="text-sm text-zinc-600">
+									현재 사용자: <strong>{currentUserName}</strong>
+								</div>
+								<div className="space-y-2">
+									<button
+										className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
+										onClick={() => {
+											setShowSettings(false);
+											setShowUserInfoSettings(true);
+										}}
+									>
+										[유저 정보 설정]
+									</button>
+									<button
+										className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
+										onClick={() => {
+											setShowSettings(false);
+											setShowUserNotificationSettings(true);
+										}}
+									>
+										[유저 알람 설정]
+									</button>
+								</div>
+								<div className="flex justify-end gap-2">
+									<button
+										className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-sm"
+										onClick={() => {
+											if (confirm("사용자명을 변경하시겠습니까?")) {
+												localStorage.removeItem("gbti_current_user_name");
+												setCurrentUserName("");
+												setShowSettings(false);
+											}
+										}}
+									>
+										사용자명 변경
+									</button>
+									<button
+										className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
+										onClick={() => setShowSettings(false)}
+									>
+										닫기
+									</button>
+								</div>
+							</div>
+						)}
+					</div>
+				</div>
+			)}
+
+			{/* 유저 정보 설정 모달 */}
+			{showUserInfoSettings && (
+				<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowUserInfoSettings(false)}>
+					<div className="rounded p-4 w-full max-w-sm space-y-3" style={{ background: "var(--background)", color: "var(--foreground)" }} onClick={(e) => e.stopPropagation()}>
+						<h2 className="text-lg font-semibold">유저 정보 설정</h2>
+						<div className="space-y-3">
+							<div>
+								<label className="text-sm mb-1 block">이름</label>
+								<input
+									type="text"
+									value={userInfoName}
+									onChange={(e) => setUserInfoName(e.target.value)}
+									className="w-full border rounded px-3 py-2"
+								/>
+							</div>
+							<div>
+								<label className="text-sm mb-1 block">칭호</label>
+								<input
+									type="text"
+									value={userInfoTitle}
+									onChange={(e) => setUserInfoTitle(e.target.value)}
+									placeholder="예: 공주"
+									className="w-full border rounded px-3 py-2"
+								/>
+							</div>
+							<div>
+								<label className="text-sm mb-1 block">칭호 색상</label>
+								<div className="flex gap-2">
+									<input
+										type="color"
+										value={userInfoColor}
+										onChange={(e) => setUserInfoColor(e.target.value)}
+										className="w-16 h-10 border rounded cursor-pointer"
+									/>
+									<input
+										type="text"
+										value={userInfoColor}
+										onChange={(e) => setUserInfoColor(e.target.value)}
+										className="flex-1 border rounded px-3 py-2"
+										placeholder="#e5e7eb"
+									/>
+								</div>
+							</div>
+							<div className="flex justify-end gap-2">
+								<button
+									className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
+									onClick={async () => {
+										// API를 통해 참여자 정보 업데이트
+										try {
+											// 먼저 참여자 목록에서 현재 사용자의 ID 찾기
+											const res = await fetch("/api/participants");
+											const data = await res.json();
+											const participants = data.participants || [];
+											const currentUser = participants.find((p: any) => p.name === currentUserName);
+											
+											if (currentUser) {
+												// 기존 참여자 업데이트
+												const updateRes = await fetch(`/api/participants/${currentUser.id}`, {
+													method: "PUT",
+													headers: { "Content-Type": "application/json" },
+													body: JSON.stringify({
+														name: userInfoName.trim(),
+														title: userInfoTitle.trim() || null,
+														color: userInfoColor || "#e5e7eb"
+													}),
+												});
+												
+												if (updateRes.ok) {
+													// localStorage에도 저장
+													localStorage.setItem(`gbti_user_info_${userInfoName.trim()}`, JSON.stringify({
+														name: userInfoName.trim(),
+														title: userInfoTitle.trim() || null,
+														color: userInfoColor || "#e5e7eb"
+													}));
+													
+													// 사용자명이 변경된 경우
+													if (userInfoName.trim() !== currentUserName) {
+														localStorage.setItem("gbti_current_user_name", userInfoName.trim());
+														localStorage.removeItem(`gbti_user_info_${currentUserName}`);
+													}
+													
+													alert("저장되었습니다.");
+													setShowUserInfoSettings(false);
+													window.location.reload();
+												} else {
+													alert("저장에 실패했습니다.");
+												}
+											} else {
+												// 새 참여자 추가
+												const createRes = await fetch("/api/participants", {
+													method: "POST",
+													headers: { "Content-Type": "application/json" },
+													body: JSON.stringify({
+														name: userInfoName.trim(),
+														title: userInfoTitle.trim() || null,
+														color: userInfoColor || "#e5e7eb"
+													}),
+												});
+												
+												if (createRes.ok) {
+													localStorage.setItem(`gbti_user_info_${userInfoName.trim()}`, JSON.stringify({
+														name: userInfoName.trim(),
+														title: userInfoTitle.trim() || null,
+														color: userInfoColor || "#e5e7eb"
+													}));
+													
+													if (userInfoName.trim() !== currentUserName) {
+														localStorage.setItem("gbti_current_user_name", userInfoName.trim());
+													}
+													
+													alert("저장되었습니다.");
+													setShowUserInfoSettings(false);
+													window.location.reload();
+												} else {
+													alert("저장에 실패했습니다.");
+												}
+											}
+										} catch (err) {
+											console.error("저장 실패:", err);
+											alert("네트워크 오류가 발생했습니다.");
+										}
+									}}
+								>
+									저장
+								</button>
+								<button
+									className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
+									onClick={() => setShowUserInfoSettings(false)}
+								>
+									취소
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* 유저 알람 설정 모달 */}
+			{showUserNotificationSettings && (
+				<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowUserNotificationSettings(false)}>
+					<div className="rounded p-4 w-full max-w-sm space-y-3" style={{ background: "var(--background)", color: "var(--foreground)" }} onClick={(e) => e.stopPropagation()}>
+						<h2 className="text-lg font-semibold">유저 알람 설정</h2>
+						<div className="text-sm text-zinc-600 mb-3">
+							알림 대상: <strong>{currentUserName}</strong>
+						</div>
+						<div>
+							<div className="text-sm mb-1">알림 시점 선택</div>
+							<div className="flex gap-2 flex-wrap">
+								{[5, 10, 15, 30, 60, 120].map((m) => {
+									const selected = notificationLeadMinutesList.includes(m);
+									return (
+										<button
+											key={m}
+											className={`px-2 py-1 text-xs rounded border ${selected ? "bg-yellow-200 text-black" : "hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
+											onClick={() => {
+												let next = notificationLeadMinutesList.slice();
+												if (selected) next = next.filter((x) => x !== m);
+												else next.push(m);
+												setNotificationLeadMinutesList(next);
+												if (next.length > 0) setNotificationLeadMinutes(next[0]);
+												localStorage.setItem("gbti_notifications_minutes_list", JSON.stringify(next));
+												localStorage.setItem("gbti_notifications_minutes", String(next[0] || 30));
+											}}
+										>
+											{m === 60 ? "1시간 전" : m === 120 ? "2시간 전" : `${m}분 전`}
+										</button>
+									);
+								})}
+							</div>
+						</div>
+						<div className="flex justify-end gap-2">
+							<button
+								className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
+								onClick={async () => {
+									// 알림 대상은 현재 사용자로 고정
+									const targets = [currentUserName];
+									setNotificationTargets(targets);
+									localStorage.setItem("gbti_notifications_targets", JSON.stringify(targets));
+									
+									// 알림 활성화
+									setNotificationsEnabled(true);
+									localStorage.setItem("gbti_notifications_enabled", "1");
+									
+									// 권한 요청
+									if (Notification.permission !== "granted") {
+										const ok = await requestNotificationPermission();
+										if (!ok) {
+											alert("알림 권한이 필요합니다.");
+											return;
+										}
+									}
+									
+									await ensurePushSubscription();
+									alert("저장되었습니다.");
+									setShowUserNotificationSettings(false);
+								}}
+							>
+								저장
+							</button>
+							<button
+								className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
+								onClick={() => setShowUserNotificationSettings(false)}
+							>
+								취소
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 
 			{/* 알림 설정 모달 */}
 			{showNotificationSettings && (
