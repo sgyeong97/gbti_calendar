@@ -121,6 +121,30 @@ export default function CalendarPage() {
 	const [userInfoName, setUserInfoName] = useState<string>("");
 	const [userInfoTitle, setUserInfoTitle] = useState<string>("");
 	const [userInfoColor, setUserInfoColor] = useState<string>("#e5e7eb");
+	const [originalTitle, setOriginalTitle] = useState<string>("");
+	const [originalColor, setOriginalColor] = useState<string>("#e5e7eb");
+	const [theme, setTheme] = useState<string>("system");
+
+	// 테마 적용 함수
+	function applyTheme(next: string) {
+		const root = document.documentElement;
+		if (next === "dark") root.classList.add("dark");
+		else if (next === "light") root.classList.remove("dark");
+		else {
+			// system
+			if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) root.classList.add("dark");
+			else root.classList.remove("dark");
+		}
+	}
+
+	// 테마 변경 함수
+	function changeTheme(next: string) {
+		setTheme(next);
+		localStorage.setItem("gbti_theme", next);
+		applyTheme(next);
+		// 다크모드 상태도 업데이트
+		setIsDarkMode(next === "dark" || (next === "system" && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches));
+	}
 	// 도우미: 같은 색 이벤트가 겹칠 때 구분을 위한 진한 테두리 색 생성
 	function darkenColor(hex?: string, amount = 20) {
 		if (!hex) return "#000000";
@@ -132,6 +156,64 @@ export default function CalendarPage() {
 		r = Math.max(0, r - amount);
 		g = Math.max(0, g - amount);
 		b = Math.max(0, b - amount);
+		return `rgb(${r}, ${g}, ${b})`;
+	}
+
+	// 다크모드 감지
+	const [isDarkMode, setIsDarkMode] = useState(false);
+	useEffect(() => {
+		const checkDarkMode = () => {
+			setIsDarkMode(document.documentElement.classList.contains('dark'));
+		};
+		checkDarkMode();
+		// 다크모드 변경 감지를 위한 MutationObserver
+		const observer = new MutationObserver(checkDarkMode);
+		observer.observe(document.documentElement, {
+			attributes: true,
+			attributeFilter: ['class']
+		});
+		return () => observer.disconnect();
+	}, []);
+
+	// 시스템 테마 변경 감지
+	useEffect(() => {
+		if (theme === "system" && window.matchMedia) {
+			const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+			const handleSystemThemeChange = () => {
+				applyTheme("system");
+				setIsDarkMode(mediaQuery.matches);
+			};
+			mediaQuery.addEventListener('change', handleSystemThemeChange);
+			return () => mediaQuery.removeEventListener('change', handleSystemThemeChange);
+		}
+	}, [theme]);
+
+	// 색상 밝기 계산 (0-255)
+	function getBrightness(hex?: string): number {
+		if (!hex) return 0;
+		const h = hex.replace('#', '');
+		const num = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+		const r = (num >> 16) & 0xff;
+		const g = (num >> 8) & 0xff;
+		const b = num & 0xff;
+		// 상대적 밝기 계산 (0-255)
+		return (r * 299 + g * 587 + b * 114) / 1000;
+	}
+
+	// 다크모드에 맞게 이벤트 색상 조정
+	function adjustColorForDarkMode(hex?: string): string {
+		if (!hex) return "#93c5fd";
+		if (!isDarkMode) return hex;
+		
+		// 다크모드일 때 색상을 어둡게 조정 (60% 어둡게)
+		const h = hex.replace('#', '');
+		const num = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+		let r = (num >> 16) & 0xff;
+		let g = (num >> 8) & 0xff;
+		let b = num & 0xff;
+		r = Math.max(0, Math.floor(r * 0.4));
+		g = Math.max(0, Math.floor(g * 0.4));
+		b = Math.max(0, Math.floor(b * 0.4));
 		return `rgb(${r}, ${g}, ${b})`;
 	}
 
@@ -192,6 +274,11 @@ export default function CalendarPage() {
 				setUserInfoName(savedUserName);
 			}
 		}
+		
+		// 저장된 테마 설정 불러오기
+		const savedTheme = localStorage.getItem("gbti_theme") || "system";
+		setTheme(savedTheme);
+		applyTheme(savedTheme);
 		
 		// 저장된 설정 불러오기
 		const saved = localStorage.getItem("gbti_notifications_enabled");
@@ -872,14 +959,55 @@ export default function CalendarPage() {
 								</div>
 								<div className="space-y-2">
 									<button
-										className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
-										onClick={() => {
-											setShowSettings(false);
-											setShowUserInfoSettings(true);
-										}}
-									>
-										닉네임/칭호 설정
-									</button>
+									className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
+									onClick={async () => {
+										setShowSettings(false);
+										// 모달이 열릴 때 기존 정보 가져오기
+										try {
+											const res = await fetch("/api/participants");
+											const data = await res.json();
+											const participants = data.participants || [];
+											const currentUser = participants.find((p: any) => p.name === currentUserName);
+											
+											if (currentUser) {
+												setUserInfoName(currentUser.name);
+												setUserInfoTitle(currentUser.title || "");
+												setUserInfoColor(currentUser.color || "#e5e7eb");
+												setOriginalTitle(currentUser.title || "");
+												setOriginalColor(currentUser.color || "#e5e7eb");
+											} else {
+												// 사용자가 없으면 기본값 사용
+												setUserInfoName(currentUserName);
+												setUserInfoTitle("");
+												setUserInfoColor("#e5e7eb");
+												setOriginalTitle("");
+												setOriginalColor("#e5e7eb");
+											}
+										} catch (err) {
+											console.error("사용자 정보 가져오기 실패:", err);
+											// 실패 시 localStorage에서 가져오기
+											setUserInfoName(currentUserName);
+											const savedUserInfo = localStorage.getItem(`gbti_user_info_${currentUserName}`);
+											if (savedUserInfo) {
+												try {
+													const info = JSON.parse(savedUserInfo);
+													setUserInfoTitle(info.title || "");
+													setUserInfoColor(info.color || "#e5e7eb");
+													setOriginalTitle(info.title || "");
+													setOriginalColor(info.color || "#e5e7eb");
+												} catch {}
+											} else {
+												setUserInfoTitle("");
+												setUserInfoColor("#e5e7eb");
+												setOriginalTitle("");
+												setOriginalColor("#e5e7eb");
+											}
+										}
+										setShowUserInfoSettings(true);
+									}}
+								>
+									닉네임/칭호 설정
+								</button>
 									<button
 										className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
 										onClick={() => {
@@ -897,6 +1025,21 @@ export default function CalendarPage() {
 										}}
 									>
 										파티 한눈에 보기
+									</button>
+									<button
+										className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left flex items-center justify-between"
+										onClick={() => {
+											// 테마 순환: system -> light -> dark -> system
+											const order = ["system", "light", "dark"];
+											const idx = order.indexOf(theme);
+											const next = order[(idx + 1) % order.length];
+											changeTheme(next);
+										}}
+									>
+										<span>테마 설정</span>
+										<span className="text-sm text-zinc-500 dark:text-zinc-400">
+											{theme === "dark" ? "🌙 다크모드" : theme === "light" ? "☀️ 라이트모드" : "🖥️ 시스템"}
+										</span>
 									</button>
 								</div>
 								<div className="flex justify-end gap-2">
@@ -942,6 +1085,37 @@ export default function CalendarPage() {
 									title="이름은 관리자만 변경할 수 있습니다"
 								/>
 							</div>
+							{/* 기존 칭호 표시 */}
+							{(originalTitle || originalColor !== "#e5e7eb") && (
+								<div className="p-3 rounded border bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700">
+									<div className="text-xs text-zinc-600 dark:text-zinc-400 mb-2">현재 설정</div>
+									<div className="flex items-center gap-2">
+										{originalTitle && (
+											<span
+												className="px-2 py-1 rounded text-xs font-semibold"
+												style={{
+													backgroundColor: originalColor,
+													color: getBrightness(originalColor) > 128 ? "#000" : "#fff"
+												}}
+											>
+												{originalTitle}
+											</span>
+										)}
+										{!originalTitle && (
+											<span className="text-sm text-zinc-500 dark:text-zinc-400">칭호 없음</span>
+										)}
+										{originalColor && (
+											<div className="flex items-center gap-1 ml-auto">
+												<div
+													className="w-4 h-4 rounded border border-zinc-300 dark:border-zinc-600"
+													style={{ backgroundColor: originalColor }}
+												/>
+												<span className="text-xs text-zinc-600 dark:text-zinc-400">{originalColor}</span>
+											</div>
+										)}
+									</div>
+								</div>
+							)}
 							<div>
 								<label className="text-sm mb-1 block">칭호</label>
 								<input
@@ -1513,14 +1687,20 @@ export default function CalendarPage() {
                                         const leftBorder = (isStartDay || isMiddle) ? `3px solid ${borderColor}` : undefined;
                                         const rightBorder = (isEndDay || isMiddle) ? `3px solid ${borderColor}` : undefined;
 
+                                        // 다크모드에 맞게 색상 조정
+                                        const adjustedBgColor = adjustColorForDarkMode(e.color || "#93c5fd");
+                                        const brightness = getBrightness(adjustedBgColor);
+                                        // 배경이 밝으면 검은색 텍스트, 어두우면 흰색 텍스트
+                                        const textColor = brightness > 128 ? "#000" : "#fff";
+
                                         return (
                                             <button
                                                 key={e.id}
                                                 onClick={() => setActiveEventId(e.id)}
                                                 className={`w-full text-left text-[10px] sm:text-xs px-1 py-0.5 truncate transition-colors cursor-pointer`}
                                                 style={{
-                                                    backgroundColor: e.color || "#93c5fd",
-                                                    color: "#000",
+                                                    backgroundColor: adjustedBgColor,
+                                                    color: textColor,
                                                     borderLeft: leftBorder,
                                                     borderRight: rightBorder,
                                                     ...shapeStyle
