@@ -14,6 +14,17 @@ import {
 	getDayNameKo,
 } from "@/app/lib/recurring-events";
 
+const PASTEL_COLORS = [
+	{ name: "다홍", value: "#ff6b9d" },
+	{ name: "주황", value: "#ffa94d" },
+	{ name: "파스텔핑크", value: "#ffc1cc" },
+	{ name: "파스텔블루", value: "#a8d8ea" },
+	{ name: "연보라", value: "#d4a5f5" },
+	{ name: "파스텔 연두", value: "#c5e99b" },
+	{ name: "파스텔 연갈색", value: "#e8c4a0" },
+	{ name: "해바라기 노랑", value: "#ffd93d" },
+];
+
 type Props = { eventId: string | null; onClose: () => void; onChanged: () => void };
 
 export default function EventDetailModal({ eventId, onClose, onChanged }: Props) {
@@ -41,6 +52,7 @@ const [openRecurringStartTime, setOpenRecurringStartTime] = useState(false);
 const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 	const [editRecurringStart, setEditRecurringStart] = useState<string>("");
 	const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
+	const [editColor, setEditColor] = useState<string>("#FDC205");
 
 	// 즐겨찾기 토글 함수
 	const toggleFavorite = (name: string) => {
@@ -87,6 +99,7 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 				console.log("Event data:", data.event);
 				console.log("Participant names:", participantNames);
 				setEditParticipants(participantNames);
+				setEditColor(data.event?.color || "#FDC205"); // 색상 초기화
 				setIsEditing(false);
 				// 시간 편집 초기값 세팅
         if (data.event) {
@@ -474,6 +487,26 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 							</div>
 						</div>
 					)}
+				{/* 색상 선택 (편집 모드일 때만 표시) */}
+				{isEditing && (
+					<div className="pt-1">
+						<div className="mb-1"><strong>색상:</strong></div>
+						<div className="grid grid-cols-6 gap-2">
+							{PASTEL_COLORS.map((c) => (
+								<button
+									key={c.value}
+									type="button"
+									onClick={() => setEditColor(c.value)}
+									className={`w-full aspect-square rounded border-2 transition-all ${
+										editColor === c.value ? "scale-110" : "hover:scale-105"
+									}`}
+									style={{ backgroundColor: c.value, borderColor: editColor === c.value ? "#FDC205" : "#d4d4d8" }}
+									title={c.name}
+								/>
+							))}
+						</div>
+					</div>
+				)}
 				<div className="pt-1">
 					<div className="mb-1"><strong>참여자:</strong></div>
 					{isEditing ? (
@@ -729,7 +762,8 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 									participants: editParticipants,
 									days: normalizeDaysOfWeek(Array.from(selectedDays)), // 정규화된 요일 배열 전송
 									startMinutes: toMin(editRecurringStart),
-									endMinutes: toMin(editRecurringEnd)
+									endMinutes: toMin(editRecurringEnd),
+									color: editColor
 								})
 							});
 						} else {
@@ -747,7 +781,7 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 									participants: editParticipants,
 									startAt: toIso(editStartAt, data.event.startAt),
 									endAt: toIso(editEndAt, data.event.endAt),
-									color: data.event.color || "#FDC205" // 기존 색상 유지
+									color: editColor
 								})
 							});
 						}

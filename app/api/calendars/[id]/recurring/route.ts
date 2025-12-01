@@ -52,7 +52,7 @@ export async function PUT(req: NextRequest, ctx: ParamsPromise) {
   const role = req.cookies.get("gbti_role")?.value;
   if (role !== "admin") return NextResponse.json({ error: "Admin only" }, { status: 403 });
   const { id } = await ctx.params;
-  const { eventTitle, newTitle, participants, startMinutes, endMinutes, days } = await req.json();
+  const { eventTitle, newTitle, participants, startMinutes, endMinutes, days, color } = await req.json();
   
   // participantNames 업데이트 (null 또는 JSON 문자열)
   const participantNamesStr = participants && participants.length > 0 
@@ -71,6 +71,11 @@ export async function PUT(req: NextRequest, ctx: ParamsPromise) {
   }
   if (endMinutes !== undefined) {
     updateData.endMinutes = endMinutes;
+  }
+  
+  // 색상이 제공된 경우 업데이트
+  if (color !== undefined) {
+    updateData.color = color;
   }
   
   // 같은 이벤트 제목을 가진 모든 슬롯 업데이트
@@ -114,7 +119,7 @@ export async function PUT(req: NextRequest, ctx: ParamsPromise) {
           eventStartDate: now.toISOString(),
           startsOn: startsOn.toISOString(),
           participantNames: participantNamesStr,
-          color: "#FDC205" // 기본 색상
+          color: color || "#FDC205" // 색상이 제공된 경우 사용, 없으면 기본 색상
         });
       
       if (insertError) {

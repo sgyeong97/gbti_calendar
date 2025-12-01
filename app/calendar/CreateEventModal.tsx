@@ -22,19 +22,14 @@ type Props = {
 };
 
 const PASTEL_COLORS = [
-	{ name: "메인 옐로", value: "#FDC205" },
-	{ name: "파랑", value: "#93c5fd" },
-	{ name: "연두", value: "#bef264" },
-	{ name: "분홍", value: "#f9a8d4" },
-	{ name: "노랑", value: "#fde047" },
-	{ name: "보라", value: "#c4b5fd" },
-	{ name: "핑크", value: "#fbcfe8" },
-	{ name: "청록", value: "#7dd3fc" },
-	{ name: "민트", value: "#6ee7b7" },
-	{ name: "복숭아", value: "#fbbf24" },
-	{ name: "라벤더", value: "#e9d5ff" },
-	{ name: "하늘", value: "#bae6fd" },
-	{ name: "라임", value: "#d9f99d" },
+	{ name: "다홍", value: "#ff6b9d" },
+	{ name: "주황", value: "#ffa94d" },
+	{ name: "파스텔핑크", value: "#ffc1cc" },
+	{ name: "파스텔블루", value: "#a8d8ea" },
+	{ name: "연보라", value: "#d4a5f5" },
+	{ name: "파스텔 연두", value: "#c5e99b" },
+	{ name: "파스텔 연갈색", value: "#e8c4a0" },
+	{ name: "해바라기 노랑", value: "#ffd93d" },
 ];
 
 export default function CreateEventModal({ selectedDate, onClose, onCreated }: Props) {
