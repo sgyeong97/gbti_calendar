@@ -41,8 +41,12 @@ export function expandRecurringSlots(slots: any[], start?: string, end?: string)
   const results: any[] = [];
   for (const slot of slots) {
     // startsOn을 로컬 날짜로 파싱 (타임존 무시)
-    const startsOnDate = new Date(slot.startsOn);
-    const startsOnLocal = new Date(startsOnDate.getFullYear(), startsOnDate.getMonth(), startsOnDate.getDate());
+    // ISO 문자열에서 날짜 부분만 추출하여 로컬 날짜로 변환
+    const startsOnStr = slot.startsOn;
+    const startsOnMatch = startsOnStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!startsOnMatch) continue;
+    const [, year, month, day] = startsOnMatch;
+    const startsOnLocal = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
     
     for (const compareDay of days) {
       // compareDay도 로컬 날짜로 정규화
@@ -50,7 +54,9 @@ export function expandRecurringSlots(slots: any[], start?: string, end?: string)
       
       // slot.dayOfWeek는 JavaScript getDay() 값 (0=일요일, 1=월요일, ..., 6=토요일)
       // compareDay.getDay()도 같은 형식이므로 직접 비교
-      if (slot.dayOfWeek !== compareDay.getDay()) continue;
+      const slotDayOfWeek = slot.dayOfWeek;
+      const compareDayOfWeek = compareDay.getDay();
+      if (slotDayOfWeek !== compareDayOfWeek) continue;
       
       let isWithinEndDate = true;
       if (slot.endsOn) {

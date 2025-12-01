@@ -732,7 +732,8 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 									title: editTitle,
 									participants: editParticipants,
 									startAt: toIso(editStartAt, data.event.startAt),
-									endAt: toIso(editEndAt, data.event.endAt)
+									endAt: toIso(editEndAt, data.event.endAt),
+									color: data.event.color || "#FDC205" // 기존 색상 유지
 								})
 							});
 						}
