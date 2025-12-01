@@ -46,18 +46,27 @@ export default function TestCalendarPage() {
 		let endStr: string;
 		
 		if (e.isRecurring) {
-			// 반복 이벤트: 날짜만 사용 (시간은 무시)
-			const startDateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
-			const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+			// 반복 이벤트: ISO 문자열에서 날짜 부분만 추출 (YYYY-MM-DD)
+			// ISO 문자열 형식: "2025-12-01T21:00:00.000Z"
+			// 날짜 부분만 추출: "2025-12-01"
+			const startDateMatch = e.startAt.match(/^(\d{4}-\d{2}-\d{2})/);
+			const endDateMatch = e.endAt.match(/^(\d{4}-\d{2}-\d{2})/);
 			
-			// FullCalendar에 날짜 문자열 전달 (타임존 변환 방지)
-			startStr = startDateStr;
-			endStr = endDateStr;
+			if (startDateMatch && endDateMatch) {
+				startStr = startDateMatch[1];
+				endStr = endDateMatch[1];
+			} else {
+				// 매칭 실패 시 기존 방식 사용
+				const startDateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
+				const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+				startStr = startDateStr;
+				endStr = endDateStr;
+			}
 			
 			// 디버깅 로그
 			const startDayOfWeek = startDate.getDay();
 			const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-			console.log(`[클라이언트] 반복 이벤트 변환: id=${e.id}, title="${e.title}", startAt=${e.startAt}, 파싱된 날짜=${startDateStr} (${dayNames[startDayOfWeek]}), getDay()=${startDayOfWeek}, FullCalendar 전달: ${startStr}`);
+			console.log(`[클라이언트] 반복 이벤트 변환: id=${e.id}, title="${e.title}", startAt=${e.startAt}, 파싱된 날짜=${startStr} (${dayNames[startDayOfWeek]}), getDay()=${startDayOfWeek}, FullCalendar 전달: ${startStr}`);
 		} else {
 			// 일반 이벤트: ISO 문자열 그대로 사용
 			startStr = e.startAt;

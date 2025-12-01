@@ -327,73 +327,31 @@ export function expandRecurringSlots(
       const endHour = Math.floor(slot.endMinutes / 60);
       const endMin = slot.endMinutes % 60;
       
-      // 로컬 시간으로 Date 객체 생성 (타임존 변환 없음)
-      const startAt = new Date(
-        compareDay.getFullYear(),
-        compareDay.getMonth(),
-        compareDay.getDate(),
-        startHour,
-        startMin,
-        0,
-        0
-      );
-      
-      const endAt = new Date(
-        compareDay.getFullYear(),
-        compareDay.getMonth(),
-        compareDay.getDate(),
-        endHour,
-        endMin,
-        0,
-        0
-      );
+      // 반복 이벤트는 날짜만 중요하므로, compareDay의 날짜를 그대로 사용하여 ISO 문자열 생성
+      // toISOString()을 사용하면 타임존 변환으로 날짜가 변경될 수 있으므로,
+      // 날짜 부분을 직접 구성하여 타임존 변환 문제를 완전히 방지
       
       // 종료 시간이 시작 시간보다 작으면 다음날로 넘어가는 경우
-      if (slot.endMinutes < slot.startMinutes) {
-        endAt.setDate(endAt.getDate() + 1);
-      }
+      const endDateStr = slot.endMinutes < slot.startMinutes
+        ? (() => {
+            const nextDay = new Date(compareDay);
+            nextDay.setDate(nextDay.getDate() + 1);
+            return `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}`;
+          })()
+        : dateStr; // 같은 날이면 compareDay의 날짜 사용
       
-      // 시간 설정 후 날짜/요일이 변경되었는지 확인
-      const startAtDay = startAt.getDay();
-      const endAtDay = endAt.getDay();
-      const startAtDateStr = `${startAt.getFullYear()}-${String(startAt.getMonth() + 1).padStart(2, '0')}-${String(startAt.getDate()).padStart(2, '0')}`;
-      const endAtDateStr = `${endAt.getFullYear()}-${String(endAt.getMonth() + 1).padStart(2, '0')}-${String(endAt.getDate()).padStart(2, '0')}`;
+      // 날짜 부분을 직접 구성하여 ISO 문자열 생성 (타임존 변환 없음)
+      // compareDay의 날짜를 그대로 사용하여 정확한 날짜 보장
+      const finalStartAtISO = `${dateStr}T${String(startHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}:00.000Z`;
+      const finalEndAtISO = `${endDateStr}T${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}:00.000Z`;
       
-      if (startAtDay !== compareDayOfWeek || endAtDay !== compareDayOfWeek) {
-        console.error(`  [경고] 시간 설정 후 요일 변경! compareDay.getDay()=${compareDayOfWeek}, startAt.getDay()=${startAtDay}, endAt.getDay()=${endAtDay}`);
-        console.error(`    compareDay: ${dateStr}, startAt: ${startAt.toISOString()} (${startAtDateStr}), endAt: ${endAt.toISOString()}`);
-      }
+      // 검증: 생성된 ISO 문자열을 파싱했을 때 날짜가 변경되는지 확인
+      const verifyStartDate = new Date(finalStartAtISO);
+      const verifyStartDateStr = `${verifyStartDate.getFullYear()}-${String(verifyStartDate.getMonth() + 1).padStart(2, '0')}-${String(verifyStartDate.getDate()).padStart(2, '0')}`;
       
-      // ISO 문자열로 변환 시 날짜가 변경되는지 확인
-      // toISOString()은 UTC로 변환하므로, 로컬 시간이 자정 근처면 날짜가 변경될 수 있음
-      const startAtISO = startAt.toISOString();
-      const startAtISODate = new Date(startAtISO);
-      const startAtISODateStr = `${startAtISODate.getFullYear()}-${String(startAtISODate.getMonth() + 1).padStart(2, '0')}-${String(startAtISODate.getDate()).padStart(2, '0')}`;
-      
-      // 타임존 변환으로 인한 날짜 변경 방지
-      // 반복 이벤트는 날짜만 중요하므로, 날짜 부분을 보정하여 ISO 문자열 생성
-      // compareDay의 날짜를 그대로 사용하여 타임존 변환 문제 완전히 방지
-      let finalStartAtISO: string;
-      let finalEndAtISO: string;
-      
-      if (startAtDateStr !== startAtISODateStr) {
-        console.error(`  [오류] ISO 변환 시 날짜 변경! 로컬: ${startAtDateStr}, ISO 파싱 후: ${startAtISODateStr}`);
-        console.error(`    startAt.toISOString(): ${startAtISO}`);
-        console.error(`    compareDay: ${dateStr}, startAt 로컬: ${startAt.toLocaleString('ko-KR')}, startAt UTC: ${startAt.toUTCString()}`);
-        
-        // 날짜가 변경된 경우, compareDay의 날짜를 그대로 사용하여 ISO 문자열 생성
-        // 이렇게 하면 타임존 변환 없이 정확한 날짜가 유지됨
-        const endDateStr = slot.endMinutes < slot.startMinutes 
-          ? `${endAt.getFullYear()}-${String(endAt.getMonth() + 1).padStart(2, '0')}-${String(endAt.getDate()).padStart(2, '0')}`
-          : dateStr; // 같은 날이면 compareDay의 날짜 사용
-        
-        finalStartAtISO = `${dateStr}T${String(startHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}:00.000Z`;
-        finalEndAtISO = `${endDateStr}T${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}:00.000Z`;
-        console.warn(`    날짜 보정: ${finalStartAtISO}, ${finalEndAtISO}`);
-      } else {
-        // 날짜가 변경되지 않은 경우 기존 ISO 문자열 사용
-        finalStartAtISO = startAt.toISOString();
-        finalEndAtISO = endAt.toISOString();
+      if (dateStr !== verifyStartDateStr) {
+        console.error(`  [오류] ISO 문자열 파싱 시 날짜 변경! 원본: ${dateStr}, 파싱 후: ${verifyStartDateStr}`);
+        console.error(`    finalStartAtISO: ${finalStartAtISO}, verifyStartDate: ${verifyStartDate.toLocaleString('ko-KR')}`);
       }
       
       // 참여자 파싱
