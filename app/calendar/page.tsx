@@ -1611,57 +1611,80 @@ export default function CalendarPage() {
 					</div>
 
 					<div className="grid grid-cols-7 gap-1 sm:gap-2">
-						{days.map((d) => (
+						{days.map((d) => {
+							const isDark = isDarkMode;
+							const isCurrentMonth = isSameMonth(d, current);
+							const dayStyle = isToday(d) 
+								? { backgroundColor: "#FFF6D1", boxShadow: `0 0 0 2px ${BRAND_COLOR}`, borderColor: BRAND_COLOR }
+								: isDark && isCurrentMonth
+								? { 
+									backgroundColor: "#000000",
+									borderColor: "#ffffff",
+									borderWidth: "1px",
+									boxShadow: "0 0 4px rgba(255, 255, 255, 0.3), 0 0 8px rgba(255, 255, 255, 0.2), inset 0 0 4px rgba(255, 255, 255, 0.1)"
+								  }
+								: isDark && !isCurrentMonth
+								? {
+									backgroundColor: "#000000",
+									borderColor: "rgba(255, 255, 255, 0.3)",
+									borderWidth: "1px",
+									boxShadow: "0 0 2px rgba(255, 255, 255, 0.2)"
+								  }
+								: undefined;
+							
+							return (
 							<div
 								key={d.toISOString()}
-								className={`border rounded p-1 sm:p-2 min-h-20 sm:min-h-24 border-zinc-200 dark:border-zinc-700 cursor-pointer transition-colors ${isToday(d)
-									? "ring-2"
-									: `${isSameMonth(d, current) ? "bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-800" : "bg-zinc-50 dark:bg-zinc-900/40 text-zinc-400 dark:text-zinc-500"}`
-									}`}
-								style={isToday(d) ? { backgroundColor: "#FFF6D1", boxShadow: `0 0 0 2px ${BRAND_COLOR}`, borderColor: BRAND_COLOR } : undefined}
+								className={`border rounded p-1 sm:p-2 min-h-20 sm:min-h-24 cursor-pointer transition-colors ${
+									isToday(d)
+										? "ring-2"
+										: isDark
+										? isCurrentMonth
+											? "hover:bg-zinc-900"
+											: "text-zinc-400 dark:text-zinc-500"
+										: isCurrentMonth
+										? "bg-white border-zinc-200 hover:bg-zinc-50"
+										: "bg-zinc-50 border-zinc-200 text-zinc-400"
+								}`}
+								style={dayStyle}
 								{...getDayTouchHandlers(d)}
 							>
-								<div className="text-xs sm:text-sm font-medium text-zinc-800 dark:text-zinc-100">
-									{isToday(d) ? (
-										<span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full" style={{ backgroundColor: BRAND_COLOR, color: "#111" }}>
-											{format(d, "d")}
-										</span>
-									) : (
-										<span>{format(d, "d")}</span>
+							<div className="text-xs sm:text-sm font-medium text-zinc-800 dark:text-zinc-100">
+								{isToday(d) ? (
+									<span className="inline-flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full" style={{ backgroundColor: BRAND_COLOR, color: "#111" }}>
+										{format(d, "d")}
+									</span>
+								) : (
+									<span>
+										{isCurrentMonth ? format(d, "d") : format(d, "M.d")}
+									</span>
             )}
-								</div>
+							</div>
                                 <div className="mt-1 space-y-1">
                                     {events.filter((e) => {
                                         const s = new Date(e.startAt);
                                         const en = new Date(e.endAt);
                                         
+                                        // 날짜 비교를 위한 기준 날짜 (시간 제거)
+                                        const dayStart = startOfDay(d);
+                                        const dayEnd = endOfDay(d);
+                                        
                                         // 종일 이벤트의 경우: 시작일과 종료일 사이에 해당 날짜가 포함되면 표시
                                         if (e.allDay) {
                                             const startDate = startOfDay(s);
                                             const endDate = endOfDay(en);
-                                            const dayStart = startOfDay(d);
-                                            const dayEnd = endOfDay(d);
                                             return startDate <= dayEnd && endDate >= dayStart;
                                         }
                                         
-                                        // 일반 이벤트의 경우: 여러 방법으로 확인하여 더 확실하게 표시
-                                        const dayStart = startOfDay(d);
-                                        const dayEnd = endOfDay(d);
-                                        
-                                        // 방법 1: 시작일 또는 종료일이 해당 날짜와 정확히 같은지 확인
-                                        const isStartOnDay = isSameDay(s, d);
-                                        const isEndOnDay = isSameDay(en, d);
-                                        
-                                        // 방법 2: 이벤트 기간이 해당 날짜와 겹치는지 확인 (시간 포함)
-                                        const overlapsByTime = s <= dayEnd && en >= dayStart;
-                                        
-                                        // 방법 3: 날짜만 비교 (시간 무시)
+                                        // 일반 이벤트의 경우: 날짜 기준으로 확인
                                         const eventStartDay = startOfDay(s);
                                         const eventEndDay = endOfDay(en);
-                                        const overlapsByDate = eventStartDay <= dayEnd && eventEndDay >= dayStart;
                                         
-                                        // 세 가지 조건 중 하나라도 만족하면 표시
-                                        return isStartOnDay || isEndOnDay || overlapsByTime || overlapsByDate;
+                                        // 이벤트가 해당 날짜와 겹치는지 확인
+                                        // 이벤트 시작일이 해당 날짜의 끝 이전이고, 이벤트 종료일이 해당 날짜의 시작 이후
+                                        const overlaps = eventStartDay <= dayEnd && eventEndDay >= dayStart;
+                                        
+                                        return overlaps;
                                     }).map((e) => {
                                         const s = new Date(e.startAt);
                                         const en = new Date(e.endAt);
@@ -1713,7 +1736,8 @@ export default function CalendarPage() {
                                     })}
                                 </div>
 							</div>
-						))}
+							);
+						})}
 					</div>
 
 					{/* 오늘의 파티 목록 */}
