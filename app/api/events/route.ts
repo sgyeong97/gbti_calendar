@@ -110,22 +110,29 @@ export async function POST(req: NextRequest) {
       const eventColor = body.color || body.repeat?.color || "#FDC205";
       
       // 각 요일의 첫 발생 날짜 계산
+      // 오늘 날짜를 기준으로 각 요일의 다음 발생일 계산
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayDayOfWeek = today.getDay();
+      
       for (const dow of body.repeat.daysOfWeek) {
-        const startsOn = new Date(body.startAt);
-        let daysUntilTarget = dow - startDayOfWeek;
+        // 오늘부터 시작해서 다음 해당 요일 찾기
+        let daysUntilTarget = dow - todayDayOfWeek;
         if (daysUntilTarget < 0) {
           daysUntilTarget += 7;
         }
-        startsOn.setDate(startsOn.getDate() + daysUntilTarget);
+        // 오늘이 해당 요일이면 0일 후, 아니면 다음 해당 요일까지의 일수
+        const startsOn = new Date(today);
+        startsOn.setDate(today.getDate() + daysUntilTarget);
+        
         // 날짜 경계 이슈 방지를 위해 로컬 자정으로 정규화 후 저장
         // 타임존 문제 방지: 로컬 날짜만 사용하여 ISO 문자열 생성
-        const startsOnMidnight = new Date(startsOn);
-        startsOnMidnight.setHours(0, 0, 0, 0);
-        // 로컬 날짜를 UTC로 변환하지 않고 로컬 시간 그대로 저장
-        const year = startsOnMidnight.getFullYear();
-        const month = String(startsOnMidnight.getMonth() + 1).padStart(2, '0');
-        const date = String(startsOnMidnight.getDate()).padStart(2, '0');
+        const year = startsOn.getFullYear();
+        const month = String(startsOn.getMonth() + 1).padStart(2, '0');
+        const date = String(startsOn.getDate()).padStart(2, '0');
         const startsOnISO = `${year}-${month}-${date}T00:00:00.000Z`;
+        
+        console.log(`[RecurringSlot 생성] dayOfWeek: ${dow} (${['일','월','화','수','목','금','토'][dow]}), startsOn: ${startsOnISO}, 실제 날짜 요일: ${startsOn.getDay()}`);
         
         const { error } = await supabaseAdmin
           .from('RecurringSlot')

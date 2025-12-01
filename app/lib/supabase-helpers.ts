@@ -56,6 +56,12 @@ export function expandRecurringSlots(slots: any[], start?: string, end?: string)
       // compareDay.getDay()도 같은 형식이므로 직접 비교
       const slotDayOfWeek = slot.dayOfWeek;
       const compareDayOfWeek = compareDay.getDay();
+      
+      // 디버깅: 첫 번째 슬롯만 로그 출력
+      if (slot === slots[0] && compareDay.getDate() <= 7) {
+        console.log(`[expandRecurringSlots] slot.dayOfWeek: ${slotDayOfWeek} (${['일','월','화','수','목','금','토'][slotDayOfWeek]}), compareDay: ${compareDay.toISOString().split('T')[0]} (${['일','월','화','수','목','금','토'][compareDayOfWeek]}), 매칭: ${slotDayOfWeek === compareDayOfWeek}`);
+      }
+      
       if (slotDayOfWeek !== compareDayOfWeek) continue;
       
       let isWithinEndDate = true;
