@@ -125,8 +125,8 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 
 	if (!eventId) return null;
 	return (
-		<div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-			<div className="rounded p-4 w-full max-w-sm mx-4 sm:mx-0 space-y-3 max-h-[85vh] overflow-y-auto" style={{ background: "var(--background)", color: "var(--foreground)" }}>
+		<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999]">
+			<div className="rounded p-4 w-full max-w-sm mx-4 sm:mx-0 space-y-3 max-h-[85vh] overflow-y-auto z-[10000]" style={{ background: "var(--background)", color: "var(--foreground)" }}>
 				<h2 className="text-lg font-semibold">이벤트 상세</h2>
 				{loading ? (
 					<div className="text-sm text-center py-4">불러오는 중...</div>
