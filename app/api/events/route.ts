@@ -18,6 +18,9 @@ export async function GET(req: NextRequest) {
   const end = searchParams.get("end");
   const participantName = searchParams.get("participantName");
 
+  console.log(`\n========== [API: 이벤트 조회 시작] ==========`);
+  console.log(`쿼리 파라미터: calendarId=${calendarId || '없음'}, start=${start || '없음'}, end=${end || '없음'}, participantName=${participantName || '없음'}`);
+
   try {
     // Fetch actual events with attendees
     let query = supabase
@@ -44,6 +47,7 @@ export async function GET(req: NextRequest) {
     }));
 
     // Fetch recurring slots
+    console.log(`[API] 반복 이벤트 슬롯 조회 시작`);
     let recurring: any[] = [];
     if (!calendarId) {
       // Fetch all calendars with their slots
@@ -54,6 +58,12 @@ export async function GET(req: NextRequest) {
       if (calError) throw calError;
       
       const allSlots = (calendars || []).flatMap((cal: any) => cal.recurringSlots || []);
+      console.log(`[API] 전체 캘린더에서 슬롯 조회: ${allSlots.length}개 슬롯 발견`);
+      if (allSlots.length > 0) {
+        allSlots.slice(0, 5).forEach((slot: any, idx: number) => {
+          console.log(`  슬롯[${idx}]: id=${slot.id}, dayOfWeek=${slot.dayOfWeek}, title="${slot.eventTitle}"`);
+        });
+      }
       recurring = expandRecurringSlots(allSlots, start ?? undefined, end ?? undefined);
     } else {
       const { data: cal, error: calError } = await supabase
@@ -65,15 +75,30 @@ export async function GET(req: NextRequest) {
       if (calError) throw calError;
       
       if (cal) {
-        recurring = expandRecurringSlots(cal.recurringSlots || [], start ?? undefined, end ?? undefined);
+        const slots = cal.recurringSlots || [];
+        console.log(`[API] 특정 캘린더(${calendarId})에서 슬롯 조회: ${slots.length}개 슬롯 발견`);
+        if (slots.length > 0) {
+          slots.slice(0, 5).forEach((slot: any, idx: number) => {
+            console.log(`  슬롯[${idx}]: id=${slot.id}, dayOfWeek=${slot.dayOfWeek}, title="${slot.eventTitle}"`);
+          });
+        }
+        recurring = expandRecurringSlots(slots, start ?? undefined, end ?? undefined);
       }
     }
 
+    console.log(`[API] 확장된 반복 이벤트: ${recurring.length}개`);
+    console.log(`[API] 일반 이벤트: ${events.length}개`);
+    
     let all = [...events, ...recurring];
     if (participantName) {
+      const beforeFilter = all.length;
       all = all.filter((e) => e.participants?.some((p: string) => p === participantName));
+      console.log(`[API] 참가자 필터링: ${beforeFilter}개 → ${all.length}개`);
     }
     all.sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+    
+    console.log(`[API: 이벤트 조회 완료] 총 ${all.length}개 이벤트 반환\n`);
+    
     return NextResponse.json({ events: all }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -104,10 +129,21 @@ export async function POST(req: NextRequest) {
 
     // 반복 이벤트인 경우 일반 이벤트는 생성하지 않음 (반복 슬롯만 생성)
     if (body.repeat && Array.isArray(body.repeat.daysOfWeek)) {
+      console.log(`\n========== [API: 반복 이벤트 생성 시작] ==========`);
+      console.log(`요청 데이터:`);
+      console.log(`  title: "${body.title}"`);
+      console.log(`  startAt: ${body.startAt}`);
+      console.log(`  endAt: ${body.endAt}`);
+      console.log(`  repeat.daysOfWeek: [${body.repeat.daysOfWeek.join(', ')}]`);
+      console.log(`  repeat.startMinutes: ${body.repeat.startMinutes}`);
+      console.log(`  repeat.endMinutes: ${body.repeat.endMinutes}`);
+      
       // 반복 이벤트는 startAt, endAt과 무관하게 선택한 요일(dayOfWeek)에만 반복됨
       // startAt은 시간만 결정하고, 실제 반복은 dayOfWeek로 결정
       const eventColor = body.color || body.repeat?.color || "#FDC205";
       const startAtDate = new Date(body.startAt);
+      
+      console.log(`파싱된 startAtDate: ${startAtDate.toISOString()}, getDay()=${startAtDate.getDay()}`);
       
       // 공통 모듈을 사용하여 반복 이벤트 슬롯 데이터 준비
       const slotsData = prepareRecurringSlots({
@@ -121,14 +157,27 @@ export async function POST(req: NextRequest) {
         eventStartDate: startAtDate,
       });
       
+      console.log(`[API] 준비된 슬롯 데이터: ${slotsData.length}개`);
+      slotsData.forEach((slot, idx) => {
+        console.log(`  슬롯[${idx}]: dayOfWeek=${slot.dayOfWeek}, title="${slot.eventTitle}", startMinutes=${slot.startMinutes}, endMinutes=${slot.endMinutes}`);
+      });
+      
       // 각 슬롯을 데이터베이스에 저장
       for (const slotData of slotsData) {
-        const { error } = await supabaseAdmin
+        const { data, error } = await supabaseAdmin
           .from('RecurringSlot')
-          .insert(slotData);
+          .insert(slotData)
+          .select();
         
-        if (error) throw error;
+        if (error) {
+          console.error(`[API] 슬롯 저장 실패:`, error);
+          throw error;
+        }
+        
+        console.log(`[API] 슬롯 저장 성공: id=${data?.[0]?.id}, dayOfWeek=${slotData.dayOfWeek}`);
       }
+      
+      console.log(`[API: 반복 이벤트 생성 완료]\n`);
       
       return NextResponse.json({ event: { id: 'recurring', title: body.title, startAt: body.startAt, endAt: body.endAt, allDay: !!body.allDay, calendarId } }, { status: 201 });
     }
