@@ -47,6 +47,8 @@ export default function CalendarPage() {
 	const [showSettings, setShowSettings] = useState<boolean>(false);
   const [currentUserName, setCurrentUserName] = useState<string>("");
 	const [showUserInfoSettings, setShowUserInfoSettings] = useState<boolean>(false);
+  const [showNotificationSettings, setShowNotificationSettings] = useState<boolean>(false);
+  const [showPartySettings, setShowPartySettings] = useState<boolean>(false);
 	const [userInfoName, setUserInfoName] = useState<string>("");
 	const [userInfoTitle, setUserInfoTitle] = useState<string>("");
 	const [userInfoColor, setUserInfoColor] = useState<string>("#e5e7eb");
@@ -594,9 +596,10 @@ export default function CalendarPage() {
 								<div className="text-sm text-zinc-600">
 									현재 사용자: <strong>{currentUserName}</strong>
 								</div>
-								<div className="space-y-2">
-									<button
-										className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
+                <div className="space-y-2">
+                  {/* 1) 닉네임/칭호 설정 */}
+                  <button
+                    className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
                     onClick={async () => {
 											setShowSettings(false);
                       // 현재 사용자에 대한 기존 칭호/색상 불러오기
@@ -631,6 +634,27 @@ export default function CalendarPage() {
 									>
 										닉네임/칭호 설정
 									</button>
+                  {/* 2) 알림 설정 */}
+                  <button
+                    className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
+                    onClick={() => {
+                      setShowSettings(false);
+                      setShowNotificationSettings(true);
+                    }}
+                  >
+                    알림 설정
+                  </button>
+                  {/* 3) 파티 설정 */}
+                  <button
+                    className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
+                    onClick={() => {
+                      setShowSettings(false);
+                      setShowPartySettings(true);
+                    }}
+                  >
+                    파티 설정
+                  </button>
+                  {/* 4) 테마 설정 */}
 									<button
                     className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left flex items-center justify-between"
 										onClick={() => {
@@ -721,6 +745,63 @@ export default function CalendarPage() {
                         <span className="text-xs text-zinc-600 dark:text-zinc-400">{originalColor}</span>
                       </div>
                     )}
+
+      {/* 알림 설정 모달 */}
+      {showNotificationSettings && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+          onClick={() => setShowNotificationSettings(false)}
+        >
+          <div
+            className="rounded p-4 w-full max-w-sm space-y-3"
+            style={{ background: "var(--background)", color: "var(--foreground)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold">알림 설정</h2>
+            <div className="text-sm text-zinc-600 dark:text-zinc-400 space-y-2">
+              <p>이벤트 시작 전에 브라우저 푸시 알림을 받는 기능입니다.</p>
+              <p>크론 작업과 브라우저 권한 설정을 이용해 동작하며, 현재는 서버 측 알림 로직까지 구현된 상태입니다.</p>
+              <p>브라우저 알림 권한은 주소창 왼쪽 자물쇠 아이콘에서 허용/차단을 변경할 수 있습니다.</p>
+            </div>
+            <div className="flex justify-end">
+              <button
+                className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                onClick={() => setShowNotificationSettings(false)}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 파티 설정 모달 */}
+      {showPartySettings && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+          onClick={() => setShowPartySettings(false)}
+        >
+          <div
+            className="rounded p-4 w-full max-w-sm space-y-3"
+            style={{ background: "var(--background)", color: "var(--foreground)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold">파티 설정</h2>
+            <div className="text-sm text-zinc-600 dark:text-zinc-400 space-y-2">
+              <p>오늘의 파티 목록과 관련된 기능을 설정하는 메뉴입니다.</p>
+              <p>파티 캡처/공유 등 부가 기능은 이 화면에서 점차 확장될 예정입니다.</p>
+            </div>
+            <div className="flex justify-end">
+              <button
+                className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                onClick={() => setShowPartySettings(false)}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
                   </div>
                 </div>
               )}
