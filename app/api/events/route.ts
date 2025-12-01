@@ -106,37 +106,26 @@ export async function POST(req: NextRequest) {
     if (body.repeat && Array.isArray(body.repeat.daysOfWeek)) {
       // 반복 이벤트는 startAt, endAt과 무관하게 선택한 요일(dayOfWeek)에만 반복됨
       // startAt은 시간만 결정하고, 실제 반복은 dayOfWeek로 결정
-      const participantNamesStr = participantNames.length > 0 ? JSON.stringify(participantNames) : null;
       const eventColor = body.color || body.repeat?.color || "#FDC205";
-      
-      // body.startAt에서 날짜 추출 (타임존 문제 방지)
       const startAtDate = new Date(body.startAt);
-      // 로컬 날짜로 정규화
-      const startAtLocal = new Date(startAtDate.getFullYear(), startAtDate.getMonth(), startAtDate.getDate());
       
-      // 단순화: startsOn을 과거 날짜로 설정하여 항상 표시되도록 함
-      // 실제 반복은 dayOfWeek만으로 결정됨
-      const startsOnISO = "1970-01-01T00:00:00.000Z"; // 과거 날짜로 설정하여 항상 startsOn 체크 통과
+      // 공통 모듈을 사용하여 반복 이벤트 슬롯 데이터 준비
+      const slotsData = prepareRecurringSlots({
+        calendarId,
+        title: body.title,
+        daysOfWeek: body.repeat.daysOfWeek,
+        startMinutes: body.repeat.startMinutes,
+        endMinutes: body.repeat.endMinutes,
+        color: eventColor,
+        participantNames: participantNames,
+        eventStartDate: startAtDate,
+      });
       
-      for (const dow of body.repeat.daysOfWeek) {
-        // dayOfWeek는 JavaScript getDay() 값 (0=일요일, 1=월요일, ..., 6=토요일)
-        // CreateEventModal에서 이미 올바른 값으로 전달됨
-        
-        console.log(`[RecurringSlot 생성] dayOfWeek: ${dow} (${['일','월','화','수','목','금','토'][dow]}), startsOn: ${startsOnISO}`);
-        
+      // 각 슬롯을 데이터베이스에 저장
+      for (const slotData of slotsData) {
         const { error } = await supabaseAdmin
           .from('RecurringSlot')
-          .insert({
-            calendarId,
-            dayOfWeek: dow, // 핵심: 선택한 요일 그대로 저장
-            startMinutes: body.repeat.startMinutes,
-            endMinutes: body.repeat.endMinutes,
-            startsOn: startsOnISO, // 과거 날짜로 설정하여 항상 표시
-            eventTitle: body.title,
-            eventStartDate: startAtLocal.toISOString(),
-            participantNames: participantNamesStr,
-            color: eventColor
-          });
+          .insert(slotData);
         
         if (error) throw error;
       }

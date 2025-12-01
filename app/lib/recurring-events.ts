@@ -136,12 +136,29 @@ export function expandRecurringSlots(
   
   const results: ExpandedEvent[] = [];
   
+  // 디버깅: 첫 번째 슬롯 정보 출력
+  if (slots.length > 0) {
+    console.log(`[expandRecurringSlots] 처리할 슬롯 수: ${slots.length}, 날짜 범위: ${start || '없음'} ~ ${end || '없음'}`);
+    slots.forEach((slot, idx) => {
+      if (idx < 3) { // 처음 3개만 출력
+        console.log(`[expandRecurringSlots] 슬롯 ${idx + 1}: dayOfWeek=${slot.dayOfWeek} (${getDayNameKo(slot.dayOfWeek)}), title=${slot.eventTitle}`);
+      }
+    });
+  }
+  
   for (const slot of slots) {
     // 각 날짜에 대해 요일이 일치하는지 확인
     for (const compareDay of days) {
       // 핵심: 선택한 요일(dayOfWeek)과 비교 날짜의 요일이 일치하는지 확인
       const slotDayOfWeek = slot.dayOfWeek;
       const compareDayOfWeek = compareDay.getDay();
+      
+      // 디버깅: 월요일(1) 슬롯에 대해 상세 로그 출력 (처음 10개만)
+      if (slotDayOfWeek === 1 && results.length < 10) {
+        const dateStr = `${compareDay.getFullYear()}-${String(compareDay.getMonth() + 1).padStart(2, '0')}-${String(compareDay.getDate()).padStart(2, '0')}`;
+        const isMatch = slotDayOfWeek === compareDayOfWeek;
+        console.log(`[expandRecurringSlots] slot.dayOfWeek: ${slotDayOfWeek} (${getDayNameKo(slotDayOfWeek)}), compareDay: ${dateStr} (${getDayNameKo(compareDayOfWeek)}), 매칭: ${isMatch}, slot.title: ${slot.eventTitle}`);
+      }
       
       // 요일이 일치하지 않으면 스킵
       if (slotDayOfWeek !== compareDayOfWeek) continue;
