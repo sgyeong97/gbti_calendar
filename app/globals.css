@@ -104,9 +104,18 @@ html[class*="theme-"] .fc-scrollgrid {
   border-color: var(--accent);
 }
 
-/* FullCalendar 요일 헤더 텍스트를 테마 색상에 맞추기 */
+/* FullCalendar 요일 헤더를 테마 색상에 맞추기 */
+html .fc .fc-col-header {
+  background: var(--background);
+}
+
+html .fc .fc-col-header-cell {
+  background: var(--background);
+  border-color: var(--accent);
+}
+
 html .fc .fc-col-header-cell-cushion {
-  color: var(--foreground);
+  color: var(--foreground) !important;
   font-weight: 600;
 }
 
