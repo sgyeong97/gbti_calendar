@@ -39,19 +39,36 @@ export default function TestCalendarPage() {
 		const startDate = new Date(e.startAt);
 		const endDate = new Date(e.endAt);
 		
-		// 디버깅: 반복 이벤트의 날짜 정보 로그
+		// FullCalendar는 ISO 문자열을 파싱할 때 타임존 변환을 하므로,
+		// 반복 이벤트의 경우 날짜만 추출하여 YYYY-MM-DD 형식으로 전달
+		// 이렇게 하면 타임존 변환 없이 정확한 날짜가 표시됨
+		let startStr: string;
+		let endStr: string;
+		
 		if (e.isRecurring) {
+			// 반복 이벤트: 날짜만 사용 (시간은 무시)
 			const startDateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
+			const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+			
+			// FullCalendar에 날짜 문자열 전달 (타임존 변환 방지)
+			startStr = startDateStr;
+			endStr = endDateStr;
+			
+			// 디버깅 로그
 			const startDayOfWeek = startDate.getDay();
 			const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-			console.log(`[클라이언트] 반복 이벤트 변환: id=${e.id}, title="${e.title}", startAt=${e.startAt}, 파싱된 날짜=${startDateStr} (${dayNames[startDayOfWeek]}), getDay()=${startDayOfWeek}`);
+			console.log(`[클라이언트] 반복 이벤트 변환: id=${e.id}, title="${e.title}", startAt=${e.startAt}, 파싱된 날짜=${startDateStr} (${dayNames[startDayOfWeek]}), getDay()=${startDayOfWeek}, FullCalendar 전달: ${startStr}`);
+		} else {
+			// 일반 이벤트: ISO 문자열 그대로 사용
+			startStr = e.startAt;
+			endStr = e.endAt;
 		}
 		
 		return {
 			id: e.id, // 반복 이벤트도 R-로 시작하는 ID 그대로 사용
 			title: e.title, // 제목만 표시 (시간은 표시하지 않음)
-			start: e.startAt,
-			end: e.endAt,
+			start: startStr,
+			end: endStr,
 			allDay: e.allDay,
 			backgroundColor: e.color || "#FDC205",
 			borderColor: e.color || "#FDC205",
