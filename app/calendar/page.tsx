@@ -1608,9 +1608,9 @@ export default function CalendarPage() {
 						{["월", "화", "수", "목", "금", "토", "일"].map((w) => (
 							<div 
 								key={w} 
-								className="px-2 py-1 text-zinc-700 dark:text-zinc-300 font-medium"
+								className="px-2 py-1 text-zinc-700 dark:text-white font-medium"
 								style={isDarkMode ? {
-									textShadow: "0 0 4px rgba(255, 255, 255, 0.5), 0 0 8px rgba(255, 255, 255, 0.3)"
+									textShadow: "0 0 2px rgba(255, 255, 255, 0.3)"
 								} : undefined}
 							>
 								{w}
@@ -1665,7 +1665,7 @@ export default function CalendarPage() {
 								style={dayStyle}
 								{...getDayTouchHandlers(d)}
 							>
-							<div className="text-xs sm:text-sm font-medium text-zinc-800 dark:text-zinc-100">
+							<div className="text-xs sm:text-sm font-medium text-zinc-800 dark:text-white">
 								{isTodayDate ? (
 									isDark ? (
 										<span 
@@ -1673,8 +1673,7 @@ export default function CalendarPage() {
 											style={{ 
 												backgroundColor: "#ffffff",
 												color: "#000000",
-												boxShadow: "0 0 8px rgba(255, 255, 255, 0.8), 0 0 16px rgba(255, 255, 255, 0.6), 0 0 24px rgba(255, 255, 255, 0.4)",
-												textShadow: "0 0 4px rgba(255, 255, 255, 0.8)"
+												boxShadow: "0 0 8px rgba(255, 255, 255, 0.8), 0 0 16px rgba(255, 255, 255, 0.6), 0 0 24px rgba(255, 255, 255, 0.4)"
 											}}
 										>
 											{format(d, "d")}
@@ -1686,7 +1685,7 @@ export default function CalendarPage() {
 									)
 								) : (
 									<span style={isDark ? {
-										textShadow: "0 0 4px rgba(255, 255, 255, 0.5), 0 0 8px rgba(255, 255, 255, 0.3)"
+										textShadow: "0 0 2px rgba(255, 255, 255, 0.2)"
 									} : undefined}>
 										{isCurrentMonth ? format(d, "d") : format(d, "M.d")}
 									</span>
