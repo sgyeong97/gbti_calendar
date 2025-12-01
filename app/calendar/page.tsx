@@ -790,7 +790,6 @@ export default function CalendarPage() {
                   </div>
                 </div>
 								<div className="flex justify-end gap-2">
-								<div className="flex justify-end gap-2">
 									<button
 										className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-sm"
 										onClick={() => {
