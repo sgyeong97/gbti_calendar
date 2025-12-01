@@ -7,6 +7,7 @@ import interactionPlugin from "@fullcalendar/interaction";
 import { format } from "date-fns";
 import koLocale from "@fullcalendar/core/locales/ko";
 import EventDetailModal from "@/app/calendar/EventDetailModal";
+import CreateEventModal from "@/app/calendar/CreateEventModal";
 
 type Event = {
 	id: string;
@@ -29,6 +30,8 @@ export default function TestCalendarPage() {
 	const [events, setEvents] = useState<Event[]>([]);
 	const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null);
 	const [activeEventId, setActiveEventId] = useState<string | null>(null);
+	const [showCreateModal, setShowCreateModal] = useState(false);
+	const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
 	// FullCalendar용 이벤트 형식으로 변환
 	const calendarEvents = events.map((e) => {
@@ -66,10 +69,20 @@ export default function TestCalendarPage() {
 		fetchEvents();
 	}, [dateRange]);
 
-	// 날짜 클릭 핸들러
+	// 날짜 클릭 핸들러 (더블클릭은 dayCellDidMount에서 처리)
 	const handleDateClick = (arg: any) => {
-		console.log("날짜 클릭:", arg.dateStr);
-		// TODO: 이벤트 생성 모달 열기
+		// 단일 클릭은 무시
+	};
+	
+	// 날짜 셀에 더블클릭 이벤트 추가
+	const handleDayCellDidMount = (arg: any) => {
+		// 빈 날짜 셀에 더블클릭 이벤트 추가
+		const cellEl = arg.el;
+		cellEl.addEventListener('dblclick', () => {
+			const clickedDate = new Date(arg.date);
+			setSelectedDate(clickedDate);
+			setShowCreateModal(true);
+		});
 	};
 
 	// 이벤트 클릭 핸들러
@@ -123,6 +136,8 @@ export default function TestCalendarPage() {
 				dateClick={handleDateClick}
 				eventClick={handleEventClick}
 				datesSet={handleDatesSet}
+				dayCellDidMount={handleDayCellDidMount}
+				dayMaxEvents={true}
 				height="auto"
 				eventDisplay="block"
 				eventContent={(arg) => {
@@ -135,6 +150,20 @@ export default function TestCalendarPage() {
 					eventId={activeEventId}
 					onClose={() => setActiveEventId(null)}
 					onChanged={handleEventChanged}
+				/>
+			)}
+			{showCreateModal && selectedDate && (
+				<CreateEventModal
+					selectedDate={selectedDate}
+					onClose={() => {
+						setShowCreateModal(false);
+						setSelectedDate(null);
+					}}
+					onCreated={() => {
+						handleEventChanged();
+						setShowCreateModal(false);
+						setSelectedDate(null);
+					}}
 				/>
 			)}
 		</div>
