@@ -72,13 +72,8 @@ export function expandRecurringSlots(slots: any[], start?: string, end?: string)
   
   const results: any[] = [];
   for (const slot of slots) {
-    // startsOn을 로컬 날짜로 파싱 (타임존 무시)
-    // ISO 문자열에서 날짜 부분만 추출하여 로컬 날짜로 변환
-    const startsOnStr = slot.startsOn;
-    const startsOnMatch = startsOnStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (!startsOnMatch) continue;
-    const [, year, month, day] = startsOnMatch;
-    const startsOnLocal = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    // 단순화: startsOn 체크 제거, dayOfWeek만으로 필터링
+    // startsOn은 과거 날짜(1970-01-01)로 설정되어 있으므로 항상 통과
     
     for (const compareDay of days) {
       // days 배열의 각 날짜는 이미 로컬 날짜로 정규화되어 있음
@@ -95,6 +90,7 @@ export function expandRecurringSlots(slots: any[], start?: string, end?: string)
       // 핵심 로직: 선택한 요일과 비교 날짜의 요일이 일치해야 함
       if (slotDayOfWeek !== compareDayOfWeek) continue;
       
+      // endsOn 체크만 수행 (시작일 제한이 필요하면 나중에 추가)
       let isWithinEndDate = true;
       if (slot.endsOn) {
         const endDateStr = slot.endsOn;
@@ -106,8 +102,7 @@ export function expandRecurringSlots(slots: any[], start?: string, end?: string)
         }
       }
       
-      // startsOn 이후의 날짜만 표시
-      if (compareDay < startsOnLocal || !isWithinEndDate) continue;
+      if (!isWithinEndDate) continue;
       
       // 타임존 문제 해결: 날짜는 로컬 기준으로 유지하고, 시간만 분 단위로 설정
       // slot.startMinutes는 분 단위 (예: 21:00 = 1260분)

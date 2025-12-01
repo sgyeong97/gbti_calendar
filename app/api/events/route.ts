@@ -104,44 +104,36 @@ export async function POST(req: NextRequest) {
 
     // 반복 이벤트인 경우 일반 이벤트는 생성하지 않음 (반복 슬롯만 생성)
     if (body.repeat && Array.isArray(body.repeat.daysOfWeek)) {
-      const eventStartDate = new Date(body.startAt);
-      // body.startAt의 날짜를 로컬 날짜로 정규화
-      const eventStartDateLocal = new Date(eventStartDate.getFullYear(), eventStartDate.getMonth(), eventStartDate.getDate());
-      const startDayOfWeek = eventStartDateLocal.getDay();
+      // 반복 이벤트는 startAt, endAt과 무관하게 선택한 요일(dayOfWeek)에만 반복됨
+      // startAt은 시간만 결정하고, 실제 반복은 dayOfWeek로 결정
       const participantNamesStr = participantNames.length > 0 ? JSON.stringify(participantNames) : null;
       const eventColor = body.color || body.repeat?.color || "#FDC205";
       
-      // 각 요일의 첫 발생 날짜 계산
-      // body.startAt의 날짜를 기준으로 각 요일의 다음 발생일 계산
+      // body.startAt에서 날짜 추출 (타임존 문제 방지)
+      const startAtDate = new Date(body.startAt);
+      // 로컬 날짜로 정규화
+      const startAtLocal = new Date(startAtDate.getFullYear(), startAtDate.getMonth(), startAtDate.getDate());
+      
+      // 단순화: startsOn을 과거 날짜로 설정하여 항상 표시되도록 함
+      // 실제 반복은 dayOfWeek만으로 결정됨
+      const startsOnISO = "1970-01-01T00:00:00.000Z"; // 과거 날짜로 설정하여 항상 startsOn 체크 통과
+      
       for (const dow of body.repeat.daysOfWeek) {
-        // eventStartDateLocal부터 시작해서 다음 해당 요일 찾기
-        let daysUntilTarget = dow - startDayOfWeek;
-        if (daysUntilTarget < 0) {
-          daysUntilTarget += 7;
-        }
-        // 해당 요일이면 0일 후, 아니면 다음 해당 요일까지의 일수
-        const startsOn = new Date(eventStartDateLocal);
-        startsOn.setDate(eventStartDateLocal.getDate() + daysUntilTarget);
+        // dayOfWeek는 JavaScript getDay() 값 (0=일요일, 1=월요일, ..., 6=토요일)
+        // CreateEventModal에서 이미 올바른 값으로 전달됨
         
-        // 날짜 경계 이슈 방지를 위해 로컬 자정으로 정규화 후 저장
-        // 타임존 문제 방지: 로컬 날짜만 사용하여 ISO 문자열 생성
-        const year = startsOn.getFullYear();
-        const month = String(startsOn.getMonth() + 1).padStart(2, '0');
-        const date = String(startsOn.getDate()).padStart(2, '0');
-        const startsOnISO = `${year}-${month}-${date}T00:00:00.000Z`;
-        
-        console.log(`[RecurringSlot 생성] dayOfWeek: ${dow} (${['일','월','화','수','목','금','토'][dow]}), startsOn: ${startsOnISO}, 실제 날짜 요일: ${startsOn.getDay()}, eventStartDate: ${eventStartDateLocal.toISOString().split('T')[0]} (${['일','월','화','수','목','금','토'][startDayOfWeek]})`);
+        console.log(`[RecurringSlot 생성] dayOfWeek: ${dow} (${['일','월','화','수','목','금','토'][dow]}), startsOn: ${startsOnISO}`);
         
         const { error } = await supabaseAdmin
           .from('RecurringSlot')
           .insert({
             calendarId,
-            dayOfWeek: dow,
+            dayOfWeek: dow, // 핵심: 선택한 요일 그대로 저장
             startMinutes: body.repeat.startMinutes,
             endMinutes: body.repeat.endMinutes,
-            startsOn: startsOnISO,
+            startsOn: startsOnISO, // 과거 날짜로 설정하여 항상 표시
             eventTitle: body.title,
-            eventStartDate: eventStartDate.toISOString(),
+            eventStartDate: startAtLocal.toISOString(),
             participantNames: participantNamesStr,
             color: eventColor
           });
