@@ -1610,7 +1610,8 @@ export default function CalendarPage() {
 								key={w} 
 								className="px-2 py-1 text-zinc-700 dark:text-white font-medium"
 								style={isDarkMode ? {
-									textShadow: "0 0 2px rgba(255, 255, 255, 0.3)"
+									color: "#ffffff",
+									fontWeight: "600"
 								} : undefined}
 							>
 								{w}
@@ -1623,9 +1624,10 @@ export default function CalendarPage() {
 							const isDark = isDarkMode;
 							const isCurrentMonth = isSameMonth(d, current);
 							const isTodayDate = isToday(d);
+							const darkBgColor = "rgb(37, 36, 36)";
 							const dayStyle = isTodayDate && isDark
 								? { 
-									backgroundColor: "#1a1a1a",
+									backgroundColor: darkBgColor,
 									borderColor: "#ffffff",
 									borderWidth: "2px",
 									boxShadow: "0 0 8px rgba(255, 255, 255, 0.6), 0 0 16px rgba(255, 255, 255, 0.4), 0 0 24px rgba(255, 255, 255, 0.2), inset 0 0 8px rgba(255, 255, 255, 0.1)"
@@ -1634,17 +1636,17 @@ export default function CalendarPage() {
 								? { backgroundColor: "#FFF6D1", boxShadow: `0 0 0 2px ${BRAND_COLOR}`, borderColor: BRAND_COLOR }
 								: isDark && isCurrentMonth
 								? { 
-									backgroundColor: "#000000",
+									backgroundColor: darkBgColor,
 									borderColor: "#ffffff",
-									borderWidth: "1px",
-									boxShadow: "0 0 6px rgba(255, 255, 255, 0.4), 0 0 12px rgba(255, 255, 255, 0.3), inset 0 0 6px rgba(255, 255, 255, 0.15)"
+									borderWidth: "1.5px",
+									boxShadow: "0 0 4px rgba(255, 255, 255, 0.3), 0 0 8px rgba(255, 255, 255, 0.2)"
 								  }
 								: isDark && !isCurrentMonth
 								? {
-									backgroundColor: "#000000",
-									borderColor: "rgba(255, 255, 255, 0.4)",
+									backgroundColor: darkBgColor,
+									borderColor: "rgba(255, 255, 255, 0.5)",
 									borderWidth: "1px",
-									boxShadow: "0 0 4px rgba(255, 255, 255, 0.3), 0 0 8px rgba(255, 255, 255, 0.2)"
+									boxShadow: "0 0 2px rgba(255, 255, 255, 0.2)"
 								  }
 								: undefined;
 							
@@ -1665,7 +1667,7 @@ export default function CalendarPage() {
 								style={dayStyle}
 								{...getDayTouchHandlers(d)}
 							>
-							<div className="text-xs sm:text-sm font-medium text-zinc-800 dark:text-white">
+							<div className="text-xs sm:text-sm font-medium text-zinc-800 dark:text-white" style={isDark ? { fontWeight: "600" } : undefined}>
 								{isTodayDate ? (
 									isDark ? (
 										<span 
@@ -1685,7 +1687,8 @@ export default function CalendarPage() {
 									)
 								) : (
 									<span style={isDark ? {
-										textShadow: "0 0 2px rgba(255, 255, 255, 0.2)"
+										color: "#ffffff",
+										fontWeight: "600"
 									} : undefined}>
 										{isCurrentMonth ? format(d, "d") : format(d, "M.d")}
 									</span>
