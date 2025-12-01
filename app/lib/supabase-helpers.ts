@@ -31,8 +31,37 @@ export async function linkParticipantToCalendar(calendarId: string, participantI
 
 // Helper to expand recurring slots into events
 export function expandRecurringSlots(slots: any[], start?: string, end?: string) {
-  const startDate = start ? new Date(start) : new Date();
-  const endDate = end ? new Date(end) : new Date(startDate.getFullYear(), startDate.getMonth() + 1, startDate.getDate());
+  // start와 end를 로컬 날짜로 파싱 (타임존 무시)
+  let startDate: Date;
+  let endDate: Date;
+  
+  if (start) {
+    const startMatch = start.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (startMatch) {
+      const [, year, month, day] = startMatch;
+      startDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    } else {
+      startDate = new Date(start);
+      startDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    }
+  } else {
+    const now = new Date();
+    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }
+  
+  if (end) {
+    const endMatch = end.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (endMatch) {
+      const [, year, month, day] = endMatch;
+      endDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    } else {
+      endDate = new Date(end);
+      endDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+    }
+  } else {
+    endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, startDate.getDate());
+  }
+  
   const days: Date[] = [];
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
     days.push(new Date(d));
@@ -55,11 +84,12 @@ export function expandRecurringSlots(slots: any[], start?: string, end?: string)
       // slot.dayOfWeek는 JavaScript getDay() 값 (0=일요일, 1=월요일, ..., 6=토요일)
       // compareDay.getDay()도 같은 형식이므로 직접 비교
       const slotDayOfWeek = slot.dayOfWeek;
-      const compareDayOfWeek = compareDay.getDay();
+      // compareDay는 이미 로컬 날짜로 정규화되었으므로 getDay()는 로컬 요일을 반환
+      const compareDayOfWeek = compareDayLocal.getDay();
       
-      // 디버깅: 첫 번째 슬롯만 로그 출력
-      if (slot === slots[0] && compareDay.getDate() <= 7) {
-        console.log(`[expandRecurringSlots] slot.dayOfWeek: ${slotDayOfWeek} (${['일','월','화','수','목','금','토'][slotDayOfWeek]}), compareDay: ${compareDay.toISOString().split('T')[0]} (${['일','월','화','수','목','금','토'][compareDayOfWeek]}), 매칭: ${slotDayOfWeek === compareDayOfWeek}`);
+      // 디버깅: 월요일(1) 슬롯과 12월 1일 주변 날짜만 로그 출력
+      if (slotDayOfWeek === 1 && compareDayLocal.getMonth() === 11 && compareDayLocal.getDate() <= 7) {
+        console.log(`[expandRecurringSlots] slot.dayOfWeek: ${slotDayOfWeek} (${['일','월','화','수','목','금','토'][slotDayOfWeek]}), compareDay: ${compareDayLocal.toISOString().split('T')[0]} (${['일','월','화','수','목','금','토'][compareDayOfWeek]}), 매칭: ${slotDayOfWeek === compareDayOfWeek}, slot.title: ${slot.eventTitle}`);
       }
       
       if (slotDayOfWeek !== compareDayOfWeek) continue;
