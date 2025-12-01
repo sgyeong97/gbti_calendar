@@ -275,6 +275,70 @@ export default function CalendarPage() {
       });
   };
 
+  // 파티 리스트 모달이 열릴 때 비동기로 파티 리스트 로드
+  useEffect(() => {
+    if (!showPartySettings || !currentUserName) return;
+
+    const loadPartyList = async () => {
+      try {
+        setPartyListLoading(true);
+        const today = new Date();
+        const start = format(today, "yyyy-MM-dd");
+        const end = format(addMonths(today, 3), "yyyy-MM-dd");
+        const res = await fetch(
+          `/api/events?start=${start}&end=${end}&includeBirthdays=1`
+        );
+        const json = await res.json();
+        const allEvents: Event[] = json.events ?? [];
+
+        // 1차: 본인이 참여한 이벤트만
+        const mineRaw = allEvents.filter(
+          (e) =>
+            e.participants &&
+            e.participants.includes(currentUserName) &&
+            !e.id.startsWith("BIRTHDAY-")
+        );
+
+        // 2차: 반복 이벤트는 한 번만 표기
+        const recurringMap = new Map<string, Event>();
+        const normalEvents: Event[] = [];
+
+        for (const ev of mineRaw) {
+          if (ev.isRecurring && ev.recurringSlotId) {
+            const key = ev.recurringSlotId;
+            const existing = recurringMap.get(key);
+            if (!existing) {
+              recurringMap.set(key, ev);
+            } else if (
+              new Date(ev.startAt).getTime() <
+              new Date(existing.startAt).getTime()
+            ) {
+              recurringMap.set(key, ev);
+            }
+          } else {
+            normalEvents.push(ev);
+          }
+        }
+
+        const mine = [...normalEvents, ...Array.from(recurringMap.values())]
+          .filter(
+            (e) => new Date(e.startAt).getTime() >= new Date().getTime()
+          )
+          .sort(
+            (a, b) =>
+              new Date(a.startAt).getTime() - new Date(b.startAt).getTime()
+          );
+        setPartyList(mine);
+      } catch (e) {
+        console.error("파티 리스트 불러오기 실패:", e);
+      } finally {
+        setPartyListLoading(false);
+      }
+    };
+
+    loadPartyList();
+  }, [showPartySettings, currentUserName]);
+
   // 오늘의 파티 목록
   // 타임존 이슈를 피하기 위해 ISO 문자열의 날짜 부분(YYYY-MM-DD)만 비교
   const todayEvents = events.filter((e) => {
@@ -692,70 +756,12 @@ export default function CalendarPage() {
                     알림 설정
 									</button>
                   {/* 3) 파티 설정 */}
-									<button
-										className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
-                    onClick={async () => {
-											setShowSettings(false);
+                  <button
+                    className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
+                    onClick={() => {
+                      setShowSettings(false);
                       setShowPartySettings(true);
-
-                      if (!currentUserName) return;
-                      try {
-                        setPartyListLoading(true);
-                        const today = new Date();
-                        const start = format(today, "yyyy-MM-dd");
-                        const end = format(addMonths(today, 3), "yyyy-MM-dd");
-                        const res = await fetch(
-                          `/api/events?start=${start}&end=${end}&includeBirthdays=1`
-                        );
-                        const json = await res.json();
-                        const allEvents: Event[] = json.events ?? [];
-
-                        // 1차: 본인이 참여한 이벤트만
-                        const mineRaw = allEvents.filter(
-                          (e) =>
-                            e.participants &&
-                            e.participants.includes(currentUserName) &&
-                            !e.id.startsWith("BIRTHDAY-")
-                        );
-
-                        // 2차: 반복 이벤트는 한 번만 표기
-                        const recurringMap = new Map<string, Event>();
-                        const normalEvents: Event[] = [];
-
-                        for (const ev of mineRaw) {
-                          if (ev.isRecurring && ev.recurringSlotId) {
-                            const key = ev.recurringSlotId;
-                            const existing = recurringMap.get(key);
-                            if (!existing) {
-                              recurringMap.set(key, ev);
-                            } else {
-                              // 더 가까운(빠른) 일정만 유지
-                              if (
-                                new Date(ev.startAt).getTime() <
-                                new Date(existing.startAt).getTime()
-                              ) {
-                                recurringMap.set(key, ev);
-                              }
-                            }
-                          } else {
-                            normalEvents.push(ev);
-                          }
-                        }
-
-                        const mine = [...normalEvents, ...Array.from(recurringMap.values())]
-                          .filter(
-                            (e) => new Date(e.startAt).getTime() >= new Date().getTime()
-                          )
-                          .sort(
-                            (a, b) =>
-                              new Date(a.startAt).getTime() - new Date(b.startAt).getTime()
-                          );
-                        setPartyList(mine);
-                      } catch (e) {
-                        console.error("파티 리스트 불러오기 실패:", e);
-                      } finally {
-                        setPartyListLoading(false);
-                      }
+                      setPartyListLoading(true);
                     }}
                   >
                     파티 리스트 보기
