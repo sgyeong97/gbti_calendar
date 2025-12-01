@@ -14,6 +14,7 @@ import {
 	debugRecurringEventCreation,
 	DAY_NAMES_KO,
 } from "@/app/lib/recurring-events";
+import { EVENT_COLOR_PALETTES, getCurrentEventColorPalette } from "@/app/lib/color-themes";
 
 type Props = {
 	selectedDate?: Date;
@@ -21,23 +22,10 @@ type Props = {
 	onCreated: () => void;
 };
 
-const PASTEL_COLORS = [
-	{ name: "다홍", value: "#ff6b9d" },
-	{ name: "주황", value: "#ffa94d" },
-	{ name: "핑크", value: "#C71585" },
-	{ name: "블루", value: "#4CC9FE" },
-	{ name: "인디고", value: "#4B0082" },
-	{ name: "네이비", value: "#000080" },
-	{ name: "보라", value: "#C4A5FE" },
-	{ name: "틸", value: "#008080" },
-	{ name: "연두", value: "#00FF7F" },
-	{ name: "연갈색", value: "#B76C4B" },
-	{ name: "노랑", value: "#FFFF00 " },
-];
-
 export default function CreateEventModal({ selectedDate, onClose, onCreated }: Props) {
 	const [title, setTitle] = useState("");
 	const [color, setColor] = useState("#FDC205");
+  const [palette, setPalette] = useState(EVENT_COLOR_PALETTES.default);
 
 	// 선택된 날짜에서 날짜와 시간 추출
 	const getInitialDateTime = () => {
@@ -89,6 +77,13 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
     }, [selectedDate]);
 
 	useEffect(() => {
+    // 컬러 테마에 따른 팔레트 설정
+    try {
+      setPalette(getCurrentEventColorPalette());
+    } catch {
+      setPalette(EVENT_COLOR_PALETTES.default);
+    }
+
 		// 참여자 목록 (모든 사용자 노출)
 		fetch("/api/participants").then((r) => r.json()).then((data) => {
 			const participants = data.participants ?? [];
@@ -484,7 +479,7 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 				<div>
 					<label className="text-sm">색상</label>
 					<div className="grid grid-cols-6 gap-2 mt-1">
-						{PASTEL_COLORS.map((c) => (
+						{palette.map((c) => (
 							<button
 								key={c.value}
 								type="button"

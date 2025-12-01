@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -49,26 +50,34 @@ export default function CalendarPage() {
 	const [showUserInfoSettings, setShowUserInfoSettings] = useState<boolean>(false);
   const [showNotificationSettings, setShowNotificationSettings] = useState<boolean>(false);
   const [showPartySettings, setShowPartySettings] = useState<boolean>(false);
-  const [notificationLeadMin, setNotificationLeadMin] = useState<number>(30);
+  const [notificationLeadMins, setNotificationLeadMins] = useState<number[]>([30]);
   const [partyList, setPartyList] = useState<Event[]>([]);
   const [partyListLoading, setPartyListLoading] = useState<boolean>(false);
+  const [userInfoLoading, setUserInfoLoading] = useState<boolean>(false);
 	const [userInfoName, setUserInfoName] = useState<string>("");
 	const [userInfoTitle, setUserInfoTitle] = useState<string>("");
 	const [userInfoColor, setUserInfoColor] = useState<string>("#e5e7eb");
   const [originalTitle, setOriginalTitle] = useState<string>("");
   const [originalColor, setOriginalColor] = useState<string>("#e5e7eb");
-  const [theme, setTheme] = useState<"system" | "light" | "dark">("system");
+  const { theme, setTheme } = useTheme();
+  const [colorTheme, setColorTheme] = useState<string>(() => {
+    if (typeof window === "undefined") return "default";
+    return localStorage.getItem("gbti_color_theme") || "default";
+  });
 
-  // 테마 적용 함수
-  function applyTheme(next: "system" | "light" | "dark") {
-    if (typeof window === "undefined") return;
-    const root = document.documentElement;
-    if (next === "system") {
-      const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
-      root.classList.toggle("dark", prefersDark);
-				} else {
-      root.classList.toggle("dark", next === "dark");
-    }
+  // 배경색에 따라 가독성 좋은 텍스트 색상 계산
+  function getTextColorForBg(color: string | undefined | null): string {
+    const hex = color || "#e5e7eb";
+    const match = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    const rgb = match
+      ? {
+          r: parseInt(match[1], 16),
+          g: parseInt(match[2], 16),
+          b: parseInt(match[3], 16),
+        }
+      : { r: 229, g: 231, b: 235 };
+    const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+    return brightness > 128 ? "#000000" : "#ffffff";
   }
 
   // FullCalendar용 이벤트 형식으로 변환
@@ -111,6 +120,7 @@ export default function CalendarPage() {
       backgroundColor: e.color || "#FDC205",
       borderColor: e.color || "#FDC205",
       extendedProps: {
+        color: e.color,
         participants: e.participants || [],
         isRecurring: e.isRecurring || false,
         recurringSlotId: e.recurringSlotId,
@@ -183,11 +193,25 @@ export default function CalendarPage() {
     }
     const savedTheme = (localStorage.getItem("gbti_theme") as "system" | "light" | "dark") || "system";
     setTheme(savedTheme);
-    applyTheme(savedTheme);
 
-    const savedLead = localStorage.getItem("gbti_notification_lead_min");
-    if (savedLead && !isNaN(parseInt(savedLead, 10))) {
-      setNotificationLeadMin(parseInt(savedLead, 10));
+    const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
+    setColorTheme(savedColorTheme);
+
+    // html 클래스에 컬러 테마 반영
+    const root = document.documentElement;
+    root.classList.remove("theme-ocean", "theme-forest");
+    if (savedColorTheme === "ocean") root.classList.add("theme-ocean");
+    if (savedColorTheme === "forest") root.classList.add("theme-forest");
+    const savedLead = localStorage.getItem("gbti_notification_lead_mins");
+    if (savedLead) {
+      try {
+        const parsed = JSON.parse(savedLead);
+        if (Array.isArray(parsed) && parsed.every((v: any) => typeof v === "number")) {
+          setNotificationLeadMins(parsed);
+        }
+      } catch {
+        // 무시하고 기본값 사용
+      }
     }
 
 		const handleFavoritesUpdated = () => {
@@ -426,7 +450,14 @@ export default function CalendarPage() {
         height="auto"
         eventDisplay="block"
         eventContent={(arg) => {
-          return { html: `<div class="fc-event-title">${arg.event.title}</div>` };
+          const bg =
+            (arg.event.extendedProps as any)?.color ||
+            (arg.event as any).backgroundColor ||
+            "#FDC205";
+          const textColor = getTextColorForBg(bg);
+          return {
+            html: `<div class="fc-event-title" style="color:${textColor}">${arg.event.title}</div>`,
+          };
         }}
       />
 
@@ -466,21 +497,7 @@ export default function CalendarPage() {
         ) : (
           <div className="flex flex-col gap-3 pb-2 bg-white dark:bg-zinc-900 p-4 rounded-lg border">
 									{todayEvents.map((e) => {
-										const hexToRgb = (hex: string) => {
-											const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-                return result
-                  ? {
-												r: parseInt(result[1], 16),
-												g: parseInt(result[2], 16),
-                      b: parseInt(result[3], 16),
-                    }
-                  : { r: 229, g: 231, b: 235 };
-										};
-
-              const rgb = hexToRgb(e.color || "#e5e7eb");
-              const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
-              const isBright = brightness > 128;
-              const textColor = isBright ? "#000" : "#fff";
+              const textColor = getTextColorForBg(e.color || "#e5e7eb");
 										
 										return (
 											<div
@@ -505,10 +522,7 @@ export default function CalendarPage() {
 															{e.participants.map((p) => {
 																const participantInfo = participantMap.get(p);
 																const bgColor = participantInfo?.color || "#e5e7eb";
-																const rgb = hexToRgb(bgColor);
-																const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
-																const isBright = brightness > 128;
-																const textColor = isBright ? "#000" : "#fff";
+                                const textColor = getTextColorForBg(bgColor);
 																
 																return (
 																	<span 
@@ -604,59 +618,64 @@ export default function CalendarPage() {
 								<div className="text-sm text-zinc-600">
 									현재 사용자: <strong>{currentUserName}</strong>
 								</div>
-                <div className="space-y-2">
+								<div className="space-y-2">
                   {/* 1) 닉네임/칭호 설정 */}
-                  <button
-                    className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
-                    onClick={async () => {
+									<button
+										className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
+										onClick={() => {
 											setShowSettings(false);
-                      // 현재 사용자에 대한 기존 칭호/색상 불러오기
-                      try {
-                        const res = await fetch("/api/participants");
-                        const data = await res.json();
-                        const participants = data.participants || [];
-                        const currentUser = participants.find((p: any) => p.name === currentUserName);
+											setShowUserInfoSettings(true);
+                      setUserInfoLoading(true);
 
-                        if (currentUser) {
-                          setUserInfoName(currentUser.name);
-                          setUserInfoTitle(currentUser.title || "");
-                          setUserInfoColor(currentUser.color || "#e5e7eb");
-                          setOriginalTitle(currentUser.title || "");
-                          setOriginalColor(currentUser.color || "#e5e7eb");
-                        } else {
+                      (async () => {
+                        try {
+                          const res = await fetch("/api/participants");
+                          const data = await res.json();
+                          const participants = data.participants || [];
+                          const currentUser = participants.find((p: any) => p.name === currentUserName);
+
+                          if (currentUser) {
+                            setUserInfoName(currentUser.name);
+                            setUserInfoTitle(currentUser.title || "");
+                            setUserInfoColor(currentUser.color || "#e5e7eb");
+                            setOriginalTitle(currentUser.title || "");
+                            setOriginalColor(currentUser.color || "#e5e7eb");
+                          } else {
+                            setUserInfoName(currentUserName);
+                            setUserInfoTitle("");
+                            setUserInfoColor("#e5e7eb");
+                            setOriginalTitle("");
+                            setOriginalColor("#e5e7eb");
+                          }
+                        } catch {
                           setUserInfoName(currentUserName);
                           setUserInfoTitle("");
                           setUserInfoColor("#e5e7eb");
                           setOriginalTitle("");
                           setOriginalColor("#e5e7eb");
+                        } finally {
+                          setUserInfoLoading(false);
                         }
-                      } catch {
-                        setUserInfoName(currentUserName);
-                        setUserInfoTitle("");
-                        setUserInfoColor("#e5e7eb");
-                        setOriginalTitle("");
-                        setOriginalColor("#e5e7eb");
-                      }
-											setShowUserInfoSettings(true);
+                      })();
 										}}
 									>
 										닉네임/칭호 설정
 									</button>
                   {/* 2) 알림 설정 */}
-                  <button
-                    className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
-                    onClick={() => {
-                      setShowSettings(false);
+									<button
+										className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
+										onClick={() => {
+											setShowSettings(false);
                       setShowNotificationSettings(true);
-                    }}
-                  >
+										}}
+									>
                     알림 설정
-                  </button>
+									</button>
                   {/* 3) 파티 설정 */}
-                  <button
-                    className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
+									<button
+										className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
                     onClick={async () => {
-                      setShowSettings(false);
+											setShowSettings(false);
                       setShowPartySettings(true);
 
                       if (!currentUserName) return;
@@ -670,12 +689,42 @@ export default function CalendarPage() {
                         );
                         const json = await res.json();
                         const allEvents: Event[] = json.events ?? [];
-                        const mine = allEvents
+
+                        // 1차: 본인이 참여한 이벤트만
+                        const mineRaw = allEvents.filter(
+                          (e) =>
+                            e.participants &&
+                            e.participants.includes(currentUserName) &&
+                            !e.id.startsWith("BIRTHDAY-")
+                        );
+
+                        // 2차: 반복 이벤트는 한 번만 표기
+                        const recurringMap = new Map<string, Event>();
+                        const normalEvents: Event[] = [];
+
+                        for (const ev of mineRaw) {
+                          if (ev.isRecurring && ev.recurringSlotId) {
+                            const key = ev.recurringSlotId;
+                            const existing = recurringMap.get(key);
+                            if (!existing) {
+                              recurringMap.set(key, ev);
+                            } else {
+                              // 더 가까운(빠른) 일정만 유지
+                              if (
+                                new Date(ev.startAt).getTime() <
+                                new Date(existing.startAt).getTime()
+                              ) {
+                                recurringMap.set(key, ev);
+                              }
+                            }
+                          } else {
+                            normalEvents.push(ev);
+                          }
+                        }
+
+                        const mine = [...normalEvents, ...Array.from(recurringMap.values())]
                           .filter(
-                            (e) =>
-                              e.participants &&
-                              e.participants.includes(currentUserName) &&
-                              !e.id.startsWith("BIRTHDAY-")
+                            (e) => new Date(e.startAt).getTime() >= new Date().getTime()
                           )
                           .sort(
                             (a, b) =>
@@ -692,16 +741,15 @@ export default function CalendarPage() {
                     파티 리스트 보기
                   </button>
                   {/* 4) 테마 설정 */}
-									<button
+                  <button
                     className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left flex items-center justify-between"
-										onClick={() => {
+                    onClick={() => {
                       // 테마 순환: system -> light -> dark -> system
                       const order: ("system" | "light" | "dark")[] = ["system", "light", "dark"];
-                      const idx = order.indexOf(theme);
+                      const idx = order.indexOf(theme as "system" | "light" | "dark");
                       const next = order[(idx + 1) % order.length];
                       setTheme(next);
                       localStorage.setItem("gbti_theme", next);
-                      applyTheme(next);
                     }}
                   >
                     <span>테마 설정</span>
@@ -710,6 +758,38 @@ export default function CalendarPage() {
                     </span>
 									</button>
 								</div>
+                {/* 컬러 테마 선택 */}
+                <div className="space-y-1 pt-2 border-t border-zinc-200 dark:border-zinc-800 mt-2">
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400">컬러 테마</div>
+                  <div className="flex gap-2 flex-wrap">
+                    {[
+                      { id: "default", label: "기본" },
+                      { id: "ocean", label: "오션" },
+                      { id: "forest", label: "포레스트" },
+                    ].map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => {
+                          setColorTheme(t.id);
+                          localStorage.setItem("gbti_color_theme", t.id);
+                          const root = document.documentElement;
+                          root.classList.remove("theme-ocean", "theme-forest");
+                          if (t.id === "ocean") root.classList.add("theme-ocean");
+                          if (t.id === "forest") root.classList.add("theme-forest");
+                        }}
+                        className={`px-2 py-1 rounded border text-xs cursor-pointer ${
+                          colorTheme === t.id
+                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                            : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+								<div className="flex justify-end gap-2">
 								<div className="flex justify-end gap-2">
 									<button
 										className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-sm"
@@ -747,9 +827,14 @@ export default function CalendarPage() {
             style={{ background: "var(--background)", color: "var(--foreground)" }}
             onClick={(e) => e.stopPropagation()}
           >
-						<h2 className="text-lg font-semibold">유저 정보 설정</h2>
-						<div className="space-y-3">
-							<div>
+            <h2 className="text-lg font-semibold">유저 정보 설정</h2>
+            <div className="space-y-3">
+              {userInfoLoading && (
+                <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                  사용자 정보를 불러오는 중입니다...
+                </div>
+              )}
+              <div>
 								<label className="text-sm mb-1 block">이름</label>
 								<input
 									type="text"
@@ -757,7 +842,7 @@ export default function CalendarPage() {
 									readOnly
                   className="w-full border rounded px-3 py-2 bg-zinc-50 dark:bg-zinc-800"
 								/>
-							</div>
+              </div>
               {(originalTitle || originalColor !== "#e5e7eb") && (
                 <div className="p-3 rounded border bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700">
                   <div className="text-xs text-zinc-600 dark:text-zinc-400 mb-2">현재 설정</div>
@@ -782,129 +867,10 @@ export default function CalendarPage() {
                         <span className="text-xs text-zinc-600 dark:text-zinc-400">{originalColor}</span>
                       </div>
                     )}
-
-      {/* 알림 설정 모달 */}
-      {showNotificationSettings && (
-        <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-          onClick={() => setShowNotificationSettings(false)}
-        >
-          <div
-            className="rounded p-4 w-full max-w-sm space-y-3"
-            style={{ background: "var(--background)", color: "var(--foreground)" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-lg font-semibold">알림 설정</h2>
-            <div className="text-sm text-zinc-600 dark:text-zinc-400 space-y-3">
-              <p>본인이 속한 파티 일정이 시작되기 전에 미리 알림을 받는 시간을 선택합니다.</p>
-              <div>
-                <div className="mb-1 font-medium text-xs text-zinc-500 dark:text-zinc-400">
-                  알림 시점 선택
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {[5, 10, 15, 30, 60, 120, 360].map((min) => (
-                    <button
-                      key={min}
-                      type="button"
-                      onClick={() => {
-                        setNotificationLeadMin(min);
-                        localStorage.setItem("gbti_notification_lead_min", String(min));
-                      }}
-                      className={`px-2 py-1 rounded border text-xs cursor-pointer ${
-                        notificationLeadMin === min
-                          ? "bg-yellow-100 border-yellow-400 text-yellow-800"
-                          : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                      }`}
-                    >
-                      {min < 60 ? `${min}분 전` : `${min / 60}시간 전`}
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                  현재 설정:{" "}
-                  <strong>
-                    {notificationLeadMin < 60
-                      ? `${notificationLeadMin}분 전`
-                      : `${notificationLeadMin / 60}시간 전`}
-                  </strong>
-                </div>
-              </div>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                브라우저 알림을 받으려면 이 사이트에 대한 알림 권한을 허용해야 합니다.
-              </p>
-            </div>
-            <div className="flex justify-end">
-              <button
-                className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-                onClick={() => setShowNotificationSettings(false)}
-              >
-                닫기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 파티 설정 모달 */}
-      {showPartySettings && (
-        <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-          onClick={() => setShowPartySettings(false)}
-        >
-          <div
-            className="rounded p-4 w-full max-w-sm space-y-3"
-            style={{ background: "var(--background)", color: "var(--foreground)" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-lg font-semibold">파티 리스트 보기</h2>
-            {!currentUserName ? (
-              <div className="text-sm text-zinc-600 dark:text-zinc-400">
-                먼저 설정에서 사용자명을 선택한 뒤 파티 리스트를 확인할 수 있습니다.
-              </div>
-            ) : partyListLoading ? (
-              <div className="text-sm text-zinc-600 dark:text-zinc-400">파티 리스트를 불러오는 중입니다...</div>
-            ) : partyList.length === 0 ? (
-              <div className="text-sm text-zinc-600 dark:text-zinc-400">
-                앞으로 예정된 파티 일정이 없습니다.
-              </div>
-            ) : (
-              <div className="max-h-80 overflow-y-auto space-y-2 text-sm">
-                {partyList.map((e) => (
-                  <div
-                    key={e.id}
-                    className="border rounded p-2 flex flex-col gap-1"
-                    style={{ borderColor: e.color || "#e5e7eb" }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold">{e.title}</span>
-                      <span className="text-xs text-zinc-500">
-                        {format(new Date(e.startAt), "M월 d일 HH:mm")}
-                      </span>
-                    </div>
-                    {e.participants && e.participants.length > 0 && (
-                      <div className="text-xs text-zinc-600 dark:text-zinc-400">
-                        참여자: {e.participants.join(", ")}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="flex justify-end">
-              <button
-                className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-                onClick={() => setShowPartySettings(false)}
-              >
-                닫기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
                   </div>
                 </div>
               )}
-							<div>
+              <div>
 								<label className="text-sm mb-1 block">칭호</label>
 								<input
 									type="text"
@@ -913,8 +879,8 @@ export default function CalendarPage() {
 									placeholder="예: 공주"
 									className="w-full border rounded px-3 py-2"
 								/>
-							</div>
-							<div>
+              </div>
+              <div>
 								<label className="text-sm mb-1 block">칭호 색상</label>
 								<div className="flex gap-2">
 									<input
@@ -930,10 +896,10 @@ export default function CalendarPage() {
 										className="flex-1 border rounded px-3 py-2"
 										placeholder="#e5e7eb"
 									/>
-								</div>
-							</div>
-							<div className="flex justify-end gap-2">
-								<button
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
 									className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
 									onClick={async () => {
 										try {
@@ -991,20 +957,19 @@ export default function CalendarPage() {
 									}}
 								>
 									저장
-								</button>
-								<button
+                </button>
+                <button
 									className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
 									onClick={() => setShowUserInfoSettings(false)}
 								>
 									취소
-								</button>
-							</div>
-						</div>
-					</div>
-				</div>
-			)}
-						</div>
-	);
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
-
 

@@ -13,20 +13,7 @@ import {
 	DAY_NAMES_KO,
 	getDayNameKo,
 } from "@/app/lib/recurring-events";
-
-const PASTEL_COLORS = [
-	{ name: "다홍", value: "#ff6b9d" },
-	{ name: "주황", value: "#ffa94d" },
-	{ name: "핑크", value: "#C71585" },
-	{ name: "블루", value: "#4CC9FE" },
-	{ name: "인디고", value: "#4B0082" },
-	{ name: "네이비", value: "#000080" },
-	{ name: "보라", value: "#C4A5FE" },
-	{ name: "틸", value: "#008080" },
-	{ name: "연두", value: "#00FF7F" },
-	{ name: "연갈색", value: "#B76C4B" },
-	{ name: "노랑", value: "#FFFF00 " },
-];
+import { EVENT_COLOR_PALETTES, getCurrentEventColorPalette } from "@/app/lib/color-themes";
 
 type Props = { eventId: string | null; onClose: () => void; onChanged: () => void };
 
@@ -56,6 +43,7 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 	const [editRecurringStart, setEditRecurringStart] = useState<string>("");
 	const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
 	const [editColor, setEditColor] = useState<string>("#FDC205");
+  const [palette, setPalette] = useState(EVENT_COLOR_PALETTES.default);
 
 	// 즐겨찾기 토글 함수
 	const toggleFavorite = (name: string) => {
@@ -82,6 +70,13 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 	};
 
 	useEffect(() => {
+    // 컬러 테마에 따른 팔레트 설정
+    try {
+      setPalette(getCurrentEventColorPalette());
+    } catch {
+      setPalette(EVENT_COLOR_PALETTES.default);
+    }
+
 		if (!eventId) {
 			setLoading(false);
 			return;
@@ -161,14 +156,14 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 						{data.event.isRecurring && (
 							<div className="space-y-2">
 								<div className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs rounded">반복 이벤트</div>
-								<div>
+           <div>
 									<strong>반복 요일:</strong> {data.event.recurringDays && 
 										normalizeDaysOfWeek(data.event.recurringDays)
 											.map(d => getDayNameKo(d))
 											.join(", ")
 									}
 								</div>
-								<div>
+           <div>
 									<strong>시간:</strong> {data.event.recurringStartMinutes !== undefined && data.event.recurringEndMinutes !== undefined && (() => {
 										const startHours = Math.floor(data.event.recurringStartMinutes / 60);
 										const startMins = data.event.recurringStartMinutes % 60;
@@ -190,7 +185,7 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 								</div>
 							</div>
 						)}
-						<div>
+           <div>
 							<strong>제목:</strong> {
 								isEditing ? (
 									<input
@@ -216,7 +211,7 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 					// 같은 날이면 시간만 한 줄로 표시
 					if (isSameDay && !isEditing) {
 						return (
-							<div>
+           <div>
 								<strong>시간:</strong>{" "}
 								<span>
 									{startDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })} - {endDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}
@@ -495,7 +490,7 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 					<div className="pt-1">
 						<div className="mb-1"><strong>색상:</strong></div>
 						<div className="grid grid-cols-6 gap-2">
-							{PASTEL_COLORS.map((c) => (
+							{palette.map((c) => (
 								<button
 									key={c.value}
 									type="button"

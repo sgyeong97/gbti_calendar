@@ -1,8 +1,60 @@
 @import "tailwindcss";
 
-:root {
+/* 기본 라이트 테마 */
+html.light,
+html:not(.dark):not(.theme-ocean):not(.theme-forest):not(.theme-molokai):not(.theme-gruvbox):not(.theme-sonokai):not(.theme-onedark) {
   --background: #ffffff;
   --foreground: #171717;
+  --accent: #FDC205;
+}
+
+/* 기본 다크 테마 */
+html.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --accent: #FDC205;
+}
+
+/* Ocean */
+html.theme-ocean {
+  --background: #0f172a;
+  --foreground: #e5f4ff;
+  --accent: #38bdf8;
+}
+
+/* Forest */
+html.theme-forest {
+  --background: #022c22;
+  --foreground: #dcfce7;
+  --accent: #4ade80;
+}
+
+/* Molokai 테마 */
+html.theme-molokai {
+  --background: #1B1D1E;
+  --foreground: #F8F8F2;
+  --accent: #66D9EF;
+}
+
+/* Gruvbox 테마 */
+hhtml.theme-gruvbox {
+  --background: #282828;
+  --foreground: #ebdbb2;
+  --accent: #fe8019;
+}
+
+/* Sonokai 테마 */
+html.theme-sonokai {
+  --background: #2c2e34;
+  --foreground: #e2e2e3;
+  --accent: #a7df78;
+}
+
+/* OneDark 테마 */
+html.theme-onedark {
+  --background: #282c34;
+  --foreground: #abb2bf;
+  --accent: #61afef;
 }
 
 @theme inline {
@@ -12,34 +64,18 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-/* 토글용: html.dark 클래스가 붙으면 강제로 다크 변수 적용 */
-.dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* 모바일 기본 타이포 살짝 축소, 큰 화면에서 원래 크기 */
 @media (max-width: 640px) {
   body { font-size: 14px; }
 }
 
-/* 어두운 테마에서 경계선 대비 강화 */
 .dark .border { border-color: #3f3f46 !important; }
 
-/* 칭호 네온 글로우 깜빡이는 애니메이션 */
 @keyframes glow-pulse {
   0%, 100% {
     opacity: 1;
