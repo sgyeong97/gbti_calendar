@@ -507,14 +507,22 @@ export default function CalendarPage() {
         {todayEvents.length === 0 ? (
           <div className="text-sm text-zinc-500 dark:text-zinc-400">오늘 예정된 파티가 없습니다.</div>
         ) : (
-          <div className="flex flex-col gap-3 pb-2 bg-white dark:bg-zinc-900 p-4 rounded-lg border">
+          <div
+            className="flex flex-col gap-3 pb-2 p-4 rounded-lg border"
+            style={{
+              background: "var(--background)",
+              color: "var(--foreground)",
+              borderColor: "var(--accent)",
+            }}
+          >
 									{todayEvents.map((e) => {
               const textColor = getTextColorForBg(resolveEventColor(e.color || undefined));
 										
 										return (
 											<div
 												key={e.id}
-												className="border rounded-lg p-4 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors w-full shadow-sm"
+												className="border rounded-lg p-4 cursor-pointer transition-colors w-full shadow-sm"
+                        style={{ borderColor: "var(--accent)", background: "color-mix(in srgb, var(--background) 92%, var(--accent) 8%)" }}
 												onClick={() => setActiveEventId(e.id)}
 											>
 												<div className="flex flex-col gap-2">
