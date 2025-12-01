@@ -6,6 +6,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import koLocale from "@fullcalendar/core/locales/ko";
+import EventDetailModal from "@/app/calendar/EventDetailModal";
 
 type Event = {
 	id: string;
@@ -27,21 +28,28 @@ type Event = {
 export default function TestCalendarPage() {
 	const [events, setEvents] = useState<Event[]>([]);
 	const [currentDate, setCurrentDate] = useState<Date>(new Date());
+	const [activeEventId, setActiveEventId] = useState<string | null>(null);
 
 	// FullCalendar용 이벤트 형식으로 변환
-	const calendarEvents = events.map((e) => ({
-		id: e.id,
-		title: e.title,
-		start: e.startAt,
-		end: e.endAt,
-		allDay: e.allDay,
-		backgroundColor: e.color || "#FDC205",
-		borderColor: e.color || "#FDC205",
-		extendedProps: {
-			participants: e.participants || [],
-			isRecurring: e.isRecurring || false,
-		},
-	}));
+	const calendarEvents = events.map((e) => {
+		return {
+			id: e.id, // 반복 이벤트도 R-로 시작하는 ID 그대로 사용
+			title: e.title, // 제목만 표시 (시간은 표시하지 않음)
+			start: e.startAt,
+			end: e.endAt,
+			allDay: e.allDay,
+			backgroundColor: e.color || "#FDC205",
+			borderColor: e.color || "#FDC205",
+			extendedProps: {
+				participants: e.participants || [],
+				isRecurring: e.isRecurring || false,
+				recurringSlotId: e.recurringSlotId,
+				recurringDays: e.recurringDays,
+				recurringStartMinutes: e.recurringStartMinutes,
+				recurringEndMinutes: e.recurringEndMinutes,
+			},
+		};
+	});
 
 	// 이벤트 가져오기
 	useEffect(() => {
@@ -52,6 +60,8 @@ export default function TestCalendarPage() {
 			
 			const res = await fetch(`/api/events?start=${start}&end=${end}`);
 			const json = await res.json();
+			console.log("가져온 이벤트:", json.events?.length, "개");
+			console.log("반복 이벤트:", json.events?.filter((e: Event) => e.isRecurring));
 			setEvents(json.events ?? []);
 		};
 		fetchEvents();
@@ -65,13 +75,25 @@ export default function TestCalendarPage() {
 
 	// 이벤트 클릭 핸들러
 	const handleEventClick = (arg: any) => {
-		console.log("이벤트 클릭:", arg.event.id);
-		// TODO: 이벤트 상세 모달 열기
+		arg.jsEvent.preventDefault();
+		const eventId = arg.event.id;
+		console.log("이벤트 클릭:", eventId, arg.event.extendedProps);
+		setActiveEventId(eventId);
 	};
 
 	// 날짜 변경 핸들러 (월 이동 시)
 	const handleDatesSet = (arg: any) => {
 		setCurrentDate(arg.start);
+	};
+
+	// 이벤트 변경 후 새로고침
+	const handleEventChanged = () => {
+		const start = format(startOfWeek(startOfMonth(currentDate), { weekStartsOn: 0 }), "yyyy-MM-dd");
+		const end = format(endOfWeek(endOfMonth(currentDate), { weekStartsOn: 0 }), "yyyy-MM-dd");
+		
+		fetch(`/api/events?start=${start}&end=${end}`)
+			.then(res => res.json())
+			.then(json => setEvents(json.events ?? []));
 	};
 
 	return (
@@ -98,7 +120,19 @@ export default function TestCalendarPage() {
 				eventClick={handleEventClick}
 				datesSet={handleDatesSet}
 				height="auto"
+				eventDisplay="block"
+				eventContent={(arg) => {
+					// 제목만 표시 (시간 제거)
+					return { html: `<div class="fc-event-title">${arg.event.title}</div>` };
+				}}
 			/>
+			{activeEventId && (
+				<EventDetailModal
+					eventId={activeEventId}
+					onClose={() => setActiveEventId(null)}
+					onChanged={handleEventChanged}
+				/>
+			)}
 		</div>
 	);
 }
