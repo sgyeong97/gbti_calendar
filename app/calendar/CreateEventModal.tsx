@@ -485,9 +485,11 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 						</label>
 						{repeat.enabled && (
 							<div className="flex items-center gap-2 text-sm">
-								{["월","화","수","목","금","토","일"].map((w, i) => {
-									// Monday-first UI → JS getDay
-                  // 이부분 0,1,2,3,4,5,6 이여야함
+								{["일","월","화","수","목","금","토"].map((w, i) => {
+									// Sunday-first UI → JS getDay
+									// JavaScript getDay(): 0=일요일, 1=월요일, 2=화요일, ..., 6=토요일
+									// UI 순서: 일(0), 월(1), 화(2), 수(3), 목(4), 금(5), 토(6)
+									// 매핑: 일(0) → 0, 월(1) → 1, 화(2) → 2, 수(3) → 3, 목(4) → 4, 금(5) → 5, 토(6) → 6
 									const mapping = [0,1,2,3,4,5,6];
 									const jsDayOfWeek = mapping[i];
 									return (

@@ -46,8 +46,9 @@ export default function CalendarPage() {
 		const days = useMemo(() => {
 		{
 			// 월간 뷰: 월 전체 표시 (이전/다음 달 일부 포함)
-			const start = startOfWeek(startOfMonth(current), { weekStartsOn: 1 });
-			const end = endOfWeek(endOfMonth(current), { weekStartsOn: 1 });
+			// weekStartsOn: 0 = 일요일 시작
+			const start = startOfWeek(startOfMonth(current), { weekStartsOn: 0 });
+			const end = endOfWeek(endOfMonth(current), { weekStartsOn: 0 });
 			return eachDayOfInterval({ start, end });
 		}
 	}, [current]);
@@ -58,8 +59,9 @@ export default function CalendarPage() {
 
 			{
 				// 월간 뷰: 월 전체 범위
-				startStr = format(startOfWeek(startOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
-				endStr = format(endOfWeek(endOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
+				// weekStartsOn: 0 = 일요일 시작
+				startStr = format(startOfWeek(startOfMonth(current), { weekStartsOn: 0 }), "yyyy-MM-dd");
+				endStr = format(endOfWeek(endOfMonth(current), { weekStartsOn: 0 }), "yyyy-MM-dd");
 			}
 
 			const qp = new URLSearchParams({ start: startStr, end: endStr });
@@ -1603,9 +1605,9 @@ export default function CalendarPage() {
             {(
 				// 월간 뷰: 기존 날짜 그리드
 				<>
-					{/* 요일 헤더 (월~일) */}
+					{/* 요일 헤더 (일~토) */}
 					<div className="grid grid-cols-7 gap-2 mb-1 text-xs">
-						{["월", "화", "수", "목", "금", "토", "일"].map((w) => (
+						{["일", "월", "화", "수", "목", "금", "토"].map((w) => (
 							<div 
 								key={w} 
 								className="px-2 py-1 text-zinc-700 dark:text-white font-medium"
@@ -2249,8 +2251,8 @@ export default function CalendarPage() {
 
 						// 월간 범위로 이벤트 새로고침
 						let startStr: string, endStr: string;
-						startStr = format(startOfWeek(startOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
-						endStr = format(endOfWeek(endOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
+						startStr = format(startOfWeek(startOfMonth(current), { weekStartsOn: 0 }), "yyyy-MM-dd");
+						endStr = format(endOfWeek(endOfMonth(current), { weekStartsOn: 0 }), "yyyy-MM-dd");
 
 						const qp = new URLSearchParams({ start: startStr, end: endStr });
 						if (selectedParticipant) qp.set("participantName", selectedParticipant);
@@ -2271,8 +2273,8 @@ export default function CalendarPage() {
 
 						// 월간 범위로 이벤트 새로고침
 						let startStr: string, endStr: string;
-						startStr = format(startOfWeek(startOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
-						endStr = format(endOfWeek(endOfMonth(current), { weekStartsOn: 1 }), "yyyy-MM-dd");
+						startStr = format(startOfWeek(startOfMonth(current), { weekStartsOn: 0 }), "yyyy-MM-dd");
+						endStr = format(endOfWeek(endOfMonth(current), { weekStartsOn: 0 }), "yyyy-MM-dd");
 
 						const qp = new URLSearchParams({ start: startStr, end: endStr });
 						if (selectedParticipant) qp.set("participantName", selectedParticipant);
