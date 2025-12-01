@@ -40,13 +40,13 @@ export function expandRecurringSlots(slots: any[], start?: string, end?: string)
   
   const results: any[] = [];
   for (const slot of slots) {
-    const day = new Date(slot.startsOn);
-    const startsOnDate = new Date(day);
-    startsOnDate.setHours(0, 0, 0, 0);
+    // startsOn을 로컬 날짜로 파싱 (타임존 무시)
+    const startsOnDate = new Date(slot.startsOn);
+    const startsOnLocal = new Date(startsOnDate.getFullYear(), startsOnDate.getMonth(), startsOnDate.getDate());
     
     for (const compareDay of days) {
-      const compareDayDate = new Date(compareDay);
-      compareDayDate.setHours(0, 0, 0, 0);
+      // compareDay도 로컬 날짜로 정규화
+      const compareDayLocal = new Date(compareDay.getFullYear(), compareDay.getMonth(), compareDay.getDate());
       
       // slot.dayOfWeek는 JavaScript getDay() 값 (0=일요일, 1=월요일, ..., 6=토요일)
       // compareDay.getDay()도 같은 형식이므로 직접 비교
@@ -55,12 +55,11 @@ export function expandRecurringSlots(slots: any[], start?: string, end?: string)
       let isWithinEndDate = true;
       if (slot.endsOn) {
         const endDate = new Date(slot.endsOn);
-        const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-        const dayDateOnly = new Date(compareDay.getFullYear(), compareDay.getMonth(), compareDay.getDate());
-        isWithinEndDate = dayDateOnly <= endDateOnly;
+        const endDateLocal = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+        isWithinEndDate = compareDayLocal <= endDateLocal;
       }
       
-      if (compareDayDate < startsOnDate || !isWithinEndDate) continue;
+      if (compareDayLocal < startsOnLocal || !isWithinEndDate) continue;
       
       // 타임존 문제 해결: 날짜는 로컬 기준으로 유지하고, 시간만 분 단위로 설정
       // slot.startMinutes는 분 단위 (예: 21:00 = 1260분)

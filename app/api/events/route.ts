@@ -118,8 +118,14 @@ export async function POST(req: NextRequest) {
         }
         startsOn.setDate(startsOn.getDate() + daysUntilTarget);
         // 날짜 경계 이슈 방지를 위해 로컬 자정으로 정규화 후 저장
+        // 타임존 문제 방지: 로컬 날짜만 사용하여 ISO 문자열 생성
         const startsOnMidnight = new Date(startsOn);
         startsOnMidnight.setHours(0, 0, 0, 0);
+        // 로컬 날짜를 UTC로 변환하지 않고 로컬 시간 그대로 저장
+        const year = startsOnMidnight.getFullYear();
+        const month = String(startsOnMidnight.getMonth() + 1).padStart(2, '0');
+        const date = String(startsOnMidnight.getDate()).padStart(2, '0');
+        const startsOnISO = `${year}-${month}-${date}T00:00:00.000Z`;
         
         const { error } = await supabaseAdmin
           .from('RecurringSlot')
@@ -128,7 +134,7 @@ export async function POST(req: NextRequest) {
             dayOfWeek: dow,
             startMinutes: body.repeat.startMinutes,
             endMinutes: body.repeat.endMinutes,
-            startsOn: startsOnMidnight.toISOString(),
+            startsOn: startsOnISO,
             eventTitle: body.title,
             eventStartDate: eventStartDate.toISOString(),
             participantNames: participantNamesStr,
