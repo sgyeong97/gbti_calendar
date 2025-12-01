@@ -150,17 +150,22 @@ export function expandRecurringSlots(
     // 각 날짜에 대해 요일이 일치하는지 확인
     for (const compareDay of days) {
       // 핵심: 선택한 요일(dayOfWeek)과 비교 날짜의 요일이 일치하는지 확인
+      // compareDay는 이미 로컬 날짜로 정규화되어 있으므로 getDay()는 올바른 요일을 반환
       const slotDayOfWeek = slot.dayOfWeek;
       const compareDayOfWeek = compareDay.getDay();
       
-      // 디버깅: 월요일(1) 슬롯에 대해 상세 로그 출력 (처음 10개만)
-      if (slotDayOfWeek === 1 && results.length < 10) {
+      // 디버깅: 월요일(1) 슬롯에 대해 상세 로그 출력
+      if (slotDayOfWeek === 1) {
         const dateStr = `${compareDay.getFullYear()}-${String(compareDay.getMonth() + 1).padStart(2, '0')}-${String(compareDay.getDate()).padStart(2, '0')}`;
         const isMatch = slotDayOfWeek === compareDayOfWeek;
-        console.log(`[expandRecurringSlots] slot.dayOfWeek: ${slotDayOfWeek} (${getDayNameKo(slotDayOfWeek)}), compareDay: ${dateStr} (${getDayNameKo(compareDayOfWeek)}), 매칭: ${isMatch}, slot.title: ${slot.eventTitle}`);
+        // 12월 1일 주변 날짜와 매칭되는 경우만 로그 출력
+        if (isMatch || (compareDay.getMonth() === 11 && compareDay.getDate() <= 7)) {
+          console.log(`[expandRecurringSlots] slot.dayOfWeek: ${slotDayOfWeek} (${getDayNameKo(slotDayOfWeek)}), compareDay: ${dateStr} (${getDayNameKo(compareDayOfWeek)}), 매칭: ${isMatch}, slot.title: ${slot.eventTitle}`);
+        }
       }
       
-      // 요일이 일치하지 않으면 스킵
+      // 핵심: 요일이 정확히 일치해야만 이벤트 생성
+      // 시간은 단순히 표기용이며, 요일 결정에 영향을 주지 않음
       if (slotDayOfWeek !== compareDayOfWeek) continue;
       
       // endsOn 체크 (종료일 제한)
@@ -173,15 +178,27 @@ export function expandRecurringSlots(
       if (!isWithinEndDate) continue;
       
       // 시간 설정 (분 단위를 시간:분으로 변환)
-      const startAt = new Date(compareDay);
-      const startHours = Math.floor(slot.startMinutes / 60);
-      const startMins = slot.startMinutes % 60;
-      startAt.setHours(startHours, startMins, 0, 0);
+      // 중요: compareDay는 이미 로컬 날짜로 정규화되어 있으므로, 시간만 추가
+      // 시간 설정이 날짜/요일에 영향을 주지 않도록 주의
+      const startAt = new Date(
+        compareDay.getFullYear(),
+        compareDay.getMonth(),
+        compareDay.getDate(),
+        Math.floor(slot.startMinutes / 60),
+        slot.startMinutes % 60,
+        0,
+        0
+      );
       
-      const endAt = new Date(compareDay);
-      const endHours = Math.floor(slot.endMinutes / 60);
-      const endMins = slot.endMinutes % 60;
-      endAt.setHours(endHours, endMins, 0, 0);
+      const endAt = new Date(
+        compareDay.getFullYear(),
+        compareDay.getMonth(),
+        compareDay.getDate(),
+        Math.floor(slot.endMinutes / 60),
+        slot.endMinutes % 60,
+        0,
+        0
+      );
       
       // 종료 시간이 시작 시간보다 작으면 다음날로 넘어가는 경우
       if (slot.endMinutes < slot.startMinutes) {
