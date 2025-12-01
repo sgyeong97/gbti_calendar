@@ -26,6 +26,7 @@ export type EventColor = {
   hex: string;
 };
 
+// 라이트 모드용 팔레트
 export const EVENT_COLOR_PALETTES: Record<ColorThemeId, EventColor[]> = {
   default: [
     { id: "red", name: "레드", hex: "#ff6b9d" },
@@ -115,6 +116,102 @@ export const EVENT_COLOR_PALETTES: Record<ColorThemeId, EventColor[]> = {
 
 const DEFAULT_THEME_ID: ColorThemeId = "default";
 
+// 다크 모드용 팔레트 (배경이 어두울 때도 잘 보이도록 한 단계씩 더 밝게/쨍하게 조정)
+export const EVENT_COLOR_PALETTES_DARK: Record<ColorThemeId, EventColor[]> = {
+  default: [
+    { id: "red", name: "레드", hex: "#ff8dad" },
+    { id: "orange", name: "오렌지", hex: "#ffc073" },
+    { id: "yellow", name: "옐로우", hex: "#ffe066" },
+    { id: "green", name: "그린", hex: "#5cf2a2" },
+    { id: "blue", name: "블루", hex: "#5fd4ff" },
+    { id: "purple", name: "퍼플", hex: "#d1b3ff" },
+    { id: "pink", name: "핑크", hex: "#ff8fd1" },
+    { id: "teal", name: "틸", hex: "#26c6da" },
+    { id: "brown", name: "브라운", hex: "#d18d5c" },
+    { id: "lime", name: "라임", hex: "#a3e635" },
+  ],
+  ocean: [
+    { id: "red", name: "레드", hex: "#ff9aa5" },
+    { id: "orange", name: "오렌지", hex: "#ffcf91" },
+    { id: "yellow", name: "옐로우", hex: "#fde68a" },
+    { id: "green", name: "그린", hex: "#7ff7dc" },
+    { id: "blue", name: "블루", hex: "#60e1ff" },
+    { id: "purple", name: "퍼플", hex: "#c4a5ff" },
+    { id: "pink", name: "핑크", hex: "#f9a8d4" },
+    { id: "teal", name: "틸", hex: "#22d3ee" },
+    { id: "brown", name: "브라운", hex: "#e0a36a" },
+    { id: "lime", name: "라임", hex: "#bef264" },
+  ],
+  forest: [
+    { id: "red", name: "레드", hex: "#fb7185" },
+    { id: "orange", name: "오렌지", hex: "#fdba74" },
+    { id: "yellow", name: "옐로우", hex: "#facc15" },
+    { id: "green", name: "그린", hex: "#22c55e" },
+    { id: "blue", name: "블루", hex: "#2dd4bf" },
+    { id: "purple", name: "퍼플", hex: "#e879f9" },
+    { id: "pink", name: "핑크", hex: "#f472b6" },
+    { id: "teal", name: "틸", hex: "#14b8a6" },
+    { id: "brown", name: "브라운", hex: "#f97316" },
+    { id: "lime", name: "라임", hex: "#a3e635" },
+  ],
+  molokai: [
+    { id: "red", name: "레드", hex: "#ff5c93" },
+    { id: "orange", name: "오렌지", hex: "#ffb37a" },
+    { id: "yellow", name: "옐로우", hex: "#fbe99b" },
+    { id: "green", name: "그린", hex: "#b9f76a" },
+    { id: "blue", name: "블루", hex: "#7ee0ff" },
+    { id: "purple", name: "퍼플", hex: "#d4b3ff" },
+    { id: "pink", name: "핑크", hex: "#ff9ad6" },
+    { id: "teal", name: "틸", hex: "#34d5c3" },
+    { id: "brown", name: "브라운", hex: "#e6a46c" },
+    { id: "lime", name: "라임", hex: "#d4ffa3" },
+  ],
+  gruvbox: [
+    { id: "red", name: "레드", hex: "#fb4934" },
+    { id: "orange", name: "오렌지", hex: "#fe8019" },
+    { id: "yellow", name: "옐로우", hex: "#fbd270" },
+    { id: "green", name: "그린", hex: "#c0d95c" },
+    { id: "blue", name: "블루", hex: "#88c0d0" },
+    { id: "purple", name: "퍼플", hex: "#e29ac0" },
+    { id: "pink", name: "핑크", hex: "#ffb4c8" },
+    { id: "teal", name: "틸", hex: "#9ad29a" },
+    { id: "brown", name: "브라운", hex: "#e0a458" },
+    { id: "lime", name: "라임", hex: "#e6ff7a" },
+  ],
+  sonokai: [
+    { id: "red", name: "레드", hex: "#ff5c5c" },
+    { id: "orange", name: "오렌지", hex: "#ffb284" },
+    { id: "yellow", name: "옐로우", hex: "#f7dd87" },
+    { id: "green", name: "그린", hex: "#c0f08a" },
+    { id: "blue", name: "블루", hex: "#9be2dd" },
+    { id: "purple", name: "퍼플", hex: "#ebb4cf" },
+    { id: "pink", name: "핑크", hex: "#ffc0e3" },
+    { id: "teal", name: "틸", hex: "#5bc8d4" },
+    { id: "brown", name: "브라운", hex: "#e1a46a" },
+    { id: "lime", name: "라임", hex: "#d7ff9e" },
+  ],
+  onedark: [
+    { id: "red", name: "레드", hex: "#f28b97" },
+    { id: "orange", name: "오렌지", hex: "#e9a86b" },
+    { id: "yellow", name: "옐로우", hex: "#f6d19b" },
+    { id: "green", name: "그린", hex: "#a2d68b" },
+    { id: "blue", name: "블루", hex: "#7ec3ff" },
+    { id: "purple", name: "퍼플", hex: "#d6a7ff" },
+    { id: "pink", name: "핑크", hex: "#ff9ed6" },
+    { id: "teal", name: "틸", hex: "#6fd0da" },
+    { id: "brown", name: "브라운", hex: "#f08f7f" },
+    { id: "lime", name: "라임", hex: "#c6ff7a" },
+  ],
+};
+
+function isDarkModeActive(): boolean {
+  if (typeof window === "undefined") return false;
+  const root = document.documentElement;
+  if (root.classList.contains("dark")) return true;
+  const saved = window.localStorage.getItem("gbti_theme");
+  return saved === "dark";
+}
+
 export function getCurrentColorThemeId(): ColorThemeId {
   if (typeof window === "undefined") return DEFAULT_THEME_ID;
   const saved = window.localStorage.getItem("gbti_color_theme") as ColorThemeId | null;
@@ -124,7 +221,9 @@ export function getCurrentColorThemeId(): ColorThemeId {
 
 export function getCurrentEventColorPalette(): EventColor[] {
   const id = getCurrentColorThemeId();
-  return EVENT_COLOR_PALETTES[id] ?? EVENT_COLOR_PALETTES[DEFAULT_THEME_ID];
+  const dark = isDarkModeActive();
+  const source = dark ? EVENT_COLOR_PALETTES_DARK : EVENT_COLOR_PALETTES;
+  return source[id] ?? source[DEFAULT_THEME_ID];
 }
 
 // DB에 저장된 color 문자열(색상 ID 또는 hex)을 현재 테마에 맞는 hex로 변환
