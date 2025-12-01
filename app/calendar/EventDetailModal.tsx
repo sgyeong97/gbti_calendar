@@ -804,20 +804,6 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 										onChanged();
 										onClose();
 									}}>반복 삭제</button>
-									<button className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer" onClick={async () => {
-										const eventDate = new Date(data.event.startAt);
-										const dateStr = `${eventDate.getFullYear()}-${String(eventDate.getMonth() + 1).padStart(2, '0')}-${String(eventDate.getDate()).padStart(2, '0')}`;
-										if (!confirm(`${dateStr}부터 이 반복을 종료하시겠습니까?`)) return;
-										const endsOn = new Date(eventDate);
-										endsOn.setHours(23, 59, 59, 999);
-										await fetch(`/api/events/${eventId}`, {
-											method: "PATCH",
-											headers: { "Content-Type": "application/json" },
-											body: JSON.stringify({ endsOn: endsOn.toISOString() })
-										});
-										onChanged();
-										onClose();
-									}}>반복 종료</button>
 								</>
 							) : (
 								<>

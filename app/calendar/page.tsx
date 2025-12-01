@@ -200,7 +200,13 @@ export default function CalendarPage() {
   };
 
   // 오늘의 파티 목록
-  const todayEvents = events.filter((e) => isSameDay(new Date(e.startAt), new Date()));
+  // 타임존 이슈를 피하기 위해 ISO 문자열의 날짜 부분(YYYY-MM-DD)만 비교
+  const todayEvents = events.filter((e) => {
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+    const match = e.startAt.match(/^(\d{4}-\d{2}-\d{2})/);
+    const eventDateStr = match ? match[1] : format(new Date(e.startAt), "yyyy-MM-dd");
+    return eventDateStr === todayStr;
+  });
 
   return (
     <div className="p-4">
