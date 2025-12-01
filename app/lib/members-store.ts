@@ -12,6 +12,8 @@ export type Member = {
 	lastSeen: string;
 	discordLink?: string;
 	birthYear?: number;
+	birthMonth?: number;
+	birthDay?: number;
 };
 
 const dataFilePath = path.join(process.cwd(), "data", "members.json");

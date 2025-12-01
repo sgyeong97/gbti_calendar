@@ -88,8 +88,57 @@ export async function GET(req: NextRequest) {
 
     console.log(`[API] 확장된 반복 이벤트: ${recurring.length}개`);
     console.log(`[API] 일반 이벤트: ${events.length}개`);
+
+    // 생일 이벤트 생성 (Member 테이블 기반 가상 이벤트)
+    let birthdayEvents: any[] = [];
+    if (start && end) {
+      const { data: members, error: membersError } = await supabase
+        .from('member')
+        .select('id, name, birthmonth, birthday');
+      if (membersError) throw membersError;
+
+      if (members && members.length > 0) {
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+        const startYear = startDate.getFullYear();
+        const endYear = endDate.getFullYear();
+
+        const makeDateStr = (y: number, m: number, d: number) =>
+          `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+        for (const m of members) {
+          const bm = typeof m.birthmonth === 'number' ? m.birthmonth : null;
+          const bd = typeof m.birthday === 'number' ? m.birthday : null;
+          if (!bm || !bd) continue;
+
+          for (let y = startYear; y <= endYear; y++) {
+            const candidate = new Date(y, bm - 1, bd);
+            if (candidate < startDate || candidate > endDate) continue;
+
+            const dateStr = makeDateStr(y, bm, bd);
+            const startAt = `${dateStr}T00:00:00.000Z`;
+            const endAt = `${dateStr}T23:59:59.000Z`;
+
+            birthdayEvents.push({
+              id: `BIRTHDAY-${m.id}-${y}`,
+              calendarId: calendarId ?? "default",
+              title: `🎂${m.name} 생일`,
+              description: null,
+              startAt,
+              endAt,
+              allDay: true,
+              participants: [m.name],
+              color: "#ff6b9d", // 생일 이벤트 색상 고정
+              isRecurring: false,
+            });
+          }
+        }
+      }
+    }
+
+    console.log(`[API] 생일 이벤트: ${birthdayEvents.length}개`);
     
-    let all = [...events, ...recurring];
+    let all = [...events, ...recurring, ...birthdayEvents];
     if (participantName) {
       const beforeFilter = all.length;
       all = all.filter((e) => e.participants?.some((p: string) => p === participantName));

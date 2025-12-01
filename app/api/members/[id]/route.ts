@@ -43,6 +43,8 @@ export async function PUT(req: NextRequest, ctx: RouteContext) {
         if (patch?.status === 'active' || patch?.status === 'inactive') updates.status = patch.status;
         if (patch?.discordLink !== undefined) updates.discordlink = patch.discordLink || null;
         if (patch?.birthYear !== undefined) updates.birthyear = typeof patch.birthYear === 'number' ? patch.birthYear : null;
+        if (patch?.birthMonth !== undefined) updates.birthmonth = typeof patch.birthMonth === 'number' ? patch.birthMonth : null;
+        if (patch?.birthDay !== undefined) updates.birthday = typeof patch.birthDay === 'number' ? patch.birthDay : null;
 
         const { data, error } = await supabaseAdmin
             .from('member')
@@ -108,6 +110,8 @@ export async function PUT(req: NextRequest, ctx: RouteContext) {
             lastSeen: data.lastseen ?? new Date().toISOString().slice(0,10),
             discordLink: data.discordlink ?? undefined,
             birthYear: typeof data.birthyear === 'number' ? data.birthyear : undefined,
+            birthMonth: typeof data.birthmonth === 'number' ? data.birthmonth : undefined,
+            birthDay: typeof data.birthday === 'number' ? data.birthday : undefined,
         };
         return NextResponse.json(updated);
   } catch (err: any) {

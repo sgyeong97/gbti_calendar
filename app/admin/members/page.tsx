@@ -17,6 +17,8 @@ type Member = {
 	lastSeen: string;
 	discordLink?: string; // 디코 자기소개 링크
 	birthYear?: number; // 탄생년도
+	birthMonth?: number; // 생일(월)
+	birthDay?: number; // 생일(일)
 };
 
 export default function MemberManagementPage() {
@@ -28,9 +30,11 @@ export default function MemberManagementPage() {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
-	const [editingField, setEditingField] = useState<null | "discordLink" | "birthYear">(null);
+	const [editingField, setEditingField] = useState<null | "discordLink" | "birthYear" | "birthday">(null);
 	const [editingDiscordLink, setEditingDiscordLink] = useState("");
 	const [editingBirthYear, setEditingBirthYear] = useState<number | null>(null);
+	const [editingBirthMonth, setEditingBirthMonth] = useState<number | null>(null);
+	const [editingBirthDay, setEditingBirthDay] = useState<number | null>(null);
 	const [sortBy, setSortBy] = useState<"name" | "birthYear">("name");
 	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 	const [filterBirthYear, setFilterBirthYear] = useState<number | null>(null);
@@ -253,6 +257,32 @@ function cancelEditBirthYear() {
 	setEditingField(null);
 	setEditingBirthYear(null);
 }
+
+	function startEditBirthday(member: Member) {
+		setEditingMemberId(member.id);
+		setEditingField("birthday");
+		setEditingBirthMonth(member.birthMonth ?? null);
+		setEditingBirthDay(member.birthDay ?? null);
+	}
+
+	async function saveBirthday() {
+		if (!editingMemberId) return;
+		await updateMember(editingMemberId, {
+			birthMonth: editingBirthMonth ?? null,
+			birthDay: editingBirthDay ?? null,
+		});
+		setEditingMemberId(null);
+		setEditingField(null);
+		setEditingBirthMonth(null);
+		setEditingBirthDay(null);
+	}
+
+	function cancelEditBirthday() {
+		setEditingMemberId(null);
+		setEditingField(null);
+		setEditingBirthMonth(null);
+		setEditingBirthDay(null);
+	}
 
 	function getPlatformStatus(member: Member) {
 		const platforms = [];
@@ -637,7 +667,7 @@ function cancelEditBirthYear() {
 
 										{/* 탄생년도 편집 */}
 										<div>
-						{editingMemberId === member.id && editingField === "birthYear" ? (
+											{editingMemberId === member.id && editingField === "birthYear" ? (
 												<div className="flex gap-2">
 													<input
 														type="number"
@@ -667,16 +697,66 @@ function cancelEditBirthYear() {
 													</button>
 												</div>
 											) : (
-												<div className="flex gap-2">
+												<div className="flex gap-2 flex-wrap items-center">
 													<button
 														className="px-2 py-1 rounded text-xs border hover:bg-zinc-100 dark:hover:bg-zinc-800"
 														onClick={() => startEditBirthYear(member)}
 													>
 														{member.birthYear ? "탄생년도 수정" : "탄생년도 추가"}
 													</button>
+													{/* 생일(월/일) 편집 */}
+													<button
+														className="px-2 py-1 rounded text-xs border hover:bg-zinc-100 dark:hover:bg-zinc-800"
+														onClick={() => startEditBirthday(member)}
+													>
+														{member.birthMonth && member.birthDay ? "생일 수정" : "생일 추가"}
+													</button>
+													{member.birthMonth && member.birthDay && (
+														<span className="text-xs text-zinc-600 dark:text-zinc-400">
+															현재 생일: {member.birthMonth}월 {member.birthDay}일
+														</span>
+													)}
 												</div>
 											)}
 										</div>
+
+										{/* 생일(월/일) 편집 폼 */}
+										{editingMemberId === member.id && editingField === "birthday" && (
+											<div className="mt-1 flex gap-2 items-center">
+												<input
+													type="number"
+													placeholder="월"
+													value={editingBirthMonth ?? ""}
+													onChange={(e) => setEditingBirthMonth(e.target.value ? parseInt(e.target.value) : null)}
+													className="w-16 border rounded px-2 py-1 text-sm"
+													min="1"
+													max="12"
+												/>
+												<span className="text-sm">월</span>
+												<input
+													type="number"
+													placeholder="일"
+													value={editingBirthDay ?? ""}
+													onChange={(e) => setEditingBirthDay(e.target.value ? parseInt(e.target.value) : null)}
+													className="w-16 border rounded px-2 py-1 text-sm"
+													min="1"
+													max="31"
+												/>
+												<span className="text-sm">일</span>
+												<button
+													className="px-2 py-1 rounded text-sm bg-green-100 text-green-700 hover:bg-green-200"
+													onClick={saveBirthday}
+												>
+													저장
+												</button>
+												<button
+													className="px-2 py-1 rounded text-sm border"
+													onClick={cancelEditBirthday}
+												>
+													취소
+												</button>
+											</div>
+										)}
 									</div>
 								</div>
 								

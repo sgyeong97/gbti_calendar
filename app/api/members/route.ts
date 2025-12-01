@@ -10,6 +10,8 @@ type Member = {
     lastSeen: string;
     discordLink?: string;
     birthYear?: number;
+    birthMonth?: number;
+    birthDay?: number;
 };
 
 export const runtime = "nodejs";
@@ -30,6 +32,8 @@ export async function GET() {
 		lastSeen: r.lastseen ?? new Date().toISOString().split('T')[0],
 		discordLink: r.discordlink ?? undefined,
 		birthYear: typeof r.birthyear === 'number' ? r.birthyear : undefined,
+		birthMonth: typeof r.birthmonth === 'number' ? r.birthmonth : undefined,
+		birthDay: typeof r.birthday === 'number' ? r.birthday : undefined,
 	}));
 	return NextResponse.json(members);
 }
@@ -58,6 +62,8 @@ export async function POST(req: NextRequest) {
 			lastseen: new Date().toISOString().slice(0,10),
 			discordlink: body?.discordLink || null,
 			birthyear: typeof body?.birthYear === 'number' ? body.birthYear : null,
+			birthmonth: typeof body?.birthMonth === 'number' ? body.birthMonth : null,
+			birthday: typeof body?.birthDay === 'number' ? body.birthDay : null,
 		};
 
 		const { data, error } = await supabaseAdmin
@@ -75,6 +81,8 @@ export async function POST(req: NextRequest) {
 			lastSeen: data.lastseen ?? new Date().toISOString().slice(0,10),
 			discordLink: data.discordlink ?? undefined,
 			birthYear: typeof data.birthyear === 'number' ? data.birthyear : undefined,
+			birthMonth: typeof data.birthmonth === 'number' ? data.birthmonth : undefined,
+			birthDay: typeof data.birthday === 'number' ? data.birthday : undefined,
 		};
 		return NextResponse.json(created, { status: 201 });
 	} catch (err: any) {
