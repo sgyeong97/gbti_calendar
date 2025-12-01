@@ -199,9 +199,20 @@ export default function CalendarPage() {
 
     // html 클래스에 컬러 테마 반영
     const root = document.documentElement;
-    root.classList.remove("theme-ocean", "theme-forest");
+    root.classList.remove(
+      "theme-ocean",
+      "theme-forest",
+      "theme-molokai",
+      "theme-gruvbox",
+      "theme-sonokai",
+      "theme-onedark"
+    );
     if (savedColorTheme === "ocean") root.classList.add("theme-ocean");
     if (savedColorTheme === "forest") root.classList.add("theme-forest");
+    if (savedColorTheme === "molokai") root.classList.add("theme-molokai");
+    if (savedColorTheme === "gruvbox") root.classList.add("theme-gruvbox");
+    if (savedColorTheme === "sonokai") root.classList.add("theme-sonokai");
+    if (savedColorTheme === "onedark") root.classList.add("theme-onedark");
     const savedLead = localStorage.getItem("gbti_notification_lead_mins");
     if (savedLead) {
       try {
@@ -766,6 +777,10 @@ export default function CalendarPage() {
                       { id: "default", label: "기본" },
                       { id: "ocean", label: "오션" },
                       { id: "forest", label: "포레스트" },
+                      { id: "molokai", label: "Molokai" },
+                      { id: "gruvbox", label: "Gruvbox" },
+                      { id: "sonokai", label: "Sonokai" },
+                      { id: "onedark", label: "OneDark" },
                     ].map((t) => (
                       <button
                         key={t.id}
@@ -774,9 +789,20 @@ export default function CalendarPage() {
                           setColorTheme(t.id);
                           localStorage.setItem("gbti_color_theme", t.id);
                           const root = document.documentElement;
-                          root.classList.remove("theme-ocean", "theme-forest");
+                          root.classList.remove(
+                            "theme-ocean",
+                            "theme-forest",
+                            "theme-molokai",
+                            "theme-gruvbox",
+                            "theme-sonokai",
+                            "theme-onedark"
+                          );
                           if (t.id === "ocean") root.classList.add("theme-ocean");
                           if (t.id === "forest") root.classList.add("theme-forest");
+                          if (t.id === "molokai") root.classList.add("theme-molokai");
+                          if (t.id === "gruvbox") root.classList.add("theme-gruvbox");
+                          if (t.id === "sonokai") root.classList.add("theme-sonokai");
+                          if (t.id === "onedark") root.classList.add("theme-onedark");
                         }}
                         className={`px-2 py-1 rounded border text-xs cursor-pointer ${
                           colorTheme === t.id

@@ -37,7 +37,7 @@ html.theme-molokai {
 }
 
 /* Gruvbox 테마 */
-hhtml.theme-gruvbox {
+html.theme-gruvbox {
   --background: #282828;
   --foreground: #ebdbb2;
   --accent: #fe8019;
