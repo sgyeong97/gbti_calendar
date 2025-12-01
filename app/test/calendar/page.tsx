@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
+import { format } from "date-fns";
 import koLocale from "@fullcalendar/core/locales/ko";
 import EventDetailModal from "@/app/calendar/EventDetailModal";
 
@@ -27,7 +27,7 @@ type Event = {
 
 export default function TestCalendarPage() {
 	const [events, setEvents] = useState<Event[]>([]);
-	const [currentDate, setCurrentDate] = useState<Date>(new Date());
+	const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null);
 	const [activeEventId, setActiveEventId] = useState<string | null>(null);
 
 	// FullCalendar용 이벤트 형식으로 변환
@@ -53,19 +53,18 @@ export default function TestCalendarPage() {
 
 	// 이벤트 가져오기
 	useEffect(() => {
+		if (!dateRange) return;
+		
 		const fetchEvents = async () => {
-			// FullCalendar의 datesSet 이벤트를 사용하는 것이 더 정확하지만, 일단 기본 구현
-			const start = format(startOfWeek(startOfMonth(currentDate), { weekStartsOn: 0 }), "yyyy-MM-dd");
-			const end = format(endOfWeek(endOfMonth(currentDate), { weekStartsOn: 0 }), "yyyy-MM-dd");
-			
-			const res = await fetch(`/api/events?start=${start}&end=${end}`);
+			console.log("이벤트 가져오기:", dateRange.start, "~", dateRange.end);
+			const res = await fetch(`/api/events?start=${dateRange.start}&end=${dateRange.end}`);
 			const json = await res.json();
 			console.log("가져온 이벤트:", json.events?.length, "개");
-			console.log("반복 이벤트:", json.events?.filter((e: Event) => e.isRecurring));
+			console.log("반복 이벤트:", json.events?.filter((e: Event) => e.isRecurring)?.length, "개");
 			setEvents(json.events ?? []);
 		};
 		fetchEvents();
-	}, [currentDate]);
+	}, [dateRange]);
 
 	// 날짜 클릭 핸들러
 	const handleDateClick = (arg: any) => {
@@ -81,19 +80,24 @@ export default function TestCalendarPage() {
 		setActiveEventId(eventId);
 	};
 
-	// 날짜 변경 핸들러 (월 이동 시)
+	// 날짜 변경 핸들러 (월 이동 시) - FullCalendar가 표시하는 실제 날짜 범위 사용
 	const handleDatesSet = (arg: any) => {
-		setCurrentDate(arg.start);
+		// FullCalendar가 실제로 표시하는 날짜 범위 사용
+		const start = format(arg.start, "yyyy-MM-dd");
+		const end = format(arg.end, "yyyy-MM-dd");
+		setDateRange({ start, end });
 	};
 
 	// 이벤트 변경 후 새로고침
 	const handleEventChanged = () => {
-		const start = format(startOfWeek(startOfMonth(currentDate), { weekStartsOn: 0 }), "yyyy-MM-dd");
-		const end = format(endOfWeek(endOfMonth(currentDate), { weekStartsOn: 0 }), "yyyy-MM-dd");
+		if (!dateRange) return;
 		
-		fetch(`/api/events?start=${start}&end=${end}`)
+		fetch(`/api/events?start=${dateRange.start}&end=${dateRange.end}`)
 			.then(res => res.json())
-			.then(json => setEvents(json.events ?? []));
+			.then(json => {
+				console.log("새로고침 후 이벤트:", json.events?.length, "개");
+				setEvents(json.events ?? []);
+			});
 	};
 
 	return (
