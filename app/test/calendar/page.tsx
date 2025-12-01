@@ -251,57 +251,9 @@ export default function TestCalendarPage() {
 					</button>
 				</div>
 			</div>
-			<FullCalendar
-				plugins={[dayGridPlugin, interactionPlugin]}
-				initialView="dayGridMonth"
-				locale={koLocale}
-				firstDay={0} // 일요일 시작
-				headerToolbar={{
-					left: "prev,next today",
-					center: "title",
-					right: "",
-				}}
-				events={calendarEvents}
-				dateClick={handleDateClick}
-				eventClick={handleEventClick}
-				datesSet={handleDatesSet}
-				dayCellDidMount={handleDayCellDidMount}
-				dayMaxEvents={true}
-				height="auto"
-				eventDisplay="block"
-				eventContent={(arg) => {
-					// 제목만 표시 (시간 제거)
-					return { html: `<div class="fc-event-title">${arg.event.title}</div>` };
-				}}
-			/>
-			{activeEventId && (
-				<EventDetailModal
-					eventId={activeEventId}
-					onClose={() => setActiveEventId(null)}
-					onChanged={() => {
-						handleEventChanged();
-						fetchParticipants();
-					}}
-				/>
-			)}
-			{showCreateModal && selectedDate && (
-				<CreateEventModal
-					selectedDate={selectedDate}
-					onClose={() => {
-						setShowCreateModal(false);
-						setSelectedDate(null);
-					}}
-					onCreated={() => {
-						handleEventChanged();
-						fetchParticipants();
-						setShowCreateModal(false);
-						setSelectedDate(null);
-					}}
-				/>
-			)}
 
-			{/* 하단 즐겨찾기 유저 리스트 */}
-			<div className="mt-6 mb-4 space-y-2">
+			{/* 상단 참여자/즐겨찾기 선택 영역 */}
+			<div className="mb-4 space-y-2">
 				{/* 선택된 유저들 */}
 				{selectedParticipants.size > 0 && (
 					<div className="flex items-center gap-2 flex-wrap">
@@ -433,6 +385,54 @@ export default function TestCalendarPage() {
 					</div>
 				</div>
 			</div>
+			<FullCalendar
+				plugins={[dayGridPlugin, interactionPlugin]}
+				initialView="dayGridMonth"
+				locale={koLocale}
+				firstDay={0} // 일요일 시작
+				headerToolbar={{
+					left: "prev,next today",
+					center: "title",
+					right: "",
+				}}
+				events={calendarEvents}
+				dateClick={handleDateClick}
+				eventClick={handleEventClick}
+				datesSet={handleDatesSet}
+				dayCellDidMount={handleDayCellDidMount}
+				dayMaxEvents={true}
+				height="auto"
+				eventDisplay="block"
+				eventContent={(arg) => {
+					// 제목만 표시 (시간 제거)
+					return { html: `<div class="fc-event-title">${arg.event.title}</div>` };
+				}}
+			/>
+			{activeEventId && (
+				<EventDetailModal
+					eventId={activeEventId}
+					onClose={() => setActiveEventId(null)}
+					onChanged={() => {
+						handleEventChanged();
+						fetchParticipants();
+					}}
+				/>
+			)}
+			{showCreateModal && selectedDate && (
+				<CreateEventModal
+					selectedDate={selectedDate}
+					onClose={() => {
+						setShowCreateModal(false);
+						setSelectedDate(null);
+					}}
+					onCreated={() => {
+						handleEventChanged();
+						fetchParticipants();
+						setShowCreateModal(false);
+						setSelectedDate(null);
+					}}
+				/>
+			)}
 
 			{/* 오늘의 파티 목록 */}
 			<div className="mt-6">
