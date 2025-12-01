@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/app/lib/supabase";
 import { supabaseAdmin } from "@/app/lib/supabase-admin";
-import { expandRecurringSlots } from "@/app/lib/supabase-helpers";
+import { expandRecurringSlots, prepareRecurringSlots } from "@/app/lib/recurring-events";
 
 function requireAdmin(req: NextRequest) {
   const role = req.cookies.get("gbti_role")?.value;
