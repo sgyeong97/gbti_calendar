@@ -62,9 +62,12 @@ export function expandRecurringSlots(slots: any[], start?: string, end?: string)
     endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, startDate.getDate());
   }
   
+  // 날짜 배열 생성: 각 날짜를 로컬 날짜로 정규화하여 타임존 문제 방지
   const days: Date[] = [];
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    days.push(new Date(d));
+    // 로컬 날짜로 정규화하여 타임존 문제 방지
+    const normalizedDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    days.push(normalizedDate);
   }
   
   const results: any[] = [];
@@ -78,30 +81,33 @@ export function expandRecurringSlots(slots: any[], start?: string, end?: string)
     const startsOnLocal = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
     
     for (const compareDay of days) {
-      // compareDay도 로컬 날짜로 정규화
-      const compareDayLocal = new Date(compareDay.getFullYear(), compareDay.getMonth(), compareDay.getDate());
-      
+      // days 배열의 각 날짜는 이미 로컬 날짜로 정규화되어 있음
       // slot.dayOfWeek는 JavaScript getDay() 값 (0=일요일, 1=월요일, ..., 6=토요일)
-      // compareDay.getDay()도 같은 형식이므로 직접 비교
+      // 핵심: 선택한 요일(dayOfWeek)과 비교 날짜의 요일이 일치하는지 확인
       const slotDayOfWeek = slot.dayOfWeek;
-      // compareDay는 이미 로컬 날짜로 정규화되었으므로 getDay()는 로컬 요일을 반환
-      const compareDayOfWeek = compareDayLocal.getDay();
+      const compareDayOfWeek = compareDay.getDay();
       
       // 디버깅: 월요일(1) 슬롯과 12월 1일 주변 날짜만 로그 출력
-      if (slotDayOfWeek === 1 && compareDayLocal.getMonth() === 11 && compareDayLocal.getDate() <= 7) {
-        console.log(`[expandRecurringSlots] slot.dayOfWeek: ${slotDayOfWeek} (${['일','월','화','수','목','금','토'][slotDayOfWeek]}), compareDay: ${compareDayLocal.toISOString().split('T')[0]} (${['일','월','화','수','목','금','토'][compareDayOfWeek]}), 매칭: ${slotDayOfWeek === compareDayOfWeek}, slot.title: ${slot.eventTitle}`);
+      if (slotDayOfWeek === 1 && compareDay.getMonth() === 11 && compareDay.getDate() <= 7) {
+        console.log(`[expandRecurringSlots] slot.dayOfWeek: ${slotDayOfWeek} (${['일','월','화','수','목','금','토'][slotDayOfWeek]}), compareDay: ${compareDay.getFullYear()}-${String(compareDay.getMonth() + 1).padStart(2, '0')}-${String(compareDay.getDate()).padStart(2, '0')} (${['일','월','화','수','목','금','토'][compareDayOfWeek]}), 매칭: ${slotDayOfWeek === compareDayOfWeek}, slot.title: ${slot.eventTitle}`);
       }
       
+      // 핵심 로직: 선택한 요일과 비교 날짜의 요일이 일치해야 함
       if (slotDayOfWeek !== compareDayOfWeek) continue;
       
       let isWithinEndDate = true;
       if (slot.endsOn) {
-        const endDate = new Date(slot.endsOn);
-        const endDateLocal = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-        isWithinEndDate = compareDayLocal <= endDateLocal;
+        const endDateStr = slot.endsOn;
+        const endDateMatch = endDateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (endDateMatch) {
+          const [, year, month, day] = endDateMatch;
+          const endDateLocal = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+          isWithinEndDate = compareDay <= endDateLocal;
+        }
       }
       
-      if (compareDayLocal < startsOnLocal || !isWithinEndDate) continue;
+      // startsOn 이후의 날짜만 표시
+      if (compareDay < startsOnLocal || !isWithinEndDate) continue;
       
       // 타임존 문제 해결: 날짜는 로컬 기준으로 유지하고, 시간만 분 단위로 설정
       // slot.startMinutes는 분 단위 (예: 21:00 = 1260분)
