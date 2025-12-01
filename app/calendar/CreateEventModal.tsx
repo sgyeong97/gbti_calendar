@@ -24,12 +24,12 @@ type Props = {
 const PASTEL_COLORS = [
 	{ name: "다홍", value: "#ff6b9d" },
 	{ name: "주황", value: "#ffa94d" },
-	{ name: "파스텔핑크", value: "#ffc1cc" },
-	{ name: "파스텔블루", value: "#a8d8ea" },
-	{ name: "연보라", value: "#d4a5f5" },
-	{ name: "파스텔 연두", value: "#c5e99b" },
+	{ name: "핑크", value: "#FFC5FD" },
+	{ name: "블루", value: "#4CC9FE" },
+	{ name: "보라", value: "#C4A5FE" },
+	{ name: "연두", value: "#90EE90" },
 	{ name: "파스텔 연갈색", value: "#e8c4a0" },
-	{ name: "해바라기 노랑", value: "#ffd93d" },
+	{ name: "노랑", value: "#FAFABE" },
 ];
 
 export default function CreateEventModal({ selectedDate, onClose, onCreated }: Props) {
