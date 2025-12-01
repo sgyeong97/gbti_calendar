@@ -1009,6 +1009,141 @@ export default function CalendarPage() {
           </div>
         </div>
       )}
+
+      {/* 알림 설정 모달 */}
+      {showNotificationSettings && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+          onClick={() => setShowNotificationSettings(false)}
+        >
+          <div
+            className="rounded p-4 w-full max-w-sm space-y-3"
+            style={{ background: "var(--background)", color: "var(--foreground)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold">알림 설정</h2>
+            <div className="text-sm text-zinc-600 dark:text-zinc-400 space-y-3">
+              <p>본인이 속한 파티 일정이 시작되기 전에 미리 알림을 받는 시간을 선택합니다.</p>
+              <div>
+                <div className="mb-1 font-medium text-xs text-zinc-500 dark:text-zinc-400">
+                  알림 시점 선택
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[5, 10, 15, 30, 60, 120, 360].map((min) => (
+                    <button
+                      key={min}
+                      type="button"
+                      onClick={() => {
+                        setNotificationLeadMins((prev) => {
+                          const exists = prev.includes(min);
+                          const next = exists ? prev.filter((v) => v !== min) : [...prev, min];
+                          const normalized = Array.from(new Set(next)).sort((a, b) => a - b);
+                          localStorage.setItem(
+                            "gbti_notification_lead_mins",
+                            JSON.stringify(normalized)
+                          );
+                          return normalized;
+                        });
+                      }}
+                      className={`px-2 py-1 rounded border text-xs cursor-pointer ${
+                        notificationLeadMins.includes(min)
+                          ? "bg-yellow-100 border-yellow-400 text-yellow-800"
+                          : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      }`}
+                    >
+                      {min < 60 ? `${min}분 전` : `${min / 60}시간 전`}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                  현재 설정:{" "}
+                  {notificationLeadMins.length === 0 ? (
+                    <span>알림 없음</span>
+                  ) : (
+                    <strong>
+                      {notificationLeadMins
+                        .slice()
+                        .sort((a, b) => a - b)
+                        .map((m) => (m < 60 ? `${m}분 전` : `${m / 60}시간 전`))
+                        .join(", ")}
+                    </strong>
+                  )}
+                </div>
+              </div>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                브라우저 알림을 받으려면 이 사이트에 대한 알림 권한을 허용해야 합니다.
+              </p>
+            </div>
+            <div className="flex justify-end">
+              <button
+                className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                onClick={() => setShowNotificationSettings(false)}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 파티 리스트 모달 */}
+      {showPartySettings && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+          onClick={() => setShowPartySettings(false)}
+        >
+          <div
+            className="rounded p-4 w-full max-w-sm space-y-3"
+            style={{ background: "var(--background)", color: "var(--foreground)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold">파티 리스트 보기</h2>
+            {!currentUserName ? (
+              <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                먼저 설정에서 사용자명을 선택한 뒤 파티 리스트를 확인할 수 있습니다.
+              </div>
+            ) : partyListLoading ? (
+              <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                파티 리스트를 불러오는 중입니다...
+              </div>
+            ) : partyList.length === 0 ? (
+              <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                앞으로 예정된 파티 일정이 없습니다.
+              </div>
+            ) : (
+              <div className="max-h-80 overflow-y-auto space-y-2 text-sm">
+                {partyList.map((e) => (
+                  <div
+                    key={e.id}
+                    className="border rounded p-2 flex flex-col gap-1"
+                    style={{ borderColor: "var(--accent)" }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold">{e.title}</span>
+                      <span className="text-xs text-zinc-500">
+                        {format(new Date(e.startAt), "M월 d일 HH:mm")}
+                      </span>
+                    </div>
+                    {e.participants && e.participants.length > 0 && (
+                      <div className="text-xs text-zinc-600 dark:text-zinc-400">
+                        참여자: {e.participants.join(", ")}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex justify-end">
+              <button
+                className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                onClick={() => setShowPartySettings(false)}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
