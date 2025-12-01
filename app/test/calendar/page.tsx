@@ -35,6 +35,18 @@ export default function TestCalendarPage() {
 
 	// FullCalendar용 이벤트 형식으로 변환
 	const calendarEvents = events.map((e) => {
+		// 타임존 문제 방지: ISO 문자열을 로컬 날짜로 파싱
+		const startDate = new Date(e.startAt);
+		const endDate = new Date(e.endAt);
+		
+		// 디버깅: 반복 이벤트의 날짜 정보 로그
+		if (e.isRecurring) {
+			const startDateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
+			const startDayOfWeek = startDate.getDay();
+			const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+			console.log(`[클라이언트] 반복 이벤트 변환: id=${e.id}, title="${e.title}", startAt=${e.startAt}, 파싱된 날짜=${startDateStr} (${dayNames[startDayOfWeek]}), getDay()=${startDayOfWeek}`);
+		}
+		
 		return {
 			id: e.id, // 반복 이벤트도 R-로 시작하는 ID 그대로 사용
 			title: e.title, // 제목만 표시 (시간은 표시하지 않음)

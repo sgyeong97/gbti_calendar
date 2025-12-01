@@ -26,6 +26,99 @@ export function getDayNameKo(dayOfWeek: number): string {
 }
 
 /**
+ * UI 순서(일,월,화,수,목,금,토)를 JavaScript getDay() 값으로 매핑
+ * UI 인덱스 0(일) → getDay() 0(일요일)
+ * UI 인덱스 1(월) → getDay() 1(월요일)
+ * ...
+ */
+export function getDayOfWeekFromUIIndex(uiIndex: number): number {
+  const mapping = [0, 1, 2, 3, 4, 5, 6]; // 일(0)→0, 월(1)→1, ..., 토(6)→6
+  return mapping[uiIndex] ?? uiIndex;
+}
+
+/**
+ * 요일 Set을 토글 (선택/해제)
+ * @param days 현재 선택된 요일 Set
+ * @param dayOfWeek 토글할 요일 (JavaScript getDay() 값: 0=일, 1=월, ..., 6=토)
+ * @param enableDebug 디버깅 로그 출력 여부
+ * @returns 새로운 요일 Set
+ */
+export function toggleDayOfWeek(
+  days: Set<number>,
+  dayOfWeek: number,
+  enableDebug: boolean = true
+): Set<number> {
+  const next = new Set(days);
+  const wasSelected = next.has(dayOfWeek);
+  
+  if (wasSelected) {
+    next.delete(dayOfWeek);
+  } else {
+    next.add(dayOfWeek);
+  }
+  
+  if (enableDebug) {
+    const selectedDays = Array.from(next).sort();
+    console.log(
+      `[toggleDayOfWeek] ${getDayNameKo(dayOfWeek)} (${dayOfWeek}) → ${wasSelected ? '해제됨' : '선택됨'}, ` +
+      `현재 선택된 요일: [${selectedDays.map(d => `${d}(${getDayNameKo(d)})`).join(', ')}]`
+    );
+  }
+  
+  return next;
+}
+
+/**
+ * 요일 배열을 정렬하고 검증
+ * @param daysOfWeek 요일 배열 (JavaScript getDay() 값)
+ * @returns 정렬된 요일 배열
+ */
+export function normalizeDaysOfWeek(daysOfWeek: number[]): number[] {
+  const unique = Array.from(new Set(daysOfWeek));
+  const sorted = unique.sort((a, b) => a - b);
+  
+  // 유효성 검증 (0-6 범위)
+  const valid = sorted.filter(d => d >= 0 && d <= 6);
+  
+  if (valid.length !== sorted.length) {
+    console.warn(`[normalizeDaysOfWeek] 유효하지 않은 요일 값 제거: ${sorted.filter(d => d < 0 || d > 6).join(', ')}`);
+  }
+  
+  return valid;
+}
+
+/**
+ * 반복 요일 정보를 디버깅용 문자열로 변환
+ */
+export function formatDaysOfWeekForDebug(daysOfWeek: number[]): string {
+  return `[${daysOfWeek.map(d => `${d}(${getDayNameKo(d)})`).join(', ')}]`;
+}
+
+/**
+ * 반복 이벤트 생성 파라미터 검증 및 디버깅 로그 출력
+ */
+export function debugRecurringEventCreation(params: {
+  title: string;
+  startAt: Date;
+  endAt: Date;
+  daysOfWeek: number[];
+  startMinutes: number;
+  endMinutes: number;
+}): void {
+  const dayNames = DAY_NAMES_KO;
+  const normalizedDays = normalizeDaysOfWeek(params.daysOfWeek);
+  
+  console.log(`\n========== [반복 이벤트 생성 디버깅] ==========`);
+  console.log(`제목: "${params.title}"`);
+  console.log(`시작 시간: ${params.startAt.toISOString()}, getDay()=${params.startAt.getDay()} (${dayNames[params.startAt.getDay()]})`);
+  console.log(`종료 시간: ${params.endAt.toISOString()}, getDay()=${params.endAt.getDay()} (${dayNames[params.endAt.getDay()]})`);
+  console.log(`시작 분: ${params.startMinutes} (${Math.floor(params.startMinutes / 60)}:${String(params.startMinutes % 60).padStart(2, '0')})`);
+  console.log(`종료 분: ${params.endMinutes} (${Math.floor(params.endMinutes / 60)}:${String(params.endMinutes % 60).padStart(2, '0')})`);
+  console.log(`선택된 요일: ${formatDaysOfWeekForDebug(normalizedDays)}`);
+  console.log(`========================================\n`);
+}
+
+/**
  * 날짜 문자열을 로컬 날짜로 파싱 (타임존 무시)
  */
 export function parseLocalDate(dateStr: string): Date {
@@ -228,11 +321,13 @@ export function expandRecurringSlots(
       
       // 시간 설정 (분 단위를 시간:분으로 변환)
       // 중요: compareDay는 이미 로컬 날짜로 정규화되어 있으므로, 시간만 추가
+      // 타임존 문제 방지: 로컬 시간으로 생성한 후 ISO 문자열로 변환
       const startHour = Math.floor(slot.startMinutes / 60);
       const startMin = slot.startMinutes % 60;
       const endHour = Math.floor(slot.endMinutes / 60);
       const endMin = slot.endMinutes % 60;
       
+      // 로컬 시간으로 Date 객체 생성 (타임존 변환 없음)
       const startAt = new Date(
         compareDay.getFullYear(),
         compareDay.getMonth(),
@@ -261,9 +356,22 @@ export function expandRecurringSlots(
       // 시간 설정 후 날짜/요일이 변경되었는지 확인
       const startAtDay = startAt.getDay();
       const endAtDay = endAt.getDay();
+      const startAtDateStr = `${startAt.getFullYear()}-${String(startAt.getMonth() + 1).padStart(2, '0')}-${String(startAt.getDate()).padStart(2, '0')}`;
+      
       if (startAtDay !== compareDayOfWeek || endAtDay !== compareDayOfWeek) {
         console.error(`  [경고] 시간 설정 후 요일 변경! compareDay.getDay()=${compareDayOfWeek}, startAt.getDay()=${startAtDay}, endAt.getDay()=${endAtDay}`);
-        console.error(`    compareDay: ${dateStr}, startAt: ${startAt.toISOString()}, endAt: ${endAt.toISOString()}`);
+        console.error(`    compareDay: ${dateStr}, startAt: ${startAt.toISOString()} (${startAtDateStr}), endAt: ${endAt.toISOString()}`);
+      }
+      
+      // ISO 문자열로 변환 시 날짜가 변경되는지 확인
+      // toISOString()은 UTC로 변환하므로, 로컬 시간이 자정 근처면 날짜가 변경될 수 있음
+      const startAtISO = startAt.toISOString();
+      const startAtISODate = new Date(startAtISO);
+      const startAtISODateStr = `${startAtISODate.getFullYear()}-${String(startAtISODate.getMonth() + 1).padStart(2, '0')}-${String(startAtISODate.getDate()).padStart(2, '0')}`;
+      
+      if (startAtDateStr !== startAtISODateStr) {
+        console.warn(`  [경고] ISO 변환 시 날짜 변경! 로컬: ${startAtDateStr}, ISO 파싱 후: ${startAtISODateStr}`);
+        console.warn(`    startAt.toISOString(): ${startAtISO}`);
       }
       
       // 참여자 파싱

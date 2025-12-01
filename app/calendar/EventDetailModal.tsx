@@ -5,6 +5,14 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
 import dayjs, { Dayjs } from "dayjs";
+import {
+	getDayOfWeekFromUIIndex,
+	toggleDayOfWeek,
+	normalizeDaysOfWeek,
+	formatDaysOfWeekForDebug,
+	DAY_NAMES_KO,
+	getDayNameKo,
+} from "@/app/lib/recurring-events";
 
 type Props = { eventId: string | null; onClose: () => void; onChanged: () => void };
 
@@ -138,9 +146,11 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 							<div className="space-y-2">
 								<div className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs rounded">반복 이벤트</div>
 								<div>
-									<strong>반복 요일:</strong> {data.event.recurringDays && [
-										"일", "월", "화", "수", "목", "금", "토"
-									].filter((_, i) => data.event.recurringDays.includes(i)).join(", ")}
+									<strong>반복 요일:</strong> {data.event.recurringDays && 
+										normalizeDaysOfWeek(data.event.recurringDays)
+											.map(d => getDayNameKo(d))
+											.join(", ")
+									}
 								</div>
 								<div>
 									<strong>시간:</strong> {data.event.recurringStartMinutes !== undefined && data.event.recurringEndMinutes !== undefined && (() => {
@@ -211,7 +221,7 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 											className="px-3 py-1.5 border rounded text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
 											onClick={()=>setOpenStartDate(!openStartDate)}
 										>
-											{editStartAt ? `${editStartAt.format('M월 D일')} (${['일','월','화','수','목','금','토'][editStartAt.day()]})` : ''}
+											{editStartAt ? `${editStartAt.format('M월 D일')} (${getDayNameKo(editStartAt.day())})` : ''}
 										</button>
 										{openStartDate && editStartAt && (
 											<div className="absolute z-50 mt-1 p-2 rounded border bg-white dark:bg-zinc-800 shadow-lg" style={{width:'min(320px,90vw)'}}>
@@ -280,7 +290,7 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 										className="px-3 py-1.5 border rounded text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
 										onClick={()=>setOpenEndDate(!openEndDate)}
 									>
-										{editEndAt ? `${editEndAt.format('M월 D일')} (${['일','월','화','수','목','금','토'][editEndAt.day()]})` : ''}
+										{editEndAt ? `${editEndAt.format('M월 D일')} (${getDayNameKo(editEndAt.day())})` : ''}
 									</button>
 									{openEndDate && editEndAt && (
 										<div className="absolute z-50 mt-1 p-2 rounded border bg-white dark:bg-zinc-800 shadow-lg" style={{width:'min(320px,90vw)'}}>
@@ -349,19 +359,23 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 						<div className="space-y-2">
 							<div className="text-xs text-zinc-600">반복 요일</div>
 							<div className="flex gap-1 flex-wrap">
-								{["일","월","화","수","목","금","토"].map((w, idx)=>{
-									const on = selectedDays.has(idx);
+								{DAY_NAMES_KO.map((w, uiIndex) => {
+									// UI 인덱스를 JavaScript getDay() 값으로 변환
+									const dayOfWeek = getDayOfWeekFromUIIndex(uiIndex);
+									const on = selectedDays.has(dayOfWeek);
 									return (
-										<button key={idx} className={`px-2 py-1 text-xs rounded border ${on?"bg-yellow-200":"hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
-											onClick={()=>{
-											const next = new Set(selectedDays);
-											if (on) next.delete(idx); else next.add(idx);
-											setSelectedDays(next);
-										}}
-									>
-										{w}
-									</button>
-								);
+										<button 
+											key={uiIndex} 
+											className={`px-2 py-1 text-xs rounded border ${on?"bg-yellow-200":"hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
+											onClick={() => {
+												// 공용 모듈의 toggleDayOfWeek 함수 사용
+												const next = toggleDayOfWeek(selectedDays, dayOfWeek, true);
+												setSelectedDays(next);
+											}}
+										>
+											{w}
+										</button>
+									);
 								})}
 							</div>
 							<div className="grid grid-cols-2 gap-2 relative">
@@ -713,7 +727,7 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 									eventTitle: data.event.title,
 									newTitle: editTitle,
 									participants: editParticipants,
-									days: Array.from(selectedDays),
+									days: normalizeDaysOfWeek(Array.from(selectedDays)), // 정규화된 요일 배열 전송
 									startMinutes: toMin(editRecurringStart),
 									endMinutes: toMin(editRecurringEnd)
 								})

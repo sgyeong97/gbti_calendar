@@ -6,6 +6,14 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
 import dayjs, { Dayjs } from "dayjs";
+import {
+	getDayOfWeekFromUIIndex,
+	toggleDayOfWeek,
+	normalizeDaysOfWeek,
+	formatDaysOfWeekForDebug,
+	debugRecurringEventCreation,
+	DAY_NAMES_KO,
+} from "@/app/lib/recurring-events";
 
 type Props = {
 	selectedDate?: Date;
@@ -142,10 +150,11 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 		} catch {}
 	}, [title, color, startAt, endAt, participants, repeat]);
 
-	function toggleDay(idx: number) {
-		const next = new Set(repeat.days);
-		if (next.has(idx)) next.delete(idx);
-		else next.add(idx);
+	function toggleDay(uiIndex: number) {
+		// UI 인덱스를 JavaScript getDay() 값으로 변환
+		const dayOfWeek = getDayOfWeekFromUIIndex(uiIndex);
+		// 공용 모듈의 toggleDayOfWeek 함수 사용
+		const next = toggleDayOfWeek(repeat.days, dayOfWeek, true);
 		setRepeat({ ...repeat, days: next });
 	}
 
@@ -174,13 +183,31 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 				requestData.participants = participants;
 			}
             if (repeat.enabled && repeat.days.size > 0) {
+				const daysOfWeek = normalizeDaysOfWeek(Array.from(repeat.days));
+				const startMinutes = startAt.hour() * 60 + startAt.minute();
+				const endMinutes = endAt.hour() * 60 + endAt.minute();
+				
+				// 공용 모듈의 디버깅 함수 사용
+				debugRecurringEventCreation({
+					title,
+					startAt: startAt.toDate(),
+					endAt: endAt.toDate(),
+					daysOfWeek,
+					startMinutes,
+					endMinutes,
+				});
+				
 				requestData.repeat = {
-					daysOfWeek: Array.from(repeat.days),
-                    startMinutes: startAt.hour() * 60 + startAt.minute(),
-                    endMinutes: endAt.hour() * 60 + endAt.minute(),
+					daysOfWeek: daysOfWeek,
+					startMinutes,
+					endMinutes,
 					color
 				};
+				
+				console.log(`[CreateEventModal] 전송할 requestData.repeat:`, requestData.repeat);
 			}
+
+			console.log(`[CreateEventModal] API 요청 전송:`, JSON.stringify(requestData, null, 2));
 
 			const res = await fetch("/api/events", {
 				method: "POST",
@@ -190,11 +217,12 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 
 			if (res.ok) {
 				const result = await res.json();
-				console.log("이벤트 생성 성공:", result);
+				console.log("[CreateEventModal] 이벤트 생성 성공:", result);
 				try { localStorage.removeItem("gbti_create_event_draft"); } catch {}
 				onCreated();
 			} else {
 				const error = await res.json();
+				console.error("[CreateEventModal] API 오류:", error);
 				alert(error.error || "이벤트 생성에 실패했습니다.");
 			}
 		} catch (err) {
@@ -485,18 +513,14 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 						</label>
 						{repeat.enabled && (
 							<div className="flex items-center gap-2 text-sm">
-								{["일","월","화","수","목","금","토"].map((w, i) => {
-									// Sunday-first UI → JS getDay
-									// JavaScript getDay(): 0=일요일, 1=월요일, 2=화요일, ..., 6=토요일
-									// UI 순서: 일(0), 월(1), 화(2), 수(3), 목(4), 금(5), 토(6)
-									// 매핑: 일(0) → 0, 월(1) → 1, 화(2) → 2, 수(3) → 3, 목(4) → 4, 금(5) → 5, 토(6) → 6
-									const mapping = [0,1,2,3,4,5,6];
-									const jsDayOfWeek = mapping[i];
+								{DAY_NAMES_KO.map((w, i) => {
+									// UI 인덱스를 JavaScript getDay() 값으로 변환
+									const jsDayOfWeek = getDayOfWeekFromUIIndex(i);
 									return (
 										<button
 											key={i}
 											type="button"
-											onClick={() => toggleDay(jsDayOfWeek)}
+											onClick={() => toggleDay(i)} // UI 인덱스 전달
 											className={`px-2 py-1 rounded border transition-colors cursor-pointer ${repeat.days.has(jsDayOfWeek) ? "text-black" : "hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
 											style={repeat.days.has(jsDayOfWeek) ? { backgroundColor: "#FDC205" } : undefined}
 										>
