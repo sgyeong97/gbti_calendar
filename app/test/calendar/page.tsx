@@ -79,7 +79,12 @@ export default function TestCalendarPage() {
 		// 빈 날짜 셀에 더블클릭 이벤트 추가
 		const cellEl = arg.el;
 		cellEl.addEventListener('dblclick', () => {
-			const clickedDate = new Date(arg.date);
+			// dateStr을 사용하여 타임존 문제 방지 (형식: "YYYY-MM-DD")
+			const dateStr = format(arg.date, "yyyy-MM-dd");
+			// 로컬 날짜로 파싱 (타임존 무시)
+			const [year, month, day] = dateStr.split('-').map(Number);
+			const clickedDate = new Date(year, month - 1, day);
+			console.log("더블클릭 날짜:", clickedDate, "dateStr:", dateStr);
 			setSelectedDate(clickedDate);
 			setShowCreateModal(true);
 		});
