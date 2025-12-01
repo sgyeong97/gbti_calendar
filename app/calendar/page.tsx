@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { format, isSameDay } from "date-fns";
+import { format, isSameDay, addMonths } from "date-fns";
 import koLocale from "@fullcalendar/core/locales/ko";
 import EventDetailModal from "@/app/calendar/EventDetailModal";
 import CreateEventModal from "@/app/calendar/CreateEventModal";
@@ -49,6 +49,9 @@ export default function CalendarPage() {
 	const [showUserInfoSettings, setShowUserInfoSettings] = useState<boolean>(false);
   const [showNotificationSettings, setShowNotificationSettings] = useState<boolean>(false);
   const [showPartySettings, setShowPartySettings] = useState<boolean>(false);
+  const [notificationLeadMin, setNotificationLeadMin] = useState<number>(30);
+  const [partyList, setPartyList] = useState<Event[]>([]);
+  const [partyListLoading, setPartyListLoading] = useState<boolean>(false);
 	const [userInfoName, setUserInfoName] = useState<string>("");
 	const [userInfoTitle, setUserInfoTitle] = useState<string>("");
 	const [userInfoColor, setUserInfoColor] = useState<string>("#e5e7eb");
@@ -181,6 +184,11 @@ export default function CalendarPage() {
     const savedTheme = (localStorage.getItem("gbti_theme") as "system" | "light" | "dark") || "system";
     setTheme(savedTheme);
     applyTheme(savedTheme);
+
+    const savedLead = localStorage.getItem("gbti_notification_lead_min");
+    if (savedLead && !isNaN(parseInt(savedLead, 10))) {
+      setNotificationLeadMin(parseInt(savedLead, 10));
+    }
 
 		const handleFavoritesUpdated = () => {
 			refreshFavorites();
@@ -647,12 +655,41 @@ export default function CalendarPage() {
                   {/* 3) 파티 설정 */}
                   <button
                     className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
-                    onClick={() => {
+                    onClick={async () => {
                       setShowSettings(false);
                       setShowPartySettings(true);
+
+                      if (!currentUserName) return;
+                      try {
+                        setPartyListLoading(true);
+                        const today = new Date();
+                        const start = format(today, "yyyy-MM-dd");
+                        const end = format(addMonths(today, 3), "yyyy-MM-dd");
+                        const res = await fetch(
+                          `/api/events?start=${start}&end=${end}&includeBirthdays=1`
+                        );
+                        const json = await res.json();
+                        const allEvents: Event[] = json.events ?? [];
+                        const mine = allEvents
+                          .filter(
+                            (e) =>
+                              e.participants &&
+                              e.participants.includes(currentUserName) &&
+                              !e.id.startsWith("BIRTHDAY-")
+                          )
+                          .sort(
+                            (a, b) =>
+                              new Date(a.startAt).getTime() - new Date(b.startAt).getTime()
+                          );
+                        setPartyList(mine);
+                      } catch (e) {
+                        console.error("파티 리스트 불러오기 실패:", e);
+                      } finally {
+                        setPartyListLoading(false);
+                      }
                     }}
                   >
-                    파티 설정
+                    파티 리스트 보기
                   </button>
                   {/* 4) 테마 설정 */}
 									<button
@@ -758,10 +795,43 @@ export default function CalendarPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-lg font-semibold">알림 설정</h2>
-            <div className="text-sm text-zinc-600 dark:text-zinc-400 space-y-2">
-              <p>이벤트 시작 전에 브라우저 푸시 알림을 받는 기능입니다.</p>
-              <p>크론 작업과 브라우저 권한 설정을 이용해 동작하며, 현재는 서버 측 알림 로직까지 구현된 상태입니다.</p>
-              <p>브라우저 알림 권한은 주소창 왼쪽 자물쇠 아이콘에서 허용/차단을 변경할 수 있습니다.</p>
+            <div className="text-sm text-zinc-600 dark:text-zinc-400 space-y-3">
+              <p>본인이 속한 파티 일정이 시작되기 전에 미리 알림을 받는 시간을 선택합니다.</p>
+              <div>
+                <div className="mb-1 font-medium text-xs text-zinc-500 dark:text-zinc-400">
+                  알림 시점 선택
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[5, 10, 15, 30, 60, 120, 360].map((min) => (
+                    <button
+                      key={min}
+                      type="button"
+                      onClick={() => {
+                        setNotificationLeadMin(min);
+                        localStorage.setItem("gbti_notification_lead_min", String(min));
+                      }}
+                      className={`px-2 py-1 rounded border text-xs cursor-pointer ${
+                        notificationLeadMin === min
+                          ? "bg-yellow-100 border-yellow-400 text-yellow-800"
+                          : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      }`}
+                    >
+                      {min < 60 ? `${min}분 전` : `${min / 60}시간 전`}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                  현재 설정:{" "}
+                  <strong>
+                    {notificationLeadMin < 60
+                      ? `${notificationLeadMin}분 전`
+                      : `${notificationLeadMin / 60}시간 전`}
+                  </strong>
+                </div>
+              </div>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                브라우저 알림을 받으려면 이 사이트에 대한 알림 권한을 허용해야 합니다.
+              </p>
             </div>
             <div className="flex justify-end">
               <button
@@ -786,11 +856,40 @@ export default function CalendarPage() {
             style={{ background: "var(--background)", color: "var(--foreground)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-lg font-semibold">파티 설정</h2>
-            <div className="text-sm text-zinc-600 dark:text-zinc-400 space-y-2">
-              <p>오늘의 파티 목록과 관련된 기능을 설정하는 메뉴입니다.</p>
-              <p>파티 캡처/공유 등 부가 기능은 이 화면에서 점차 확장될 예정입니다.</p>
-            </div>
+            <h2 className="text-lg font-semibold">파티 리스트 보기</h2>
+            {!currentUserName ? (
+              <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                먼저 설정에서 사용자명을 선택한 뒤 파티 리스트를 확인할 수 있습니다.
+              </div>
+            ) : partyListLoading ? (
+              <div className="text-sm text-zinc-600 dark:text-zinc-400">파티 리스트를 불러오는 중입니다...</div>
+            ) : partyList.length === 0 ? (
+              <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                앞으로 예정된 파티 일정이 없습니다.
+              </div>
+            ) : (
+              <div className="max-h-80 overflow-y-auto space-y-2 text-sm">
+                {partyList.map((e) => (
+                  <div
+                    key={e.id}
+                    className="border rounded p-2 flex flex-col gap-1"
+                    style={{ borderColor: e.color || "#e5e7eb" }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold">{e.title}</span>
+                      <span className="text-xs text-zinc-500">
+                        {format(new Date(e.startAt), "M월 d일 HH:mm")}
+                      </span>
+                    </div>
+                    {e.participants && e.participants.length > 0 && (
+                      <div className="text-xs text-zinc-600 dark:text-zinc-400">
+                        참여자: {e.participants.join(", ")}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="flex justify-end">
               <button
                 className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
