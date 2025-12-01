@@ -50,7 +50,7 @@ export default function CalendarPage() {
 			const start = format(startOfWeek(startOfMonth(currentDate), { weekStartsOn: 0 }), "yyyy-MM-dd");
 			const end = format(endOfWeek(endOfMonth(currentDate), { weekStartsOn: 0 }), "yyyy-MM-dd");
 			
-			const res = await fetch(`/api/events?start=${start}&end=${end}`);
+			const res = await fetch(`/api/events?start=${start}&end=${end}&includeBirthdays=1`);
 			const json = await res.json();
 			setEvents(json.events ?? []);
 		};

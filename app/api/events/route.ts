@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
   const start = searchParams.get("start");
   const end = searchParams.get("end");
   const participantName = searchParams.get("participantName");
+  const includeBirthdays = searchParams.get("includeBirthdays") === "1";
 
   console.log(`\n========== [API: 이벤트 조회 시작] ==========`);
   console.log(`쿼리 파라미터: calendarId=${calendarId || '없음'}, start=${start || '없음'}, end=${end || '없음'}, participantName=${participantName || '없음'}`);
@@ -91,7 +92,7 @@ export async function GET(req: NextRequest) {
 
     // 생일 이벤트 생성 (Member 테이블 기반 가상 이벤트)
     let birthdayEvents: any[] = [];
-    if (start && end) {
+    if (start && end && includeBirthdays) {
       const { data: members, error: membersError } = await supabase
         .from('member')
         .select('id, name, birthmonth, birthday');

@@ -136,7 +136,7 @@ export default function TestCalendarPage() {
 		
 		const fetchEvents = async () => {
 			console.log("이벤트 가져오기:", dateRange.start, "~", dateRange.end);
-			const res = await fetch(`/api/events?start=${dateRange.start}&end=${dateRange.end}`);
+			const res = await fetch(`/api/events?start=${dateRange.start}&end=${dateRange.end}&includeBirthdays=1`);
 			const json = await res.json();
 			let fetchedEvents = json.events ?? [];
 			

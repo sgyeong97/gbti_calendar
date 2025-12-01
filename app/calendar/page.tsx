@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import TestCalendarPage from "@/app/test/calendar/page";
 import CreateEventModal from "@/app/calendar/CreateEventModal";
 import EventDetailModal from "@/app/calendar/EventDetailModal";
 // 공지사항 관련 import 제거
@@ -36,6 +37,10 @@ type FavoriteUser = {
 
 export default function CalendarPage() {
 	const router = useRouter();
+	// 임시: 기존 커스텀 캘린더 대신 /test/calendar 구현을 그대로 사용
+	return <TestCalendarPage />;
+
+	/* 아래 코드는 더 이상 사용되지 않지만, 추후 필요 시를 대비해 남겨둡니다.
 	const [current, setCurrent] = useState<Date>(new Date());
 	const [events, setEvents] = useState<Event[]>([]);
 	const [selectedParticipant, setSelectedParticipant] = useState<string>("");
@@ -64,7 +69,7 @@ export default function CalendarPage() {
 				endStr = format(endOfWeek(endOfMonth(current), { weekStartsOn: 0 }), "yyyy-MM-dd");
 			}
 
-			const qp = new URLSearchParams({ start: startStr, end: endStr });
+			const qp = new URLSearchParams({ start: startStr, end: endStr, includeBirthdays: "1" });
 			const res = await fetch(`/api/events?${qp.toString()}`);
 			const json = await res.json();
 			let fetchedEvents = json.events ?? [];
@@ -98,34 +103,7 @@ export default function CalendarPage() {
 	const [pickerYear, setPickerYear] = useState<number>(new Date().getFullYear());
 	const [pickerMonth, setPickerMonth] = useState<number>(new Date().getMonth());
 
-	// 알림 기능 상태 및 참조들
-	const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(false);
-	const [notificationLeadMinutes, setNotificationLeadMinutes] = useState<number>(30);
-	const [notificationLeadMinutesList, setNotificationLeadMinutesList] = useState<number[]>([30]);
-	const swRegistrationRef = useRef<ServiceWorkerRegistration | null>(null);
-	const notifTimersRef = useRef<Map<string, number>>(new Map());
-	const notifMenuOpenRef = useRef<boolean>(false);
-	const [notifMenuOpen, setNotifMenuOpen] = useState<boolean>(false);
-	const [notifMenuPos, setNotifMenuPos] = useState<{ x: number; y: number } | null>(null);
-	const bellLongPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const bellLongPressedRef = useRef<boolean>(false);
-	const bellBtnRef = useRef<HTMLButtonElement | null>(null);
-	const [notificationTargets, setNotificationTargets] = useState<string[]>([]);
-	const [showNotificationSettings, setShowNotificationSettings] = useState<boolean>(false);
-	const [showSaveToast, setShowSaveToast] = useState<boolean>(false);
-	
-	// 설정 관련 상태
-	const [currentUserName, setCurrentUserName] = useState<string>("");
-	const [showSettings, setShowSettings] = useState<boolean>(false);
-	const [showUserInfoSettings, setShowUserInfoSettings] = useState<boolean>(false);
-	const [showUserNotificationSettings, setShowUserNotificationSettings] = useState<boolean>(false);
-	const [showUserEventsView, setShowUserEventsView] = useState<boolean>(false);
-	const [userInfoName, setUserInfoName] = useState<string>("");
-	const [userInfoTitle, setUserInfoTitle] = useState<string>("");
-	const [userInfoColor, setUserInfoColor] = useState<string>("#e5e7eb");
-	const [originalTitle, setOriginalTitle] = useState<string>("");
-	const [originalColor, setOriginalColor] = useState<string>("#e5e7eb");
-	const [theme, setTheme] = useState<string>("system");
+	// 알림 관련 및 설정 코드는 주석 처리됨
 
 	// 테마 적용 함수
 	function applyTheme(next: string) {
@@ -2254,7 +2232,7 @@ export default function CalendarPage() {
 						startStr = format(startOfWeek(startOfMonth(current), { weekStartsOn: 0 }), "yyyy-MM-dd");
 						endStr = format(endOfWeek(endOfMonth(current), { weekStartsOn: 0 }), "yyyy-MM-dd");
 
-						const qp = new URLSearchParams({ start: startStr, end: endStr });
+						const qp = new URLSearchParams({ start: startStr, end: endStr, includeBirthdays: "1" });
 						if (selectedParticipant) qp.set("participantName", selectedParticipant);
 						fetch(`/api/events?${qp.toString()}`).then((r) => r.json()).then((json) => setEvents(json.events ?? []));
 					}}
@@ -2276,7 +2254,7 @@ export default function CalendarPage() {
 						startStr = format(startOfWeek(startOfMonth(current), { weekStartsOn: 0 }), "yyyy-MM-dd");
 						endStr = format(endOfWeek(endOfMonth(current), { weekStartsOn: 0 }), "yyyy-MM-dd");
 
-						const qp = new URLSearchParams({ start: startStr, end: endStr });
+						const qp = new URLSearchParams({ start: startStr, end: endStr, includeBirthdays: "1" });
 						if (selectedParticipant) qp.set("participantName", selectedParticipant);
 						fetch(`/api/events?${qp.toString()}`).then((r) => r.json()).then((json) => setEvents(json.events ?? []));
 
