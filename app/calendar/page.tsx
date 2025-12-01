@@ -10,6 +10,7 @@ import { format, isSameDay, addMonths } from "date-fns";
 import koLocale from "@fullcalendar/core/locales/ko";
 import EventDetailModal from "@/app/calendar/EventDetailModal";
 import CreateEventModal from "@/app/calendar/CreateEventModal";
+import { resolveEventColor } from "@/app/lib/color-themes";
 
 type FavoriteUser = {
   name: string;
@@ -117,8 +118,8 @@ export default function CalendarPage() {
       start: startStr,
       end: endStr,
       allDay: e.allDay,
-      backgroundColor: e.color || "#FDC205",
-      borderColor: e.color || "#FDC205",
+      backgroundColor: resolveEventColor(e.color || undefined),
+      borderColor: resolveEventColor(e.color || undefined),
       extendedProps: {
         color: e.color,
         participants: e.participants || [],
@@ -508,7 +509,7 @@ export default function CalendarPage() {
         ) : (
           <div className="flex flex-col gap-3 pb-2 bg-white dark:bg-zinc-900 p-4 rounded-lg border">
 									{todayEvents.map((e) => {
-              const textColor = getTextColorForBg(e.color || "#e5e7eb");
+              const textColor = getTextColorForBg(resolveEventColor(e.color || undefined));
 										
 										return (
 											<div

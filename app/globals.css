@@ -16,45 +16,92 @@ html.dark {
 }
 
 /* Ocean */
-html.theme-ocean {
+/* 라이트 모드 오션: 흰 배경 + 딥블루 포인트 */
+html.light.theme-ocean {
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --accent: #38bdf8;
+}
+
+/* 다크 모드 오션: 딥네이비 배경 + 라이트 포어그라운드 */
+html.dark.theme-ocean {
   --background: #0f172a;
   --foreground: #e5f4ff;
   --accent: #38bdf8;
 }
 
 /* Forest */
-html.theme-forest {
+/* 라이트 모드 포레스트: 흰 배경 + 딥그린 포인트 */
+html.light.theme-forest {
+  --background: #ffffff;
+  --foreground: #022c22;
+  --accent: #4ade80;
+}
+
+/* 다크 모드 포레스트: 짙은 녹색 배경 */
+html.dark.theme-forest {
   --background: #022c22;
   --foreground: #dcfce7;
   --accent: #4ade80;
 }
 
 /* Molokai 테마 */
-html.theme-molokai {
+html.light.theme-molokai {
+  --background: #ffffff;
+  --foreground: #1B1D1E;
+  --accent: #66D9EF;
+}
+
+html.dark.theme-molokai {
   --background: #1B1D1E;
   --foreground: #F8F8F2;
   --accent: #66D9EF;
 }
 
 /* Gruvbox 테마 */
-html.theme-gruvbox {
+html.light.theme-gruvbox {
+  --background: #fbf1c7; /* gruvbox light background */
+  --foreground: #3c3836;
+  --accent: #fe8019;
+}
+
+html.dark.theme-gruvbox {
   --background: #282828;
   --foreground: #ebdbb2;
   --accent: #fe8019;
 }
 
 /* Sonokai 테마 */
-html.theme-sonokai {
+html.light.theme-sonokai {
+  --background: #f5f5f7;
+  --foreground: #2c2e34;
+  --accent: #a7df78;
+}
+
+html.dark.theme-sonokai {
   --background: #2c2e34;
   --foreground: #e2e2e3;
   --accent: #a7df78;
 }
 
 /* OneDark 테마 */
-html.theme-onedark {
+html.light.theme-onedark {
+  --background: #ffffff;
+  --foreground: #282c34;
+  --accent: #61afef;
+}
+
+html.dark.theme-onedark {
   --background: #282c34;
   --foreground: #abb2bf;
   --accent: #61afef;
+}
+
+/* FullCalendar용 테두리/포인트 컬러 (모든 컬러 테마에 공통) */
+html[class*="theme-"] .fc-theme-standard td,
+html[class*="theme-"] .fc-theme-standard th,
+html[class*="theme-"] .fc-scrollgrid {
+  border-color: var(--accent);
 }
 
 @theme inline {

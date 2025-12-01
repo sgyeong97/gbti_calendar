@@ -14,7 +14,7 @@ import {
 	debugRecurringEventCreation,
 	DAY_NAMES_KO,
 } from "@/app/lib/recurring-events";
-import { EVENT_COLOR_PALETTES, getCurrentEventColorPalette } from "@/app/lib/color-themes";
+import { EVENT_COLOR_PALETTES, getCurrentEventColorPalette, ColorId } from "@/app/lib/color-themes";
 
 type Props = {
 	selectedDate?: Date;
@@ -24,7 +24,8 @@ type Props = {
 
 export default function CreateEventModal({ selectedDate, onClose, onCreated }: Props) {
 	const [title, setTitle] = useState("");
-	const [color, setColor] = useState("#FDC205");
+	// color는 DB에 저장되는 색상 ID 또는 기존 hex (백워드 호환)
+	const [color, setColor] = useState<string>("yellow");
   const [palette, setPalette] = useState(EVENT_COLOR_PALETTES.default);
 
 	// 선택된 날짜에서 날짜와 시간 추출
@@ -481,13 +482,13 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 					<div className="grid grid-cols-6 gap-2 mt-1">
 						{palette.map((c) => (
 							<button
-								key={c.value}
+								key={c.id}
 								type="button"
-								onClick={() => setColor(c.value)}
+								onClick={() => setColor(c.id)}
 						className={`w-full aspect-square rounded border-2 transition-all ${
-							color === c.value ? "scale-110" : "hover:scale-105"
+							color === c.id || color === c.hex ? "scale-110" : "hover:scale-105"
 						}`}
-						style={{ backgroundColor: c.value, borderColor: color === c.value ? "#FDC205" : "#d4d4d8" }}
+						style={{ backgroundColor: c.hex, borderColor: color === c.id || color === c.hex ? "#FDC205" : "#d4d4d8" }}
 								title={c.name}
 							/>
 						))}

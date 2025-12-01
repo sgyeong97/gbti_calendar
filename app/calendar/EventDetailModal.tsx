@@ -42,7 +42,8 @@ const [openRecurringStartTime, setOpenRecurringStartTime] = useState(false);
 const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 	const [editRecurringStart, setEditRecurringStart] = useState<string>("");
 	const [editRecurringEnd, setEditRecurringEnd] = useState<string>("");
-	const [editColor, setEditColor] = useState<string>("#FDC205");
+	// 색상 ID 또는 기존 hex (백워드 호환)
+	const [editColor, setEditColor] = useState<string>("yellow");
   const [palette, setPalette] = useState(EVENT_COLOR_PALETTES.default);
 
 	// 즐겨찾기 토글 함수
@@ -97,7 +98,7 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 				console.log("Event data:", data.event);
 				console.log("Participant names:", participantNames);
 				setEditParticipants(participantNames);
-				setEditColor(data.event?.color || "#FDC205"); // 색상 초기화
+				setEditColor(data.event?.color || "yellow"); // 색상 초기화
 				setIsEditing(false);
 				// 시간 편집 초기값 세팅
         if (data.event) {
@@ -492,13 +493,13 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 						<div className="grid grid-cols-6 gap-2">
 							{palette.map((c) => (
 								<button
-									key={c.value}
+									key={c.id}
 									type="button"
-									onClick={() => setEditColor(c.value)}
+									onClick={() => setEditColor(c.id)}
 									className={`w-full aspect-square rounded border-2 transition-all ${
-										editColor === c.value ? "scale-110" : "hover:scale-105"
+										editColor === c.id || editColor === c.hex ? "scale-110" : "hover:scale-105"
 									}`}
-									style={{ backgroundColor: c.value, borderColor: editColor === c.value ? "#FDC205" : "#d4d4d8" }}
+									style={{ backgroundColor: c.hex, borderColor: editColor === c.id || editColor === c.hex ? "#FDC205" : "#d4d4d8" }}
 									title={c.name}
 								/>
 							))}
