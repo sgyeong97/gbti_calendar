@@ -1,8 +1,0 @@
-# Vercel Production Environment Variables
-
-# DATABASE_URL은 Vercel 대시보드에서 설정
-# Vercel Postgres를 사용하는 경우:
-# DATABASE_URL="postgres://username:password@host.vercel-storage.com:5432/database"
-
-# 또는 Vercel 대시보드 > Project Settings > Environment Variables에서 설정
-

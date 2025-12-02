@@ -26,7 +26,7 @@ type ActivityStats = {
 	totalMinutes: number;
 	averageMinutesPerUser: number;
 	mostActiveUser: { userId: string; userName: string; minutes: number } | null;
-	mostActiveDay: { date: string; minutes: number } | null;
+		mostActiveDay: { date: string; minutes: number } | null;
 };
 
 export default function ActivityDashboardPage() {
@@ -43,6 +43,7 @@ export default function ActivityDashboardPage() {
 	);
 	const [activityData, setActivityData] = useState<Record<string, ActivityData | UserActivityData>>({});
 	const [stats, setStats] = useState<ActivityStats | null>(null);
+		const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
 	useEffect(() => {
 		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
@@ -342,7 +343,7 @@ export default function ActivityDashboardPage() {
 								return (
 									<div
 										key={key}
-										className="p-4 rounded transition-colors"
+										className="p-4 rounded transition-colors cursor-pointer"
 										style={{ 
 											border: "1px solid var(--accent)",
 											background: "var(--background)"
@@ -353,6 +354,7 @@ export default function ActivityDashboardPage() {
 										onMouseLeave={(e) => {
 											e.currentTarget.style.background = "var(--background)";
 										}}
+										onClick={() => setExpandedKey(expandedKey === key ? null : key)}
 									>
 										<div className="flex items-center justify-between">
 											<div>
@@ -365,6 +367,51 @@ export default function ActivityDashboardPage() {
 												<div className="text-lg font-semibold">{formatMinutes(dayData.totalMinutes)}</div>
 											</div>
 										</div>
+
+										{/* 날짜별 상세: 사용자별 총 이용 시간 */}
+										{expandedKey === key && (
+											<div className="mt-3 pt-3 border-t border-dashed border-zinc-700/50 text-sm">
+												<div className="mb-2 font-medium">사용자별 활동 시간</div>
+												{(() => {
+													const perUser = new Map<string, { minutes: number; count: number }>();
+													for (const act of dayData.activities || []) {
+														const name = act.userName || act.userId || "알 수 없음";
+														const prev = perUser.get(name) || { minutes: 0, count: 0 };
+														const m = typeof act.durationMinutes === "number" ? act.durationMinutes : 0;
+														perUser.set(name, { minutes: prev.minutes + m, count: prev.count + 1 });
+													}
+													const entries = Array.from(perUser.entries()).sort(
+														(a, b) => b[1].minutes - a[1].minutes
+													);
+
+													if (entries.length === 0) {
+														return (
+															<div className="text-xs opacity-70">
+																해당 날짜의 상세 활동 로그가 없습니다.
+															</div>
+														);
+													}
+
+													return (
+														<ul className="space-y-1">
+															{entries.map(([name, info]) => (
+																<li key={name} className="flex items-center justify-between text-xs md:text-sm">
+																	<div>
+																		<span className="font-medium">{name}</span>
+																		<span className="opacity-70 ml-2">
+																			({info.count}회 활동)
+																		</span>
+																	</div>
+																	<div className="font-semibold">
+																		{formatMinutes(info.minutes)}
+																	</div>
+																</li>
+															))}
+														</ul>
+													);
+												})()}
+											</div>
+										)}
 									</div>
 								);
 							} else {
@@ -372,7 +419,7 @@ export default function ActivityDashboardPage() {
 								return (
 									<div
 										key={key}
-										className="p-4 rounded transition-colors"
+										className="p-4 rounded transition-colors cursor-pointer"
 										style={{ 
 											border: "1px solid var(--accent)",
 											background: "var(--background)"
@@ -383,6 +430,7 @@ export default function ActivityDashboardPage() {
 										onMouseLeave={(e) => {
 											e.currentTarget.style.background = "var(--background)";
 										}}
+										onClick={() => setExpandedKey(expandedKey === key ? null : key)}
 									>
 										<div className="flex items-center justify-between">
 											<div>
@@ -395,6 +443,83 @@ export default function ActivityDashboardPage() {
 												<div className="text-lg font-semibold">{formatMinutes(userData.totalMinutes)}</div>
 											</div>
 										</div>
+
+										{/* 사용자별 상세: 개별 활동 로그 */}
+										{expandedKey === key && (
+											<div className="mt-3 pt-3 border-t border-dashed border-zinc-700/50 text-sm">
+												<div className="mb-2 font-medium">
+													{userData.userName || userData.userId}님의 활동 로그
+												</div>
+												{(() => {
+													const acts = (userData.activities || []).slice().sort((a: any, b: any) => {
+														const aTime = new Date(a.startTime || a.startAt || a.date).getTime();
+														const bTime = new Date(b.startTime || b.startAt || b.date).getTime();
+														return bTime - aTime;
+													});
+
+													if (acts.length === 0) {
+														return (
+															<div className="text-xs opacity-70">
+																해당 사용자의 상세 활동 로그가 없습니다.
+															</div>
+														);
+													}
+
+													return (
+														<ul className="space-y-1 max-h-64 overflow-y-auto pr-1">
+															{acts.map((act: any) => {
+																const start = act.startTime || act.startAt;
+																const end = act.endTime || act.endAt;
+																const startDate = start ? new Date(start) : null;
+																const endDate = end ? new Date(end) : null;
+																const dur = typeof act.durationMinutes === "number"
+																	? act.durationMinutes
+																	: 0;
+																return (
+																	<li
+																		key={act.id}
+																		className="flex flex-col md:flex-row md:items-center md:justify-between text-xs md:text-sm py-1 border-b border-zinc-800/40 last:border-b-0"
+																	>
+																		<div>
+																			<div className="font-medium">
+																				{startDate
+																					? startDate.toLocaleString("ko-KR", {
+																							month: "long",
+																							day: "numeric",
+																							weekday: "short",
+																							hour: "2-digit",
+																							minute: "2-digit",
+																					  })
+																					: act.date}
+																			</div>
+																			<div className="opacity-70">
+																				채널: {act.channelName || act.channelId || "알 수 없음"}
+																			</div>
+																		</div>
+																		<div className="mt-1 md:mt-0 text-right md:text-right">
+																			<div>{formatMinutes(dur)}</div>
+																			{startDate && endDate && (
+																				<div className="opacity-60">
+																					{startDate.toLocaleTimeString("ko-KR", {
+																						hour: "2-digit",
+																						minute: "2-digit",
+																					})}
+																					{" ~ "}
+																					{endDate.toLocaleTimeString("ko-KR", {
+																						hour: "2-digit",
+																						minute: "2-digit",
+																					})}
+																				</div>
+																			)}
+																		</div>
+																	</li>
+																);
+															})}
+														</ul>
+													);
+												})()}
+											</div>
+										)}
 									</div>
 								);
 							}
