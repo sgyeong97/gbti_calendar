@@ -814,6 +814,7 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 									if (!res.ok) {
 										const error = await res.json();
 										alert(error.error || "이벤트 수정에 실패했습니다.");
+										setSaving(false);
 										return;
 									}
 								} else {
@@ -821,6 +822,7 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 									const toIso = (v: Dayjs | null, fallback: string) => (v && v.isValid()) ? v.toDate().toISOString() : fallback;
 									if (editStartAt && editEndAt && editEndAt.valueOf() <= editStartAt.valueOf()) {
 										alert("종료일시가 시작일시보다 늦어야 합니다.");
+										setSaving(false);
 										return;
 									}
 									const res = await fetch(`/api/events/${eventId}`, {
@@ -837,16 +839,48 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 									if (!res.ok) {
 										const error = await res.json();
 										alert(error.error || "이벤트 수정에 실패했습니다.");
+										setSaving(false);
 										return;
 									}
 								}
 								
-								// 약간의 지연 후 콜백 호출 (DB 반영 시간 확보)
-								setTimeout(() => {
+								// 약간의 지연 후 콜백 호출 및 모달 데이터 새로고침 (DB 반영 시간 확보)
+								setTimeout(async () => {
 									onChanged();
-									setIsEditing(false);
-									setSaving(false);
-								}, 100);
+									
+									// 모달 내부 데이터도 새로고침
+									try {
+										setLoading(true);
+										const res = await fetch(`/api/events/${eventId}`);
+										if (res.ok) {
+											const updatedData = await res.json();
+											setData(updatedData);
+											// 편집 상태 초기화
+											setEditTitle(updatedData.event?.title || "");
+											const participantNames = (updatedData.event?.attendees ?? []).map((a: any) => a.participant.name);
+											setEditParticipants(participantNames);
+											setEditColor(updatedData.event?.color || "yellow");
+											if (updatedData.event) {
+												setEditStartAt(dayjs(updatedData.event.startAt));
+												setEditEndAt(dayjs(updatedData.event.endAt));
+												if (updatedData.event.isRecurring) {
+													const rs = updatedData.event.recurringStartMinutes ?? 0;
+													const re = updatedData.event.recurringEndMinutes ?? 0;
+													const toHHMM = (m:number) => `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
+													setEditRecurringStart(toHHMM(rs));
+													setEditRecurringEnd(toHHMM(re));
+													setSelectedDays(new Set<number>(updatedData.event.recurringDays || []));
+												}
+											}
+										}
+									} catch (err) {
+										console.error("이벤트 데이터 새로고침 실패:", err);
+									} finally {
+										setLoading(false);
+										setIsEditing(false);
+										setSaving(false);
+									}
+								}, 200);
 							} catch (err) {
 								alert("네트워크 오류가 발생했습니다.");
 								setSaving(false);
