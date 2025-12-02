@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 
 type Platform = "discord" | "notice" | "chat";
 
@@ -23,6 +24,8 @@ type Member = {
 
 export default function MemberManagementPage() {
 	const router = useRouter();
+	const { theme } = useTheme();
+	const [colorTheme, setColorTheme] = useState<string>("default");
 	const [activeTab, setActiveTab] = useState<"all" | "discord-only" | "notice-only" | "missing">("all");
 	const [members, setMembers] = useState<Member[]>([]);
 	const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
@@ -52,6 +55,33 @@ export default function MemberManagementPage() {
 	useEffect(() => {
 		fetchMembers();
 	}, []);
+
+	useEffect(() => {
+		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
+		setColorTheme(savedColorTheme);
+
+		// 테마 변경 감지
+		const handleStorageChange = () => {
+			const newColorTheme = localStorage.getItem("gbti_color_theme") || "default";
+			setColorTheme(newColorTheme);
+		};
+
+		window.addEventListener("storage", handleStorageChange);
+		
+		// MutationObserver로 html 클래스 변경 감지
+		const observer = new MutationObserver(() => {
+			const newColorTheme = localStorage.getItem("gbti_color_theme") || "default";
+			setColorTheme(newColorTheme);
+		});
+
+		const html = document.documentElement;
+		observer.observe(html, { attributes: true, attributeFilter: ["class"] });
+
+		return () => {
+			window.removeEventListener("storage", handleStorageChange);
+			observer.disconnect();
+		};
+	}, [theme]);
 
 	async function fetchMembers() {
 		setLoading(true);

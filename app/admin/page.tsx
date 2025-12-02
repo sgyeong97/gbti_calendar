@@ -1,9 +1,42 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 
 export default function AdminPage() {
 	const router = useRouter();
+	const { theme } = useTheme();
+	const [colorTheme, setColorTheme] = useState<string>("default");
+	const [mounted, setMounted] = useState(false);
+
+	useEffect(() => {
+		setMounted(true);
+		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
+		setColorTheme(savedColorTheme);
+
+		// 테마 변경 감지
+		const handleStorageChange = () => {
+			const newColorTheme = localStorage.getItem("gbti_color_theme") || "default";
+			setColorTheme(newColorTheme);
+		};
+
+		window.addEventListener("storage", handleStorageChange);
+		
+		// MutationObserver로 html 클래스 변경 감지
+		const observer = new MutationObserver(() => {
+			const newColorTheme = localStorage.getItem("gbti_color_theme") || "default";
+			setColorTheme(newColorTheme);
+		});
+
+		const html = document.documentElement;
+		observer.observe(html, { attributes: true, attributeFilter: ["class"] });
+
+		return () => {
+			window.removeEventListener("storage", handleStorageChange);
+			observer.disconnect();
+		};
+	}, [theme]);
 
 	const adminCards = [
 		{

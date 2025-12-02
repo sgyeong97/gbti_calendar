@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 
 type GameType = "roulette" | "ladder";
 
@@ -21,6 +22,8 @@ const STORAGE_KEY = "gbti_games";
 
 export default function LadderGameManagementPage() {
 	const router = useRouter();
+	const { theme } = useTheme();
+	const [colorTheme, setColorTheme] = useState<string>("default");
 	const [showCreateModal, setShowCreateModal] = useState(false);
 	const [savedGames, setSavedGames] = useState<StoredGame[]>([]);
 
@@ -33,6 +36,33 @@ export default function LadderGameManagementPage() {
 			console.error("저장된 게임을 불러오지 못했습니다.", err);
 		}
 	}, []);
+
+	useEffect(() => {
+		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
+		setColorTheme(savedColorTheme);
+
+		// 테마 변경 감지
+		const handleStorageChange = () => {
+			const newColorTheme = localStorage.getItem("gbti_color_theme") || "default";
+			setColorTheme(newColorTheme);
+		};
+
+		window.addEventListener("storage", handleStorageChange);
+		
+		// MutationObserver로 html 클래스 변경 감지
+		const observer = new MutationObserver(() => {
+			const newColorTheme = localStorage.getItem("gbti_color_theme") || "default";
+			setColorTheme(newColorTheme);
+		});
+
+		const html = document.documentElement;
+		observer.observe(html, { attributes: true, attributeFilter: ["class"] });
+
+		return () => {
+			window.removeEventListener("storage", handleStorageChange);
+			observer.disconnect();
+		};
+	}, [theme]);
 
 	function updateSavedGames(next: StoredGame[]) {
 		setSavedGames(next);

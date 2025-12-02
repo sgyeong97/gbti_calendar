@@ -213,7 +213,10 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 				const result = await res.json();
 				console.log("[CreateEventModal] 이벤트 생성 성공:", result);
 				try { localStorage.removeItem("gbti_create_event_draft"); } catch {}
-				onCreated();
+				// 약간의 지연 후 콜백 호출 (DB 반영 시간 확보)
+				setTimeout(() => {
+					onCreated();
+				}, 100);
 			} else {
 				const error = await res.json();
 				console.error("[CreateEventModal] API 오류:", error);
@@ -230,6 +233,11 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 		<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
 			<div className="rounded p-4 w-full max-w-sm mx-4 sm:mx-0 space-y-2 max-h-[85vh] overflow-y-auto" style={{ background: "var(--background)", color: "var(--foreground)" }}>
 				<h2 className="text-lg font-semibold">이벤트 추가</h2>
+				{loading && (
+					<div className="px-3 py-2 rounded text-sm text-center" style={{ background: "color-mix(in srgb, var(--accent) 20%, var(--background) 80%)", color: "var(--foreground)" }}>
+						⏳ 반영 중... 잠시만 기다려주세요.
+					</div>
+				)}
 				{selectedDate && (
 					<div className="text-sm text-zinc-600 dark:text-zinc-400">
 						선택된 날짜: {format(selectedDate, "yyyy년 MM월 dd일")}
@@ -240,6 +248,13 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 					placeholder="제목"
 					value={title}
 					onChange={(e) => setTitle(e.target.value)}
+					disabled={loading}
+					style={{ 
+						border: "1px solid var(--accent)", 
+						background: loading ? "color-mix(in srgb, var(--background) 95%, var(--accent) 5%)" : "var(--background)", 
+						color: "var(--foreground)",
+						opacity: loading ? 0.6 : 1
+					}}
 				/>
 						<LocalizationProvider dateAdapter={AdapterDayjs}>
 						<div className="space-y-3 relative">
@@ -528,15 +543,33 @@ export default function CreateEventModal({ selectedDate, onClose, onCreated }: P
 
 			<div className="flex justify-end gap-2">
 				<button
-					className="px-3 py-1 rounded text-black disabled:opacity-50 transition-colors cursor-pointer"
-					style={{ backgroundColor: "#FDC205" }}
+					className="px-3 py-1 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+					style={{ 
+						backgroundColor: loading ? "color-mix(in srgb, var(--accent) 60%, var(--background) 40%)" : "var(--accent)", 
+						color: "var(--foreground)" 
+					}}
 					onClick={submit}
 					disabled={loading}
 				>
-					{loading ? "추가 중..." : "추가"}
+					{loading ? "⏳ 반영 중..." : "추가"}
 				</button>
 				<button
-					className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+					className="px-3 py-1 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+					style={{ 
+						border: "1px solid var(--accent)", 
+						background: "var(--background)", 
+						color: "var(--foreground)" 
+					}}
+					onMouseEnter={(e) => {
+						if (!loading) {
+							e.currentTarget.style.background = "color-mix(in srgb, var(--background) 80%, var(--accent) 20%)";
+						}
+					}}
+					onMouseLeave={(e) => {
+						if (!loading) {
+							e.currentTarget.style.background = "var(--background)";
+						}
+					}}
 					onClick={onClose}
 					disabled={loading}
 				>

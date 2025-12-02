@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import FullCalendar from "@fullcalendar/react";
@@ -95,7 +95,7 @@ export default function CalendarPage() {
       if (startDateMatch && endDateMatch) {
         startStr = startDateMatch[1];
         endStr = endDateMatch[1];
-			} else {
+				} else {
         const startDateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(
           2,
           "0"
@@ -153,7 +153,7 @@ export default function CalendarPage() {
       const cleaned = parsed.filter((f: FavoriteUser) => f && f.name);
 			setFavoriteUsers(cleaned);
 			localStorage.setItem("gbti_favorites", JSON.stringify(cleaned));
-		} else {
+			} else {
 			setFavoriteUsers([]);
 		}
 	};
@@ -235,19 +235,92 @@ export default function CalendarPage() {
 		};
 	}, []);
 
-  // 날짜 클릭 핸들러 (더블클릭은 dayCellDidMount에서 처리)
-  const handleDateClick = (_arg: any) => {};
+  // 날짜 클릭 핸들러
+  const handleDateClick = (arg: any) => {
+    // 현재 날짜를 클릭한 경우 "오늘" 버튼 효과
+    const today = new Date();
+    const clickedDate = new Date(arg.date);
+    const isToday = 
+      clickedDate.getFullYear() === today.getFullYear() &&
+      clickedDate.getMonth() === today.getMonth() &&
+      clickedDate.getDate() === today.getDate();
 
-  // 날짜 셀에 더블클릭 이벤트 추가
+    if (isToday && calendarRef.current) {
+      const calendarApi = calendarRef.current.getApi();
+      calendarApi.today(); // 오늘 날짜로 이동 (이미 오늘이지만 강제로 리프레시)
+    }
+    // 일반 날짜 클릭은 아무 동작도 하지 않음 (더블클릭만 이벤트 생성)
+  };
+
+  // FullCalendar 인스턴스 참조
+  const calendarRef = useRef<any>(null);
+
+  // 버튼에 툴팁 추가
+  useEffect(() => {
+    const addButtonTooltips = () => {
+      // prev 버튼
+      const prevButton = document.querySelector('.fc-prev-button');
+      if (prevButton) {
+        prevButton.setAttribute('title', '이전 달');
+      }
+      
+      // next 버튼
+      const nextButton = document.querySelector('.fc-next-button');
+      if (nextButton) {
+        nextButton.setAttribute('title', '다음 달');
+      }
+      
+      // today 버튼
+      const todayButton = document.querySelector('.fc-today-button');
+      if (todayButton) {
+        todayButton.setAttribute('title', '오늘 날짜로 이동');
+      }
+    };
+
+    // 초기 툴팁 추가
+    addButtonTooltips();
+
+    // FullCalendar가 렌더링될 때마다 툴팁 추가 (약간의 지연)
+    const timer = setTimeout(addButtonTooltips, 100);
+    
+    // datesSet 이벤트 후에도 툴팁 추가
+    const handleDatesSet = () => {
+      setTimeout(addButtonTooltips, 50);
+    };
+    
+    window.addEventListener('focus', addButtonTooltips);
+
+		return () => {
+      clearTimeout(timer);
+      window.removeEventListener('focus', addButtonTooltips);
+    };
+  }, [dateRange]);
+
+  // 날짜 셀에 더블클릭 이벤트 추가 및 현재 날짜 클릭 처리
   const handleDayCellDidMount = (arg: any) => {
     const cellEl = arg.el;
+    
+    // 더블클릭: 이벤트 생성 모달 열기
     cellEl.addEventListener("dblclick", () => {
       const dateStr = format(arg.date, "yyyy-MM-dd");
       const [year, month, day] = dateStr.split("-").map(Number);
       const clickedDate = new Date(year, month - 1, day);
       setSelectedDate(clickedDate);
-      setShowCreateModal(true);
+				setShowCreateModal(true);
     });
+
+    // 현재 날짜 셀에 시각적 표시 추가
+    const today = new Date();
+    const cellDate = new Date(arg.date);
+    const isToday = 
+      cellDate.getFullYear() === today.getFullYear() &&
+      cellDate.getMonth() === today.getMonth() &&
+      cellDate.getDate() === today.getDate();
+
+    if (isToday) {
+      cellEl.style.cursor = "pointer";
+      cellEl.title = "클릭하면 오늘 날짜로 이동합니다";
+    }
   };
 
   // 이벤트 클릭 핸들러
@@ -266,17 +339,44 @@ export default function CalendarPage() {
 
   // 이벤트 변경 후 새로고침
   const handleEventChanged = () => {
-    if (!dateRange) return;
+    if (!dateRange) {
+      // dateRange가 없으면 현재 표시 중인 날짜 범위를 사용
+      const today = new Date();
+      const start = format(today, "yyyy-MM-dd");
+      const end = format(addMonths(today, 1), "yyyy-MM-dd");
+      setDateRange({ start, end });
+      return;
+    }
 
-    fetch(`/api/events?start=${dateRange.start}&end=${dateRange.end}&includeBirthdays=1`)
+    // 캐시 방지를 위해 timestamp 추가
+    const timestamp = Date.now();
+    fetch(`/api/events?start=${dateRange.start}&end=${dateRange.end}&includeBirthdays=1&_t=${timestamp}`, {
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+      },
+    })
       .then((res) => res.json())
       .then((json) => {
-        setEvents(json.events ?? []);
+        let fetchedEvents = json.events ?? [];
+
+        // 참여자 필터 적용
+        if (selectedParticipants.size > 0) {
+          fetchedEvents = fetchedEvents.filter((event: Event) => {
+            if (!event.participants || event.participants.length === 0) return false;
+            return event.participants.some((p) => selectedParticipants.has(p));
+          });
+        }
+
+        setEvents(fetchedEvents);
+      })
+      .catch((err) => {
+        console.error("이벤트 새로고침 실패:", err);
       });
   };
 
   // 파티 리스트 모달이 열릴 때 비동기로 파티 리스트 로드
-  useEffect(() => {
+	useEffect(() => {
     if (!showPartySettings || !currentUserName) return;
 
     const loadPartyList = async () => {
@@ -508,14 +608,15 @@ export default function CalendarPage() {
 			</div>
 
       <FullCalendar
+        ref={calendarRef}
         plugins={[dayGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
         locale={koLocale}
         firstDay={0}
         headerToolbar={{
           left: "prev,next today",
-          center: "title",
-          right: "",
+          center: "",
+          right: "title",
         }}
         events={calendarEvents}
         dateClick={handleDateClick}
@@ -573,7 +674,7 @@ export default function CalendarPage() {
         ) : (
           <div
             className="flex flex-col gap-3 pb-2 p-4 rounded-lg border"
-            style={{
+													style={{
               background: "var(--background)",
               color: "var(--foreground)",
               borderColor: "var(--accent)",
@@ -616,17 +717,17 @@ export default function CalendarPage() {
 																	>
 																		{participantInfo?.title && (
                                 <span className="font-bold mr-0.5 px-1.5 py-0.5 rounded" style={{ color: textColor }}>
-																				{participantInfo.title}
-																			</span>
-																		)}
+													{participantInfo.title}
+												</span>
+											)}
 																		<span style={{ color: textColor }}>{p}</span>
 																	</span>
-																);
-															})}
-														</div>
+									);
+								})}
+						</div>
 													)}
-												</div>
-											</div>
+					</div>
+				</div>
 										);
 									})}
 								</div>
@@ -651,26 +752,26 @@ export default function CalendarPage() {
 								<div>
 									<label className="text-sm mb-1 block">사용자명</label>
 									<div className="flex gap-2">
-									<select
+										<select
 										className="flex-1 rounded px-3 py-2"
 										style={{ border: "1px solid var(--accent)", background: "var(--background)", color: "var(--foreground)" }}
-										value={currentUserName}
-										onChange={(e) => {
-											if (e.target.value) {
-												setCurrentUserName(e.target.value);
-												localStorage.setItem("gbti_current_user_name", e.target.value);
-												setShowSettings(false);
+											value={currentUserName}
+											onChange={(e) => {
+												if (e.target.value) {
+													setCurrentUserName(e.target.value);
+													localStorage.setItem("gbti_current_user_name", e.target.value);
+													setShowSettings(false);
                           window.location.reload();
-											}
-										}}
-									>
-										<option value="">선택하세요</option>
-										{participantList.map((name) => (
+												}
+											}}
+										>
+											<option value="">선택하세요</option>
+											{participantList.map((name) => (
                         <option key={name} value={name}>
                           {name}
                         </option>
-										))}
-									</select>
+											))}
+										</select>
 									</div>
                   <div className="mt-2 text-xs" style={{ color: "var(--foreground)", opacity: 0.7 }}>또는 직접 입력:</div>
 									<input
@@ -791,7 +892,7 @@ export default function CalendarPage() {
                     알림 설정
 									</button>
                   {/* 3) 파티 설정 */}
-                  <button
+									<button
                     className="w-full px-4 py-2 rounded text-left transition-colors cursor-pointer"
                     style={{ 
 											border: "1px solid var(--accent)", 
@@ -804,8 +905,8 @@ export default function CalendarPage() {
 										onMouseLeave={(e) => {
 											e.currentTarget.style.background = "var(--background)";
 										}}
-                    onClick={() => {
-                      setShowSettings(false);
+										onClick={() => {
+											setShowSettings(false);
                       setShowPartySettings(true);
                       setPartyListLoading(true);
                     }}
@@ -904,7 +1005,7 @@ export default function CalendarPage() {
                       </button>
                     ))}
                   </div>
-                </div>
+								</div>
 								<div className="flex justify-end gap-2">
 									<button
 										className="px-3 py-1 rounded text-sm transition-colors cursor-pointer"
@@ -964,14 +1065,14 @@ export default function CalendarPage() {
             style={{ background: "var(--background)", color: "var(--foreground)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-lg font-semibold">유저 정보 설정</h2>
-            <div className="space-y-3">
+						<h2 className="text-lg font-semibold">유저 정보 설정</h2>
+						<div className="space-y-3">
               {userInfoLoading && (
                 <div className="text-sm" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                   사용자 정보를 불러오는 중입니다...
                 </div>
               )}
-              <div>
+							<div>
 								<label className="text-sm mb-1 block">이름</label>
 								<input
 									type="text"
@@ -984,7 +1085,7 @@ export default function CalendarPage() {
 										color: "var(--foreground)" 
 									}}
 								/>
-              </div>
+							</div>
               {(originalTitle || originalColor !== "#e5e7eb") && (
                 <div 
                   className="p-3 rounded"
@@ -1021,7 +1122,7 @@ export default function CalendarPage() {
                   </div>
                 </div>
               )}
-              <div>
+							<div>
 								<label className="text-sm mb-1 block">칭호</label>
 								<input
 									type="text"
@@ -1035,8 +1136,8 @@ export default function CalendarPage() {
 										color: "var(--foreground)" 
 									}}
 								/>
-              </div>
-              <div>
+							</div>
+							<div>
 								<label className="text-sm mb-1 block">칭호 색상</label>
 								<div className="flex gap-2">
 									<input
@@ -1058,10 +1159,10 @@ export default function CalendarPage() {
 											color: "var(--foreground)" 
 										}}
 									/>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <button
+								</div>
+							</div>
+							<div className="flex justify-end gap-2">
+								<button
 									className="px-3 py-1 rounded transition-colors cursor-pointer"
 									style={{ 
 										border: "1px solid var(--accent)", 
@@ -1130,8 +1231,8 @@ export default function CalendarPage() {
 									}}
 								>
 									저장
-                </button>
-                <button
+								</button>
+								<button
 									className="px-3 py-1 rounded transition-colors cursor-pointer"
 									style={{ 
 										border: "1px solid var(--accent)", 
@@ -1147,12 +1248,12 @@ export default function CalendarPage() {
 									onClick={() => setShowUserInfoSettings(false)}
 								>
 									취소
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
 
       {/* 알림 설정 모달 */}
       {showNotificationSettings && (
@@ -1171,13 +1272,13 @@ export default function CalendarPage() {
               <div>
                 <div className="mb-1 font-medium text-xs" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                   알림 시점 선택
-                </div>
+							</div>
                 <div className="grid grid-cols-3 gap-2">
                   {[5, 10, 15, 30, 60, 120, 360].map((min) => (
-                    <button
+							<button
                       key={min}
                       type="button"
-                      onClick={() => {
+								onClick={() => {
                         setNotificationLeadMins((prev) => {
                           const exists = prev.includes(min);
                           const next = exists ? prev.filter((v) => v !== min) : [...prev, min];
@@ -1205,7 +1306,7 @@ export default function CalendarPage() {
                       onMouseLeave={(e) => {
                         if (!notificationLeadMins.includes(min)) {
                           e.currentTarget.style.background = "var(--background)";
-                        } else {
+													} else {
                           e.currentTarget.style.background = "color-mix(in srgb, var(--background) 60%, var(--accent) 40%)";
                         }
                       }}
@@ -1213,7 +1314,7 @@ export default function CalendarPage() {
                       {min < 60 ? `${min}분 전` : `${min / 60}시간 전`}
                     </button>
                   ))}
-                </div>
+															</div>
                 <div className="mt-2 text-xs" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                   현재 설정:{" "}
                   {notificationLeadMins.length === 0 ? (
@@ -1226,15 +1327,15 @@ export default function CalendarPage() {
                         .map((m) => (m < 60 ? `${m}분 전` : `${m / 60}시간 전`))
                         .join(", ")}
                     </strong>
-                  )}
-                </div>
-              </div>
+																)}
+															</div>
+															</div>
               <p className="text-xs" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                 브라우저 알림을 받으려면 이 사이트에 대한 알림 권한을 허용해야 합니다.
               </p>
-            </div>
+													</div>
             <div className="flex justify-end">
-              <button
+							<button
                 className="px-3 py-1 rounded transition-colors cursor-pointer"
                 style={{ 
                   border: "1px solid var(--accent)", 
@@ -1250,11 +1351,11 @@ export default function CalendarPage() {
                 onClick={() => setShowNotificationSettings(false)}
               >
                 닫기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+										</button>
+						</div>
+					</div>
+				</div>
+			)}
 
       {/* 파티 리스트 모달 */}
       {showPartySettings && (
@@ -1271,22 +1372,22 @@ export default function CalendarPage() {
             {!currentUserName ? (
               <div className="text-sm" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                 먼저 설정에서 사용자명을 선택한 뒤 파티 리스트를 확인할 수 있습니다.
-              </div>
+                                </div>
             ) : partyListLoading ? (
               <div className="text-sm" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                 파티 리스트를 불러오는 중입니다...
-              </div>
+							</div>
             ) : partyList.length === 0 ? (
               <div className="text-sm" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                 앞으로 예정된 파티 일정이 없습니다.
-              </div>
+					</div>
             ) : (
               <div className="max-h-80 overflow-y-auto space-y-2 text-sm">
                 {partyList.map((e) => (
-                  <div
-                    key={e.id}
+											<div
+												key={e.id}
                     className="rounded p-2 flex flex-col gap-1"
-                    style={{ 
+																				style={{
                       border: "1px solid var(--accent)",
                       background: "color-mix(in srgb, var(--background) 95%, var(--accent) 5%)"
                     }}
@@ -1295,16 +1396,16 @@ export default function CalendarPage() {
                       <span className="font-semibold" style={{ color: "var(--foreground)" }}>{e.title}</span>
                       <span className="text-xs" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                         {format(new Date(e.startAt), "M월 d일 HH:mm")}
-                      </span>
+																			</span>
                     </div>
                     {e.participants && e.participants.length > 0 && (
                       <div className="text-xs" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                         참여자: {e.participants.join(", ")}
-                      </div>
-                    )}
-                  </div>
+														</div>
+													)}
+												</div>
                 ))}
-              </div>
+											</div>
             )}
             <div className="flex justify-end">
               <button
@@ -1323,12 +1424,12 @@ export default function CalendarPage() {
                 onClick={() => setShowPartySettings(false)}
               >
                 닫기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+							</button>
+						</div>
+							</div>
+						</div>
+					)}
+		</div>
+	);
 }
 

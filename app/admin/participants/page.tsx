@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 
 type Participant = {
 	id: string;
@@ -12,6 +13,8 @@ type Participant = {
 
 export default function ParticipantManagementPage() {
 	const router = useRouter();
+	const { theme } = useTheme();
+	const [colorTheme, setColorTheme] = useState<string>("default");
 	const [participants, setParticipants] = useState<Participant[]>([]);
 	const [selectedParticipants, setSelectedParticipants] = useState<Set<string>>(new Set());
 	const [loading, setLoading] = useState(true);
@@ -26,6 +29,33 @@ export default function ParticipantManagementPage() {
 	useEffect(() => {
 		fetchParticipants();
 	}, []);
+
+	useEffect(() => {
+		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
+		setColorTheme(savedColorTheme);
+
+		// 테마 변경 감지
+		const handleStorageChange = () => {
+			const newColorTheme = localStorage.getItem("gbti_color_theme") || "default";
+			setColorTheme(newColorTheme);
+		};
+
+		window.addEventListener("storage", handleStorageChange);
+		
+		// MutationObserver로 html 클래스 변경 감지
+		const observer = new MutationObserver(() => {
+			const newColorTheme = localStorage.getItem("gbti_color_theme") || "default";
+			setColorTheme(newColorTheme);
+		});
+
+		const html = document.documentElement;
+		observer.observe(html, { attributes: true, attributeFilter: ["class"] });
+
+		return () => {
+			window.removeEventListener("storage", handleStorageChange);
+			observer.disconnect();
+		};
+	}, [theme]);
 
 	async function fetchParticipants() {
 		setLoading(true);

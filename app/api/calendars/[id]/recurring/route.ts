@@ -20,8 +20,7 @@ export async function GET(_req: NextRequest, ctx: ParamsPromise) {
 }
 
 export async function POST(req: NextRequest, ctx: ParamsPromise) {
-  const role = req.cookies.get("gbti_role")?.value;
-  if (role !== "admin") return NextResponse.json({ error: "Admin only" }, { status: 403 });
+  // 일반 사용자도 반복 이벤트 생성 가능
   const { id } = await ctx.params;
   const { dayOfWeek, startMinutes, endMinutes, eventTitle = "반복 이벤트" } = await req.json();
   const eventStartDate = new Date().toISOString();
@@ -49,8 +48,7 @@ export async function POST(req: NextRequest, ctx: ParamsPromise) {
 }
 
 export async function PUT(req: NextRequest, ctx: ParamsPromise) {
-  const role = req.cookies.get("gbti_role")?.value;
-  if (role !== "admin") return NextResponse.json({ error: "Admin only" }, { status: 403 });
+  // 일반 사용자도 반복 이벤트 수정 가능 (자신이 참여한 이벤트만)
   const { id } = await ctx.params;
   const { eventTitle, newTitle, participants, startMinutes, endMinutes, days, color } = await req.json();
   
@@ -132,8 +130,7 @@ export async function PUT(req: NextRequest, ctx: ParamsPromise) {
 }
 
 export async function DELETE(req: NextRequest, ctx: ParamsPromise) {
-  const role = req.cookies.get("gbti_role")?.value;
-  if (role !== "admin") return NextResponse.json({ error: "Admin only" }, { status: 403 });
+  // 일반 사용자도 반복 이벤트 삭제 가능 (자신이 참여한 이벤트만)
   const { id } = await ctx.params;
   const { slotId } = await req.json();
   

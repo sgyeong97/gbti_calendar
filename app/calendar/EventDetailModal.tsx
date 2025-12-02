@@ -20,6 +20,8 @@ type Props = { eventId: string | null; onClose: () => void; onChanged: () => voi
 export default function EventDetailModal({ eventId, onClose, onChanged }: Props) {
 	const [data, setData] = useState<any>(null);
 	const [loading, setLoading] = useState(true);
+	const [saving, setSaving] = useState(false);
+	const [deleting, setDeleting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [isEditing, setIsEditing] = useState(false);
 	const [editTitle, setEditTitle] = useState("");
@@ -150,6 +152,14 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 				<h2 className="text-lg font-semibold">이벤트 상세</h2>
 				{loading ? (
 					<div className="text-sm text-center py-4">불러오는 중...</div>
+				) : saving ? (
+					<div className="px-3 py-2 rounded text-sm text-center" style={{ background: "color-mix(in srgb, var(--accent) 20%, var(--background) 80%)", color: "var(--foreground)" }}>
+						⏳ 반영 중... 잠시만 기다려주세요.
+					</div>
+				) : deleting ? (
+					<div className="px-3 py-2 rounded text-sm text-center" style={{ background: "color-mix(in srgb, #ef4444 20%, var(--background) 80%)", color: "var(--foreground)" }}>
+						⏳ 삭제 중... 잠시만 기다려주세요.
+					</div>
 				) : error ? (
 					<div className="text-sm text-red-600 text-center py-4">{error}</div>
 				) : data?.event ? (
@@ -189,12 +199,19 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
            <div>
 							<strong>제목:</strong> {
 								isEditing ? (
-									<input
-										className="w-full border rounded px-2 py-1 mt-1"
-										value={editTitle}
-										onChange={(e) => setEditTitle(e.target.value)}
-										autoFocus
-									/>
+								<input
+									className="w-full border rounded px-2 py-1 mt-1"
+									value={editTitle}
+									onChange={(e) => setEditTitle(e.target.value)}
+									autoFocus
+									disabled={saving}
+									style={{ 
+										border: "1px solid var(--accent)", 
+										background: saving ? "color-mix(in srgb, var(--background) 95%, var(--accent) 5%)" : "var(--background)", 
+										color: "var(--foreground)",
+										opacity: saving ? 0.6 : 1
+									}}
+								/>
 								) : (
 									<span>{data.event.title}</span>
 								)
@@ -734,85 +751,245 @@ const [openRecurringEndTime, setOpenRecurringEndTime] = useState(false);
 		<div className="flex justify-end gap-2">
 			{isEditing ? (
 				<>
-					<button className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer" onClick={() => {
-						setIsEditing(false);
-						// 원래 값으로 복원
-						setEditTitle(data?.event?.title || "");
-						const participantNames = (data?.event?.attendees ?? []).map((a: any) => a.participant.name);
-						setEditParticipants(participantNames);
-					}}>취소</button>
-					<button className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer" onClick={async () => {
-						if (!editTitle.trim()) return alert("제목을 입력해주세요.");
-						
-						// 반복 이벤트인 경우
-						if (data.event.isRecurring) {
-							// 제목과 참여자 업데이트
-							// HH:MM -> minutes
-							const toMin = (t:string) => {
-								const [hh, mm] = t.split(":").map(Number);
-								return (isNaN(hh)||isNaN(mm)) ? undefined : hh*60+mm;
-							};
-							await fetch(`/api/calendars/${data.event.calendarId}/recurring`, {
-								method: "PUT",
-								headers: { "Content-Type": "application/json" },
-								body: JSON.stringify({
-									eventTitle: data.event.title,
-									newTitle: editTitle,
-									participants: editParticipants,
-									days: normalizeDaysOfWeek(Array.from(selectedDays)), // 정규화된 요일 배열 전송
-									startMinutes: toMin(editRecurringStart),
-									endMinutes: toMin(editRecurringEnd),
-									color: editColor
-								})
-							});
-						} else {
-							// 일반 이벤트: 제목과 참여자 업데이트
-							const toIso = (v: Dayjs | null, fallback: string) => (v && v.isValid()) ? v.toDate().toISOString() : fallback;
-							if (editStartAt && editEndAt && editEndAt.valueOf() <= editStartAt.valueOf()) {
-								alert("종료일시가 시작일시보다 늦어야 합니다.");
-								return;
+					<button 
+						className="px-3 py-1 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+						style={{ 
+							border: "1px solid var(--accent)", 
+							background: "var(--background)", 
+							color: "var(--foreground)" 
+						}}
+						onMouseEnter={(e) => {
+							if (!saving) {
+								e.currentTarget.style.background = "color-mix(in srgb, var(--background) 80%, var(--accent) 20%)";
 							}
-							await fetch(`/api/events/${eventId}`, {
-								method: "PUT",
-								headers: { "Content-Type": "application/json" },
-								body: JSON.stringify({
-									title: editTitle,
-									participants: editParticipants,
-									startAt: toIso(editStartAt, data.event.startAt),
-									endAt: toIso(editEndAt, data.event.endAt),
-									color: editColor
-								})
-							});
-						}
-						
-						onChanged();
-						setIsEditing(false);
-					}}>저장</button>
+						}}
+						onMouseLeave={(e) => {
+							if (!saving) {
+								e.currentTarget.style.background = "var(--background)";
+							}
+						}}
+						onClick={() => {
+							setIsEditing(false);
+							// 원래 값으로 복원
+							setEditTitle(data?.event?.title || "");
+							const participantNames = (data?.event?.attendees ?? []).map((a: any) => a.participant.name);
+							setEditParticipants(participantNames);
+						}}
+						disabled={saving || deleting}
+					>
+						취소
+					</button>
+					<button 
+						className="px-3 py-1 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+						style={{ 
+							backgroundColor: saving ? "color-mix(in srgb, var(--accent) 60%, var(--background) 40%)" : "var(--accent)", 
+							color: "var(--foreground)" 
+						}}
+						onClick={async () => {
+							if (!editTitle.trim()) return alert("제목을 입력해주세요.");
+							
+							setSaving(true);
+							try {
+								// 반복 이벤트인 경우
+								if (data.event.isRecurring) {
+									// 제목과 참여자 업데이트
+									// HH:MM -> minutes
+									const toMin = (t:string) => {
+										const [hh, mm] = t.split(":").map(Number);
+										return (isNaN(hh)||isNaN(mm)) ? undefined : hh*60+mm;
+									};
+									const res = await fetch(`/api/calendars/${data.event.calendarId}/recurring`, {
+										method: "PUT",
+										headers: { "Content-Type": "application/json" },
+										body: JSON.stringify({
+											eventTitle: data.event.title,
+											newTitle: editTitle,
+											participants: editParticipants,
+											days: normalizeDaysOfWeek(Array.from(selectedDays)), // 정규화된 요일 배열 전송
+											startMinutes: toMin(editRecurringStart),
+											endMinutes: toMin(editRecurringEnd),
+											color: editColor
+										})
+									});
+									if (!res.ok) {
+										const error = await res.json();
+										alert(error.error || "이벤트 수정에 실패했습니다.");
+										return;
+									}
+								} else {
+									// 일반 이벤트: 제목과 참여자 업데이트
+									const toIso = (v: Dayjs | null, fallback: string) => (v && v.isValid()) ? v.toDate().toISOString() : fallback;
+									if (editStartAt && editEndAt && editEndAt.valueOf() <= editStartAt.valueOf()) {
+										alert("종료일시가 시작일시보다 늦어야 합니다.");
+										return;
+									}
+									const res = await fetch(`/api/events/${eventId}`, {
+										method: "PUT",
+										headers: { "Content-Type": "application/json" },
+										body: JSON.stringify({
+											title: editTitle,
+											participants: editParticipants,
+											startAt: toIso(editStartAt, data.event.startAt),
+											endAt: toIso(editEndAt, data.event.endAt),
+											color: editColor
+										})
+									});
+									if (!res.ok) {
+										const error = await res.json();
+										alert(error.error || "이벤트 수정에 실패했습니다.");
+										return;
+									}
+								}
+								
+								// 약간의 지연 후 콜백 호출 (DB 반영 시간 확보)
+								setTimeout(() => {
+									onChanged();
+									setIsEditing(false);
+									setSaving(false);
+								}, 100);
+							} catch (err) {
+								alert("네트워크 오류가 발생했습니다.");
+								setSaving(false);
+							}
+						}}
+						disabled={saving || deleting}
+					>
+						{saving ? "⏳ 반영 중..." : "저장"}
+					</button>
 				</>
 			) : (
 				<>
-					<button className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer" onClick={onClose} disabled={loading}>닫기</button>
+					<button 
+						className="px-3 py-1 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+						style={{ 
+							border: "1px solid var(--accent)", 
+							background: "var(--background)", 
+							color: "var(--foreground)" 
+						}}
+						onMouseEnter={(e) => {
+							if (!loading && !saving && !deleting) {
+								e.currentTarget.style.background = "color-mix(in srgb, var(--background) 80%, var(--accent) 20%)";
+							}
+						}}
+						onMouseLeave={(e) => {
+							if (!loading && !saving && !deleting) {
+								e.currentTarget.style.background = "var(--background)";
+							}
+						}}
+						onClick={onClose} 
+						disabled={loading || saving || deleting}
+					>
+						닫기
+					</button>
 					{!loading && !error && data?.event && (
 						<>
 							{data.event.isRecurring ? (
 								<>
-									<button className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer" onClick={() => setIsEditing(true)}>수정</button>
-									<button className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white transition-colors cursor-pointer" onClick={async () => {
-										if (!confirm("이 반복 이벤트를 완전히 삭제하시겠습니까?")) return;
-										await fetch(`/api/events/${eventId}`, { method: "DELETE" });
-										onChanged();
-										onClose();
-									}}>반복 삭제</button>
+									<button 
+										className="px-3 py-1 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+										style={{ 
+											backgroundColor: "var(--accent)", 
+											color: "var(--foreground)" 
+										}}
+										onMouseEnter={(e) => {
+											if (!saving && !deleting) {
+												e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 80%, var(--foreground) 20%)";
+											}
+										}}
+										onMouseLeave={(e) => {
+											if (!saving && !deleting) {
+												e.currentTarget.style.background = "var(--accent)";
+											}
+										}}
+										onClick={() => setIsEditing(true)}
+										disabled={saving || deleting}
+									>
+										수정
+									</button>
+									<button 
+										className="px-3 py-1 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+										style={{ 
+											backgroundColor: deleting ? "color-mix(in srgb, #ef4444 60%, var(--background) 40%)" : "#ef4444", 
+											color: "var(--foreground)" 
+										}}
+										onClick={async () => {
+											if (!confirm("이 반복 이벤트를 완전히 삭제하시겠습니까?")) return;
+											setDeleting(true);
+											try {
+												const res = await fetch(`/api/events/${eventId}`, { method: "DELETE" });
+												if (!res.ok) {
+													const error = await res.json();
+													alert(error.error || "이벤트 삭제에 실패했습니다.");
+													setDeleting(false);
+													return;
+												}
+												setTimeout(() => {
+													onChanged();
+													onClose();
+												}, 100);
+											} catch (err) {
+												alert("네트워크 오류가 발생했습니다.");
+												setDeleting(false);
+											}
+										}}
+										disabled={saving || deleting}
+									>
+										{deleting ? "⏳ 삭제 중..." : "반복 삭제"}
+									</button>
 								</>
 							) : (
 								<>
-									<button className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer" onClick={() => setIsEditing(true)}>수정</button>
-									<button className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white transition-colors cursor-pointer" onClick={async () => {
-										if (!confirm("정말로 이 이벤트를 삭제하시겠습니까?")) return;
-										await fetch(`/api/events/${eventId}`, { method: "DELETE" });
-										onChanged();
-										onClose();
-									}}>삭제</button>
+									<button 
+										className="px-3 py-1 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+										style={{ 
+											backgroundColor: "var(--accent)", 
+											color: "var(--foreground)" 
+										}}
+										onMouseEnter={(e) => {
+											if (!saving && !deleting) {
+												e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 80%, var(--foreground) 20%)";
+											}
+										}}
+										onMouseLeave={(e) => {
+											if (!saving && !deleting) {
+												e.currentTarget.style.background = "var(--accent)";
+											}
+										}}
+										onClick={() => setIsEditing(true)}
+										disabled={saving || deleting}
+									>
+										수정
+									</button>
+									<button 
+										className="px-3 py-1 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+										style={{ 
+											backgroundColor: deleting ? "color-mix(in srgb, #ef4444 60%, var(--background) 40%)" : "#ef4444", 
+											color: "var(--foreground)" 
+										}}
+										onClick={async () => {
+											if (!confirm("정말로 이 이벤트를 삭제하시겠습니까?")) return;
+											setDeleting(true);
+											try {
+												const res = await fetch(`/api/events/${eventId}`, { method: "DELETE" });
+												if (!res.ok) {
+													const error = await res.json();
+													alert(error.error || "이벤트 삭제에 실패했습니다.");
+													setDeleting(false);
+													return;
+												}
+												setTimeout(() => {
+													onChanged();
+													onClose();
+												}, 100);
+											} catch (err) {
+												alert("네트워크 오류가 발생했습니다.");
+												setDeleting(false);
+											}
+										}}
+										disabled={saving || deleting}
+									>
+										{deleting ? "⏳ 삭제 중..." : "삭제"}
+									</button>
 								</>
 							)}
 						</>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 
 type Event = {
 	id: string;
@@ -18,6 +19,8 @@ type Event = {
 
 export default function EventManagementPage() {
 	const router = useRouter();
+	const { theme } = useTheme();
+	const [colorTheme, setColorTheme] = useState<string>("default");
 	const [events, setEvents] = useState<Event[]>([]);
 	const [selectedEvents, setSelectedEvents] = useState<Set<string>>(new Set());
 	const [loading, setLoading] = useState(true);
@@ -25,6 +28,33 @@ export default function EventManagementPage() {
 	useEffect(() => {
 		fetchEvents();
 	}, []);
+
+	useEffect(() => {
+		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
+		setColorTheme(savedColorTheme);
+
+		// 테마 변경 감지
+		const handleStorageChange = () => {
+			const newColorTheme = localStorage.getItem("gbti_color_theme") || "default";
+			setColorTheme(newColorTheme);
+		};
+
+		window.addEventListener("storage", handleStorageChange);
+		
+		// MutationObserver로 html 클래스 변경 감지
+		const observer = new MutationObserver(() => {
+			const newColorTheme = localStorage.getItem("gbti_color_theme") || "default";
+			setColorTheme(newColorTheme);
+		});
+
+		const html = document.documentElement;
+		observer.observe(html, { attributes: true, attributeFilter: ["class"] });
+
+		return () => {
+			window.removeEventListener("storage", handleStorageChange);
+			observer.disconnect();
+		};
+	}, [theme]);
 
 	async function fetchEvents() {
 		setLoading(true);
