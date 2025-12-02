@@ -5,7 +5,11 @@ export type ColorThemeId =
   | "molokai"
   | "gruvbox"
   | "sonokai"
-  | "onedark";
+  | "onedark"
+  | "neonglow"
+  | "cyberpunk"
+  | "sunset"
+  | "aurora";
 
 // DB 및 프론트에서 사용하는 색상 ID
 export type ColorId =
@@ -112,6 +116,38 @@ export const EVENT_COLOR_PALETTES: Record<ColorThemeId, EventColor[]> = {
     { id: "brown", name: "브라운", hex: "#be5046" },
     { id: "lime", name: "라임", hex: "#b9e75b" },
   ],
+  neonglow: [
+    { id: "pink", name: "네온 핑크", hex: "#ff00ff" },
+    { id: "blue", name: "네온 블루", hex: "#00e5ff" },
+    { id: "purple", name: "네온 보라", hex: "#b200ff" },
+    { id: "green", name: "네온 그린", hex: "#39ff14" },
+    { id: "yellow", name: "네온 옐로우", hex: "#f5ff00" },
+    { id: "teal", name: "글로우 민트", hex: "#00ffa6" },
+  ],
+  cyberpunk: [
+    { id: "pink", name: "핫핑크", hex: "#ff008c" },
+    { id: "blue", name: "사이안", hex: "#00eaff" },
+    { id: "purple", name: "퍼플", hex: "#c77dff" },
+    { id: "purple", name: "바이올렛", hex: "#7f00ff" },
+    { id: "red", name: "라즈베리", hex: "#ff2e63" },
+    { id: "teal", name: "터콰이즈", hex: "#2de2e6" },
+  ],
+  sunset: [
+    { id: "orange", name: "썬셋 오렌지", hex: "#ff7a5c" },
+    { id: "orange", name: "피치", hex: "#ffb199" },
+    { id: "purple", name: "호라이즌 퍼플", hex: "#9d4edd" },
+    { id: "red", name: "레드샤인", hex: "#ff4d4d" },
+    { id: "yellow", name: "골든 아워", hex: "#ffbf00" },
+    { id: "pink", name: "스모크 로즈", hex: "#d67d7d" },
+  ],
+  aurora: [
+    { id: "teal", name: "아쿠아", hex: "#7fffd4" },
+    { id: "green", name: "오로라 그린", hex: "#5efc8d" },
+    { id: "blue", name: "아이시 블루", hex: "#9be7ff" },
+    { id: "blue", name: "미드나잇 블루", hex: "#003f5c" },
+    { id: "purple", name: "퍼플 오로라", hex: "#7b2cbf" },
+    { id: "pink", name: "핑크 오로라", hex: "#ff9de6" },
+  ],
 };
 
 const DEFAULT_THEME_ID: ColorThemeId = "default";
@@ -202,6 +238,38 @@ export const EVENT_COLOR_PALETTES_DARK: Record<ColorThemeId, EventColor[]> = {
     { id: "brown", name: "브라운", hex: "#f08f7f" },
     { id: "lime", name: "라임", hex: "#c6ff7a" },
   ],
+  neonglow: [
+    { id: "pink", name: "네온 핑크", hex: "#ff33ff" },
+    { id: "blue", name: "네온 블루", hex: "#33f0ff" },
+    { id: "purple", name: "네온 보라", hex: "#cc33ff" },
+    { id: "green", name: "네온 그린", hex: "#66ff4d" },
+    { id: "yellow", name: "네온 옐로우", hex: "#ffff33" },
+    { id: "teal", name: "글로우 민트", hex: "#33ffcc" },
+  ],
+  cyberpunk: [
+    { id: "pink", name: "핫핑크", hex: "#ff33b3" },
+    { id: "blue", name: "사이안", hex: "#33f5ff" },
+    { id: "purple", name: "퍼플", hex: "#d99dff" },
+    { id: "purple", name: "바이올렛", hex: "#9933ff" },
+    { id: "red", name: "라즈베리", hex: "#ff5c8a" },
+    { id: "teal", name: "터콰이즈", hex: "#66f0f5" },
+  ],
+  sunset: [
+    { id: "orange", name: "썬셋 오렌지", hex: "#ff9a7a" },
+    { id: "orange", name: "피치", hex: "#ffc4b3" },
+    { id: "purple", name: "호라이즌 퍼플", hex: "#b866ed" },
+    { id: "red", name: "레드샤인", hex: "#ff7070" },
+    { id: "yellow", name: "골든 아워", hex: "#ffd633" },
+    { id: "pink", name: "스모크 로즈", hex: "#e6a5a5" },
+  ],
+  aurora: [
+    { id: "teal", name: "아쿠아", hex: "#9fffde" },
+    { id: "green", name: "오로라 그린", hex: "#7efca5" },
+    { id: "blue", name: "아이시 블루", hex: "#b3f0ff" },
+    { id: "blue", name: "미드나잇 블루", hex: "#336680" },
+    { id: "purple", name: "퍼플 오로라", hex: "#9b4cd9" },
+    { id: "pink", name: "핑크 오로라", hex: "#ffb3f0" },
+  ],
 };
 
 function isDarkModeActive(): boolean {
@@ -217,6 +285,44 @@ export function getCurrentColorThemeId(): ColorThemeId {
   const saved = window.localStorage.getItem("gbti_color_theme") as ColorThemeId | null;
   if (saved && saved in EVENT_COLOR_PALETTES) return saved;
   return DEFAULT_THEME_ID;
+}
+
+/**
+ * 현재 테마 설정에 따라 HTML 요소에 적절한 클래스를 추가/제거합니다.
+ * 이 함수는 TS의 테마 설정과 CSS의 클래스 기반 테마를 동기화합니다.
+ * 
+ * - next-themes가 dark 클래스를 관리하므로, light 클래스는 추가하지 않음
+ * - 색상 테마에 따라 `theme-{themeId}` 클래스 추가
+ * 
+ * @example
+ * applyColorTheme(); // 앱 시작 시 또는 테마 변경 시 호출
+ */
+export function applyColorTheme(): void {
+  if (typeof window === "undefined") return;
+
+  const theme = getCurrentColorThemeId();
+  const root = document.documentElement;
+
+  // 기존 테마 클래스 제거 (dark/light는 next-themes가 관리하므로 제거하지 않음)
+  root.classList.remove(
+    "theme-default",
+    "theme-ocean",
+    "theme-forest",
+    "theme-molokai",
+    "theme-gruvbox",
+    "theme-sonokai",
+    "theme-onedark",
+    "theme-neonglow",
+    "theme-cyberpunk",
+    "theme-sunset",
+    "theme-aurora"
+  );
+
+  // 테마 클래스 추가 (theme-{themeId})
+  // default 테마는 클래스를 추가하지 않음 (CSS에서 :not(.theme-xxx)로 처리)
+  if (theme !== "default") {
+    root.classList.add(`theme-${theme}`);
+  }
 }
 
 export function getCurrentEventColorPalette(): EventColor[] {

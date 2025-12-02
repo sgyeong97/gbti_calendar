@@ -10,7 +10,7 @@ import { format, isSameDay, addMonths } from "date-fns";
 import koLocale from "@fullcalendar/core/locales/ko";
 import EventDetailModal from "@/app/calendar/EventDetailModal";
 import CreateEventModal from "@/app/calendar/CreateEventModal";
-import { resolveEventColor } from "@/app/lib/color-themes";
+import { resolveEventColor, applyColorTheme } from "@/app/lib/color-themes";
 
 type FavoriteUser = {
   name: string;
@@ -159,7 +159,7 @@ export default function CalendarPage() {
 	};
 
   // 이벤트 가져오기
-  useEffect(() => {
+	useEffect(() => {
     if (!dateRange) return;
 
     const fetchEvents = async () => {
@@ -187,33 +187,19 @@ export default function CalendarPage() {
 		refreshFavorites();
 
     // 저장된 사용자명 / 테마 불러오기
-    const savedUserName = localStorage.getItem("gbti_current_user_name");
-    if (savedUserName) {
-      setCurrentUserName(savedUserName);
-      setUserInfoName(savedUserName);
-    }
+		const savedUserName = localStorage.getItem("gbti_current_user_name");
+		if (savedUserName) {
+			setCurrentUserName(savedUserName);
+				setUserInfoName(savedUserName);
+			}
     const savedTheme = (localStorage.getItem("gbti_theme") as "system" | "light" | "dark") || "system";
     setTheme(savedTheme);
 
     const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
     setColorTheme(savedColorTheme);
 
-    // html 클래스에 컬러 테마 반영
-    const root = document.documentElement;
-    root.classList.remove(
-      "theme-ocean",
-      "theme-forest",
-      "theme-molokai",
-      "theme-gruvbox",
-      "theme-sonokai",
-      "theme-onedark"
-    );
-    if (savedColorTheme === "ocean") root.classList.add("theme-ocean");
-    if (savedColorTheme === "forest") root.classList.add("theme-forest");
-    if (savedColorTheme === "molokai") root.classList.add("theme-molokai");
-    if (savedColorTheme === "gruvbox") root.classList.add("theme-gruvbox");
-    if (savedColorTheme === "sonokai") root.classList.add("theme-sonokai");
-    if (savedColorTheme === "onedark") root.classList.add("theme-onedark");
+    // TS와 CSS 테마 동기화: applyColorTheme() 호출
+    applyColorTheme();
     const savedLead = localStorage.getItem("gbti_notification_lead_mins");
     if (savedLead) {
       try {
@@ -234,6 +220,20 @@ export default function CalendarPage() {
       window.removeEventListener("favoritesUpdated", handleFavoritesUpdated);
 		};
 	}, []);
+
+  // next-themes의 theme 변경 감지 및 applyColorTheme 호출
+  useEffect(() => {
+    // next-themes가 dark 클래스를 관리하므로, 약간의 지연 후 applyColorTheme 호출
+    const timer = setTimeout(() => {
+      applyColorTheme();
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [theme]);
+
+  // colorTheme 변경 감지 및 applyColorTheme 호출
+  useEffect(() => {
+    applyColorTheme();
+  }, [colorTheme]);
 
   // 날짜 클릭 핸들러
   const handleDateClick = (arg: any) => {
@@ -957,6 +957,10 @@ export default function CalendarPage() {
                       { id: "gruvbox", label: "Gruvbox" },
                       { id: "sonokai", label: "Sonokai" },
                       { id: "onedark", label: "OneDark" },
+                      { id: "neonglow", label: "네온 글로우" },
+                      { id: "cyberpunk", label: "사이버펑크" },
+                      { id: "sunset", label: "선셋" },
+                      { id: "aurora", label: "오로라" },
                     ].map((t) => (
                       <button
                         key={t.id}
@@ -964,21 +968,8 @@ export default function CalendarPage() {
                         onClick={() => {
                           setColorTheme(t.id);
                           localStorage.setItem("gbti_color_theme", t.id);
-                          const root = document.documentElement;
-                          root.classList.remove(
-                            "theme-ocean",
-                            "theme-forest",
-                            "theme-molokai",
-                            "theme-gruvbox",
-                            "theme-sonokai",
-                            "theme-onedark"
-                          );
-                          if (t.id === "ocean") root.classList.add("theme-ocean");
-                          if (t.id === "forest") root.classList.add("theme-forest");
-                          if (t.id === "molokai") root.classList.add("theme-molokai");
-                          if (t.id === "gruvbox") root.classList.add("theme-gruvbox");
-                          if (t.id === "sonokai") root.classList.add("theme-sonokai");
-                          if (t.id === "onedark") root.classList.add("theme-onedark");
+                          // TS와 CSS 테마 동기화
+                          applyColorTheme();
                         }}
                         className="px-2 py-1 rounded text-xs cursor-pointer transition-colors"
                         style={{

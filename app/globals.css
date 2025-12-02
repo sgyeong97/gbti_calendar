@@ -2,7 +2,7 @@
 
 /* 기본 라이트 테마 */
 html.light,
-html:not(.dark):not(.theme-ocean):not(.theme-forest):not(.theme-molokai):not(.theme-gruvbox):not(.theme-sonokai):not(.theme-onedark) {
+html:not(.dark):not(.theme-ocean):not(.theme-forest):not(.theme-molokai):not(.theme-gruvbox):not(.theme-sonokai):not(.theme-onedark):not(.theme-neonglow):not(.theme-cyberpunk):not(.theme-sunset):not(.theme-aurora) {
   --background: #ffffff;
   --foreground: #171717;
   --accent: #FDC205;
@@ -95,6 +95,58 @@ html.dark.theme-onedark {
   --background: #282c34;
   --foreground: #abb2bf;
   --accent: #61afef;
+}
+
+/* Neon Glow 테마 */
+html.light.theme-neonglow {
+  --background: #0a0a0a;
+  --foreground: #ffffff;
+  --accent: #ff00ff;
+}
+
+html.dark.theme-neonglow {
+  --background: #000000;
+  --foreground: #ffffff;
+  --accent: #ff33ff;
+}
+
+/* Cyberpunk 테마 */
+html.light.theme-cyberpunk {
+  --background: #0a0a0f;
+  --foreground: #ff008c;
+  --accent: #00eaff;
+}
+
+html.dark.theme-cyberpunk {
+  --background: #000000;
+  --foreground: #ff33b3;
+  --accent: #33f5ff;
+}
+
+/* Sunset 테마 */
+html.light.theme-sunset {
+  --background: #fff5e6;
+  --foreground: #8b4513;
+  --accent: #ff7a5c;
+}
+
+html.dark.theme-sunset {
+  --background: #1a0f0a;
+  --foreground: #ffb199;
+  --accent: #ff9a7a;
+}
+
+/* Aurora 테마 */
+html.light.theme-aurora {
+  --background: #f0f8ff;
+  --foreground: #003f5c;
+  --accent: #5efc8d;
+}
+
+html.dark.theme-aurora {
+  --background: #001a26;
+  --foreground: #9be7ff;
+  --accent: #7efca5;
 }
 
 /* FullCalendar용 테두리/포인트 컬러 (모든 컬러 테마에 공통) */
