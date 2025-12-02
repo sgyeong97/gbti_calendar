@@ -651,31 +651,33 @@ export default function CalendarPage() {
 								<div>
 									<label className="text-sm mb-1 block">사용자명</label>
 									<div className="flex gap-2">
-										<select
-											className="flex-1 border rounded px-3 py-2"
-											value={currentUserName}
-											onChange={(e) => {
-												if (e.target.value) {
-													setCurrentUserName(e.target.value);
-													localStorage.setItem("gbti_current_user_name", e.target.value);
-													setShowSettings(false);
+									<select
+										className="flex-1 rounded px-3 py-2"
+										style={{ border: "1px solid var(--accent)", background: "var(--background)", color: "var(--foreground)" }}
+										value={currentUserName}
+										onChange={(e) => {
+											if (e.target.value) {
+												setCurrentUserName(e.target.value);
+												localStorage.setItem("gbti_current_user_name", e.target.value);
+												setShowSettings(false);
                           window.location.reload();
-												}
-											}}
-										>
-											<option value="">선택하세요</option>
-											{participantList.map((name) => (
+											}
+										}}
+									>
+										<option value="">선택하세요</option>
+										{participantList.map((name) => (
                         <option key={name} value={name}>
                           {name}
                         </option>
-											))}
-										</select>
+										))}
+									</select>
 									</div>
-                  <div className="mt-2 text-xs text-zinc-500">또는 직접 입력:</div>
+                  <div className="mt-2 text-xs" style={{ color: "var(--foreground)", opacity: 0.7 }}>또는 직접 입력:</div>
 									<input
 										type="text"
 										placeholder="사용자명 입력"
-										className="w-full border rounded px-3 py-2 mt-1"
+										className="w-full rounded px-3 py-2 mt-1"
+										style={{ border: "1px solid var(--accent)", background: "var(--background)", color: "var(--foreground)" }}
 										onKeyDown={(e) => {
 											if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
 												const name = (e.target as HTMLInputElement).value.trim();
@@ -689,7 +691,18 @@ export default function CalendarPage() {
 								</div>
 								<div className="flex justify-end">
 									<button
-                    className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                    className="px-3 py-1 rounded transition-colors cursor-pointer"
+										style={{ 
+											border: "1px solid var(--accent)", 
+											background: "var(--background)", 
+											color: "var(--foreground)" 
+										}}
+										onMouseEnter={(e) => {
+											e.currentTarget.style.background = "color-mix(in srgb, var(--background) 80%, var(--accent) 20%)";
+										}}
+										onMouseLeave={(e) => {
+											e.currentTarget.style.background = "var(--background)";
+										}}
 										onClick={() => setShowSettings(false)}
 									>
 										닫기
@@ -699,13 +712,24 @@ export default function CalendarPage() {
 						) : (
               // 사용자명이 있는 경우: 기존 설정 메뉴
 							<div className="space-y-3">
-								<div className="text-sm text-zinc-600">
+								<div className="text-sm" style={{ color: "var(--foreground)", opacity: 0.8 }}>
 									현재 사용자: <strong>{currentUserName}</strong>
 								</div>
 								<div className="space-y-2">
                   {/* 1) 닉네임/칭호 설정 */}
 									<button
-										className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
+										className="w-full px-4 py-2 rounded text-left transition-colors cursor-pointer"
+										style={{ 
+											border: "1px solid var(--accent)", 
+											background: "var(--background)", 
+											color: "var(--foreground)" 
+										}}
+										onMouseEnter={(e) => {
+											e.currentTarget.style.background = "color-mix(in srgb, var(--background) 80%, var(--accent) 20%)";
+										}}
+										onMouseLeave={(e) => {
+											e.currentTarget.style.background = "var(--background)";
+										}}
 										onClick={() => {
 											setShowSettings(false);
 											setShowUserInfoSettings(true);
@@ -747,7 +771,18 @@ export default function CalendarPage() {
 									</button>
                   {/* 2) 알림 설정 */}
 									<button
-										className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
+										className="w-full px-4 py-2 rounded text-left transition-colors cursor-pointer"
+										style={{ 
+											border: "1px solid var(--accent)", 
+											background: "var(--background)", 
+											color: "var(--foreground)" 
+										}}
+										onMouseEnter={(e) => {
+											e.currentTarget.style.background = "color-mix(in srgb, var(--background) 80%, var(--accent) 20%)";
+										}}
+										onMouseLeave={(e) => {
+											e.currentTarget.style.background = "var(--background)";
+										}}
 										onClick={() => {
 											setShowSettings(false);
                       setShowNotificationSettings(true);
@@ -757,7 +792,18 @@ export default function CalendarPage() {
 									</button>
                   {/* 3) 파티 설정 */}
                   <button
-                    className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left"
+                    className="w-full px-4 py-2 rounded text-left transition-colors cursor-pointer"
+                    style={{ 
+											border: "1px solid var(--accent)", 
+											background: "var(--background)", 
+											color: "var(--foreground)" 
+										}}
+										onMouseEnter={(e) => {
+											e.currentTarget.style.background = "color-mix(in srgb, var(--background) 80%, var(--accent) 20%)";
+										}}
+										onMouseLeave={(e) => {
+											e.currentTarget.style.background = "var(--background)";
+										}}
                     onClick={() => {
                       setShowSettings(false);
                       setShowPartySettings(true);
@@ -768,7 +814,18 @@ export default function CalendarPage() {
                   </button>
                   {/* 4) 테마 설정 */}
                   <button
-                    className="w-full px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-left flex items-center justify-between"
+                    className="w-full px-4 py-2 rounded text-left flex items-center justify-between transition-colors cursor-pointer"
+                    style={{ 
+											border: "1px solid var(--accent)", 
+											background: "var(--background)", 
+											color: "var(--foreground)" 
+										}}
+										onMouseEnter={(e) => {
+											e.currentTarget.style.background = "color-mix(in srgb, var(--background) 80%, var(--accent) 20%)";
+										}}
+										onMouseLeave={(e) => {
+											e.currentTarget.style.background = "var(--background)";
+										}}
                     onClick={() => {
                       // 테마 순환: system -> light -> dark -> system
                       const order: ("system" | "light" | "dark")[] = ["system", "light", "dark"];
@@ -779,14 +836,17 @@ export default function CalendarPage() {
                     }}
                   >
                     <span>테마 설정</span>
-                    <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                    <span className="text-sm" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                       {theme === "dark" ? "🌙 다크모드" : theme === "light" ? "☀️ 라이트모드" : "🖥️ 시스템"}
                     </span>
 									</button>
 								</div>
                 {/* 컬러 테마 선택 */}
-                <div className="space-y-1 pt-2 border-t border-zinc-200 dark:border-zinc-800 mt-2">
-                  <div className="text-xs text-zinc-500 dark:text-zinc-400">컬러 테마</div>
+                <div 
+                  className="space-y-1 pt-2 mt-2"
+                  style={{ borderTop: "1px solid var(--accent)" }}
+                >
+                  <div className="text-xs" style={{ color: "var(--foreground)", opacity: 0.7 }}>컬러 테마</div>
                   <div className="flex gap-2 flex-wrap">
                     {[
                       { id: "default", label: "기본" },
@@ -819,11 +879,26 @@ export default function CalendarPage() {
                           if (t.id === "sonokai") root.classList.add("theme-sonokai");
                           if (t.id === "onedark") root.classList.add("theme-onedark");
                         }}
-                        className={`px-2 py-1 rounded border text-xs cursor-pointer ${
-                          colorTheme === t.id
-                            ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                            : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                        }`}
+                        className="px-2 py-1 rounded text-xs cursor-pointer transition-colors"
+                        style={{
+                          border: "1px solid var(--accent)",
+                          background: colorTheme === t.id 
+                            ? "color-mix(in srgb, var(--background) 60%, var(--accent) 40%)"
+                            : "var(--background)",
+                          color: "var(--foreground)"
+                        }}
+                        onMouseEnter={(e) => {
+                          if (colorTheme !== t.id) {
+                            e.currentTarget.style.background = "color-mix(in srgb, var(--background) 80%, var(--accent) 20%)";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (colorTheme !== t.id) {
+                            e.currentTarget.style.background = "var(--background)";
+                          } else {
+                            e.currentTarget.style.background = "color-mix(in srgb, var(--background) 60%, var(--accent) 40%)";
+                          }
+                        }}
                       >
                         {t.label}
                       </button>
@@ -832,7 +907,18 @@ export default function CalendarPage() {
                 </div>
 								<div className="flex justify-end gap-2">
 									<button
-										className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 text-sm"
+										className="px-3 py-1 rounded text-sm transition-colors cursor-pointer"
+										style={{ 
+											border: "1px solid var(--accent)", 
+											background: "var(--background)", 
+											color: "var(--foreground)" 
+										}}
+										onMouseEnter={(e) => {
+											e.currentTarget.style.background = "color-mix(in srgb, var(--background) 80%, var(--accent) 20%)";
+										}}
+										onMouseLeave={(e) => {
+											e.currentTarget.style.background = "var(--background)";
+										}}
 										onClick={() => {
 											if (confirm("사용자명을 변경하시겠습니까?")) {
 												localStorage.removeItem("gbti_current_user_name");
@@ -844,7 +930,18 @@ export default function CalendarPage() {
 										사용자명 변경
 									</button>
 									<button
-                    className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                    className="px-3 py-1 rounded transition-colors cursor-pointer"
+										style={{ 
+											border: "1px solid var(--accent)", 
+											background: "var(--background)", 
+											color: "var(--foreground)" 
+										}}
+										onMouseEnter={(e) => {
+											e.currentTarget.style.background = "color-mix(in srgb, var(--background) 80%, var(--accent) 20%)";
+										}}
+										onMouseLeave={(e) => {
+											e.currentTarget.style.background = "var(--background)";
+										}}
 										onClick={() => setShowSettings(false)}
 									>
 										닫기
@@ -870,7 +967,7 @@ export default function CalendarPage() {
             <h2 className="text-lg font-semibold">유저 정보 설정</h2>
             <div className="space-y-3">
               {userInfoLoading && (
-                <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                <div className="text-sm" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                   사용자 정보를 불러오는 중입니다...
                 </div>
               )}
@@ -880,12 +977,23 @@ export default function CalendarPage() {
 									type="text"
 									value={userInfoName}
 									readOnly
-                  className="w-full border rounded px-3 py-2 bg-zinc-50 dark:bg-zinc-800"
+                  className="w-full rounded px-3 py-2"
+									style={{ 
+										border: "1px solid var(--accent)", 
+										background: "color-mix(in srgb, var(--background) 95%, var(--accent) 5%)", 
+										color: "var(--foreground)" 
+									}}
 								/>
               </div>
               {(originalTitle || originalColor !== "#e5e7eb") && (
-                <div className="p-3 rounded border bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700">
-                  <div className="text-xs text-zinc-600 dark:text-zinc-400 mb-2">현재 설정</div>
+                <div 
+                  className="p-3 rounded"
+                  style={{ 
+                    border: "1px solid var(--accent)", 
+                    background: "color-mix(in srgb, var(--background) 95%, var(--accent) 5%)" 
+                  }}
+                >
+                  <div className="text-xs mb-2" style={{ color: "var(--foreground)" }}>현재 설정</div>
                   <div className="flex items-center gap-2">
                     {originalTitle && (
                       <span
@@ -896,15 +1004,18 @@ export default function CalendarPage() {
                       </span>
                     )}
                     {!originalTitle && (
-                      <span className="text-sm text-zinc-500 dark:text-zinc-400">칭호 없음</span>
+                      <span className="text-sm" style={{ color: "var(--foreground)", opacity: 0.7 }}>칭호 없음</span>
                     )}
                     {originalColor && (
                       <div className="flex items-center gap-1 ml-auto">
                         <div
-                          className="w-4 h-4 rounded border border-zinc-300 dark:border-zinc-600"
-                          style={{ backgroundColor: originalColor }}
+                          className="w-4 h-4 rounded"
+                          style={{ 
+                            backgroundColor: originalColor,
+                            border: "1px solid var(--accent)"
+                          }}
                         />
-                        <span className="text-xs text-zinc-600 dark:text-zinc-400">{originalColor}</span>
+                        <span className="text-xs" style={{ color: "var(--foreground)", opacity: 0.7 }}>{originalColor}</span>
                       </div>
                     )}
                   </div>
@@ -917,7 +1028,12 @@ export default function CalendarPage() {
 									value={userInfoTitle}
 									onChange={(e) => setUserInfoTitle(e.target.value)}
 									placeholder="예: 공주"
-									className="w-full border rounded px-3 py-2"
+									className="w-full rounded px-3 py-2"
+									style={{ 
+										border: "1px solid var(--accent)", 
+										background: "var(--background)", 
+										color: "var(--foreground)" 
+									}}
 								/>
               </div>
               <div>
@@ -927,20 +1043,37 @@ export default function CalendarPage() {
 										type="color"
 										value={userInfoColor}
 										onChange={(e) => setUserInfoColor(e.target.value)}
-										className="w-16 h-10 border rounded cursor-pointer"
+										className="w-16 h-10 rounded cursor-pointer"
+										style={{ border: "1px solid var(--accent)" }}
 									/>
 									<input
 										type="text"
 										value={userInfoColor}
 										onChange={(e) => setUserInfoColor(e.target.value)}
-										className="flex-1 border rounded px-3 py-2"
+										className="flex-1 rounded px-3 py-2"
 										placeholder="#e5e7eb"
+										style={{ 
+											border: "1px solid var(--accent)", 
+											background: "var(--background)", 
+											color: "var(--foreground)" 
+										}}
 									/>
                 </div>
               </div>
               <div className="flex justify-end gap-2">
                 <button
-									className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
+									className="px-3 py-1 rounded transition-colors cursor-pointer"
+									style={{ 
+										border: "1px solid var(--accent)", 
+										background: "var(--background)", 
+										color: "var(--foreground)" 
+									}}
+									onMouseEnter={(e) => {
+										e.currentTarget.style.background = "color-mix(in srgb, var(--background) 80%, var(--accent) 20%)";
+									}}
+									onMouseLeave={(e) => {
+										e.currentTarget.style.background = "var(--background)";
+									}}
 									onClick={async () => {
 										try {
 											const res = await fetch("/api/participants");
@@ -999,7 +1132,18 @@ export default function CalendarPage() {
 									저장
                 </button>
                 <button
-									className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800"
+									className="px-3 py-1 rounded transition-colors cursor-pointer"
+									style={{ 
+										border: "1px solid var(--accent)", 
+										background: "var(--background)", 
+										color: "var(--foreground)" 
+									}}
+									onMouseEnter={(e) => {
+										e.currentTarget.style.background = "color-mix(in srgb, var(--background) 80%, var(--accent) 20%)";
+									}}
+									onMouseLeave={(e) => {
+										e.currentTarget.style.background = "var(--background)";
+									}}
 									onClick={() => setShowUserInfoSettings(false)}
 								>
 									취소
@@ -1022,10 +1166,10 @@ export default function CalendarPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-lg font-semibold">알림 설정</h2>
-            <div className="text-sm text-zinc-600 dark:text-zinc-400 space-y-3">
+            <div className="text-sm space-y-3" style={{ color: "var(--foreground)", opacity: 0.8 }}>
               <p>본인이 속한 파티 일정이 시작되기 전에 미리 알림을 받는 시간을 선택합니다.</p>
               <div>
-                <div className="mb-1 font-medium text-xs text-zinc-500 dark:text-zinc-400">
+                <div className="mb-1 font-medium text-xs" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                   알림 시점 선택
                 </div>
                 <div className="grid grid-cols-3 gap-2">
@@ -1045,17 +1189,32 @@ export default function CalendarPage() {
                           return normalized;
                         });
                       }}
-                      className={`px-2 py-1 rounded border text-xs cursor-pointer ${
-                        notificationLeadMins.includes(min)
-                          ? "bg-yellow-100 border-yellow-400 text-yellow-800"
-                          : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                      }`}
+                      className="px-2 py-1 rounded text-xs cursor-pointer transition-colors"
+                      style={{
+                        border: "1px solid var(--accent)",
+                        background: notificationLeadMins.includes(min)
+                          ? "color-mix(in srgb, var(--background) 60%, var(--accent) 40%)"
+                          : "var(--background)",
+                        color: "var(--foreground)"
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!notificationLeadMins.includes(min)) {
+                          e.currentTarget.style.background = "color-mix(in srgb, var(--background) 80%, var(--accent) 20%)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!notificationLeadMins.includes(min)) {
+                          e.currentTarget.style.background = "var(--background)";
+                        } else {
+                          e.currentTarget.style.background = "color-mix(in srgb, var(--background) 60%, var(--accent) 40%)";
+                        }
+                      }}
                     >
                       {min < 60 ? `${min}분 전` : `${min / 60}시간 전`}
                     </button>
                   ))}
                 </div>
-                <div className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                <div className="mt-2 text-xs" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                   현재 설정:{" "}
                   {notificationLeadMins.length === 0 ? (
                     <span>알림 없음</span>
@@ -1070,13 +1229,24 @@ export default function CalendarPage() {
                   )}
                 </div>
               </div>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="text-xs" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                 브라우저 알림을 받으려면 이 사이트에 대한 알림 권한을 허용해야 합니다.
               </p>
             </div>
             <div className="flex justify-end">
               <button
-                className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="px-3 py-1 rounded transition-colors cursor-pointer"
+                style={{ 
+                  border: "1px solid var(--accent)", 
+                  background: "var(--background)", 
+                  color: "var(--foreground)" 
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "color-mix(in srgb, var(--background) 80%, var(--accent) 20%)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "var(--background)";
+                }}
                 onClick={() => setShowNotificationSettings(false)}
               >
                 닫기
@@ -1099,15 +1269,15 @@ export default function CalendarPage() {
           >
             <h2 className="text-lg font-semibold">파티 리스트 보기</h2>
             {!currentUserName ? (
-              <div className="text-sm text-zinc-600 dark:text-zinc-400">
+              <div className="text-sm" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                 먼저 설정에서 사용자명을 선택한 뒤 파티 리스트를 확인할 수 있습니다.
               </div>
             ) : partyListLoading ? (
-              <div className="text-sm text-zinc-600 dark:text-zinc-400">
+              <div className="text-sm" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                 파티 리스트를 불러오는 중입니다...
               </div>
             ) : partyList.length === 0 ? (
-              <div className="text-sm text-zinc-600 dark:text-zinc-400">
+              <div className="text-sm" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                 앞으로 예정된 파티 일정이 없습니다.
               </div>
             ) : (
@@ -1115,17 +1285,20 @@ export default function CalendarPage() {
                 {partyList.map((e) => (
                   <div
                     key={e.id}
-                    className="border rounded p-2 flex flex-col gap-1"
-                    style={{ borderColor: "var(--accent)" }}
+                    className="rounded p-2 flex flex-col gap-1"
+                    style={{ 
+                      border: "1px solid var(--accent)",
+                      background: "color-mix(in srgb, var(--background) 95%, var(--accent) 5%)"
+                    }}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold">{e.title}</span>
-                      <span className="text-xs text-zinc-500">
+                      <span className="font-semibold" style={{ color: "var(--foreground)" }}>{e.title}</span>
+                      <span className="text-xs" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                         {format(new Date(e.startAt), "M월 d일 HH:mm")}
                       </span>
                     </div>
                     {e.participants && e.participants.length > 0 && (
-                      <div className="text-xs text-zinc-600 dark:text-zinc-400">
+                      <div className="text-xs" style={{ color: "var(--foreground)", opacity: 0.7 }}>
                         참여자: {e.participants.join(", ")}
                       </div>
                     )}
@@ -1135,7 +1308,18 @@ export default function CalendarPage() {
             )}
             <div className="flex justify-end">
               <button
-                className="px-3 py-1 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="px-3 py-1 rounded transition-colors cursor-pointer"
+                style={{ 
+                  border: "1px solid var(--accent)", 
+                  background: "var(--background)", 
+                  color: "var(--foreground)" 
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "color-mix(in srgb, var(--background) 80%, var(--accent) 20%)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "var(--background)";
+                }}
                 onClick={() => setShowPartySettings(false)}
               >
                 닫기
