@@ -35,6 +35,9 @@ export default function ActivityDashboardPage() {
 	const [colorTheme, setColorTheme] = useState<string>("default");
 	const [loading, setLoading] = useState(false);
 	const [groupBy, setGroupBy] = useState<"day" | "user">("day");
+	const [searchTerm, setSearchTerm] = useState<string>("");
+	const [pageSize, setPageSize] = useState<number>(10);
+	const [currentPage, setCurrentPage] = useState<number>(1);
 	const [startDate, setStartDate] = useState<string>(
 		new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 	);
@@ -43,7 +46,7 @@ export default function ActivityDashboardPage() {
 	);
 	const [activityData, setActivityData] = useState<Record<string, ActivityData | UserActivityData>>({});
 	const [stats, setStats] = useState<ActivityStats | null>(null);
-		const [expandedKey, setExpandedKey] = useState<string | null>(null);
+	const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
 	useEffect(() => {
 		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
@@ -71,6 +74,10 @@ export default function ActivityDashboardPage() {
 	}, [theme]);
 
 	useEffect(() => {
+		// 그룹 기준이나 날짜가 바뀌면 검색/페이지/확장 상태 초기화
+		setSearchTerm("");
+		setCurrentPage(1);
+		setExpandedKey(null);
 		fetchActivityData();
 	}, [groupBy, startDate, endDate]);
 
@@ -180,6 +187,30 @@ export default function ActivityDashboardPage() {
 			return bData.totalMinutes - aData.totalMinutes; // 활동 시간 내림차순
 		}
 	});
+
+	// 검색 필터링
+	const filteredEntries = sortedEntries.filter(([key, data]) => {
+		if (!searchTerm.trim()) return true;
+		const term = searchTerm.toLowerCase();
+
+		if (groupBy === "day") {
+			const dayData = data as ActivityData;
+			const dateText = formatDate(dayData.date).toLowerCase();
+			const usersText = (dayData.users || []).join(", ").toLowerCase();
+			return dateText.includes(term) || usersText.includes(term);
+		} else {
+			const userData = data as UserActivityData;
+			const name = (userData.userName || userData.userId || "").toLowerCase();
+			return name.includes(term);
+		}
+	});
+
+	// 페이지네이션 계산
+	const totalItems = filteredEntries.length;
+	const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+	const safeCurrentPage = Math.min(currentPage, totalPages);
+	const startIndex = (safeCurrentPage - 1) * pageSize;
+	const pageEntries = filteredEntries.slice(startIndex, startIndex + pageSize);
 
 	return (
 		<div className="p-6 max-w-7xl mx-auto" style={{ background: "var(--background)", color: "var(--foreground)" }}>
@@ -325,19 +356,81 @@ export default function ActivityDashboardPage() {
 					border: "1px solid var(--accent)" 
 				}}
 			>
-				<h2 className="text-lg font-semibold mb-4">
-					{groupBy === "day" ? "날짜별 활동" : "사용자별 활동"} ({sortedEntries.length}개)
-				</h2>
+				<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+					<h2 className="text-lg font-semibold">
+						{groupBy === "day" ? "날짜별 활동" : "사용자별 활동"} ({totalItems}개)
+					</h2>
+
+					<div className="flex flex-col md:flex-row gap-2 md:items-center md:justify-end w-full md:w-auto">
+						{/* 검색 */}
+						<input
+							type="text"
+							placeholder={groupBy === "day" ? "날짜/사용자 이름 검색..." : "사용자 이름 검색..."}
+							value={searchTerm}
+							onChange={(e) => {
+								setSearchTerm(e.target.value);
+								setCurrentPage(1);
+							}}
+							className="border rounded px-3 py-2 text-sm w-full md:w-56"
+						/>
+
+						{/* 페이지 크기 */}
+						<div className="flex items-center gap-1 text-sm">
+							<span className="opacity-70">한 번에</span>
+							<select
+								value={pageSize}
+								onChange={(e) => {
+									setPageSize(parseInt(e.target.value, 10));
+									setCurrentPage(1);
+								}}
+								className="border rounded px-2 py-1 text-sm"
+							>
+								<option value={5}>5개</option>
+								<option value={10}>10개</option>
+								<option value={20}>20개</option>
+								<option value={50}>50개</option>
+							</select>
+						</div>
+					</div>
+				</div>
+
+				{/* 페이지네이션 상단 정보 */}
+				{totalItems > 0 && (
+					<div className="flex items-center justify-between text-xs md:text-sm mb-3 opacity-70">
+						<div>
+							{startIndex + 1}–{Math.min(startIndex + pageSize, totalItems)} / {totalItems}개
+						</div>
+						<div className="flex items-center gap-2">
+							<button
+								className="px-2 py-1 border rounded disabled:opacity-40 disabled:cursor-default cursor-pointer"
+								onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+								disabled={safeCurrentPage <= 1}
+							>
+								이전
+							</button>
+							<span>
+								{safeCurrentPage} / {totalPages}
+							</span>
+							<button
+								className="px-2 py-1 border rounded disabled:opacity-40 disabled:cursor-default cursor-pointer"
+								onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+								disabled={safeCurrentPage >= totalPages}
+							>
+								다음
+							</button>
+						</div>
+					</div>
+				)}
 				
 				{loading ? (
 					<div className="text-center py-8">로딩 중...</div>
-				) : sortedEntries.length === 0 ? (
+				) : totalItems === 0 ? (
 					<div className="text-center py-8" style={{ color: "var(--foreground)", opacity: 0.7 }}>
 						활동 데이터가 없습니다.
 					</div>
 				) : (
 					<div className="space-y-3 max-h-[600px] overflow-y-auto">
-						{sortedEntries.map(([key, data]) => {
+						{pageEntries.map(([key, data]) => {
 							if (groupBy === "day") {
 								const dayData = data as ActivityData;
 								return (
@@ -436,7 +529,17 @@ export default function ActivityDashboardPage() {
 											<div>
 												<div className="font-medium">{userData.userName || userData.userId}</div>
 												<div className="text-sm opacity-70">
-													{userData.dayCount}일 활동 · 평균 {formatMinutes(Math.round(userData.totalMinutes / userData.dayCount))}/일
+													{userData.dayCount}일 활동 ·{" "}
+													{(() => {
+														const dayCountSafe = userData.dayCount && userData.dayCount > 0
+															? userData.dayCount
+															: (userData.days && userData.days.length > 0 ? userData.days.length : 0);
+														if (!dayCountSafe) {
+															return <>평균 0분/일</>;
+														}
+														const avg = Math.round((userData.totalMinutes || 0) / dayCountSafe);
+														return <>평균 {formatMinutes(avg)}/일</>;
+													})()}
 												</div>
 											</div>
 											<div className="text-right">
