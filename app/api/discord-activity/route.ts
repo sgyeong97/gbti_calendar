@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
 		// Discord 봇 API URL 가져오기
 		const botApiUrl = process.env.DISCORD_BOT_API_URL;
 		if (!botApiUrl) {
+			console.error("DISCORD_BOT_API_URL 환경 변수가 설정되지 않았습니다.");
 			return NextResponse.json(
 				{ error: "Discord bot API URL not configured. Please set DISCORD_BOT_API_URL environment variable." },
 				{ status: 500 }
@@ -24,11 +25,14 @@ export async function GET(req: NextRequest) {
 		// API 인증 토큰
 		const apiToken = process.env.DISCORD_BOT_API_TOKEN;
 		if (!apiToken) {
+			console.error("DISCORD_BOT_API_TOKEN 환경 변수가 설정되지 않았습니다.");
 			return NextResponse.json(
 				{ error: "Discord bot API token not configured. Please set DISCORD_BOT_API_TOKEN environment variable." },
 				{ status: 500 }
 			);
 		}
+
+		console.log(`[Discord Activity API] 봇 API 호출 시작: ${botApiUrl}`);
 
 		// 쿼리 파라미터 가져오기
 		const { searchParams } = new URL(req.url);
@@ -49,6 +53,9 @@ export async function GET(req: NextRequest) {
 		const botApiEndpoint = `${botApiUrl}${botApiUrl.endsWith('/') ? '' : '/'}discord-activity`;
 		const requestUrl = `${botParams.toString() ? `${botApiEndpoint}?${botParams.toString()}` : botApiEndpoint}`;
 
+		console.log(`[Discord Activity API] 요청 URL: ${requestUrl}`);
+		console.log(`[Discord Activity API] 인증 토큰 존재: ${apiToken ? '예' : '아니오'}`);
+
 		const response = await fetch(requestUrl, {
 			method: "GET",
 			headers: {
@@ -59,20 +66,26 @@ export async function GET(req: NextRequest) {
 			signal: AbortSignal.timeout(30000),
 		});
 
+		console.log(`[Discord Activity API] 응답 상태: ${response.status} ${response.statusText}`);
+
 		if (!response.ok) {
 			const errorText = await response.text();
-			console.error(`Discord bot API error: ${response.status} - ${errorText}`);
+			console.error(`[Discord Activity API] 봇 API 오류: ${response.status} - ${errorText}`);
+			console.error(`[Discord Activity API] 요청 URL: ${requestUrl}`);
 			return NextResponse.json(
 				{ 
 					error: "Failed to fetch data from Discord bot",
 					details: errorText,
-					status: response.status
+					status: response.status,
+					requestUrl: requestUrl // 디버깅용
 				},
 				{ status: response.status >= 500 ? 502 : response.status }
 			);
 		}
 
 		const data = await response.json();
+		
+		console.log(`[Discord Activity API] 봇 API 응답 성공, 데이터 개수: ${data?.count || 0}`);
 		
 		// Discord 봇의 응답을 그대로 반환
 		// 봇이 이미 그룹화된 데이터를 반환한다고 가정
