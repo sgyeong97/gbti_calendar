@@ -47,6 +47,7 @@ export default function ActivityDashboardPage() {
 	const [activityData, setActivityData] = useState<Record<string, ActivityData | UserActivityData>>({});
 	const [stats, setStats] = useState<ActivityStats | null>(null);
 	const [expandedKey, setExpandedKey] = useState<string | null>(null);
+	const [deletingId, setDeletingId] = useState<string | null>(null);
 
 	useEffect(() => {
 		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
@@ -80,6 +81,37 @@ export default function ActivityDashboardPage() {
 		setExpandedKey(null);
 		fetchActivityData();
 	}, [groupBy, startDate, endDate]);
+
+	async function handleDeleteActivity(activityId: string) {
+		if (!activityId) return;
+		if (!window.confirm("이 활동 로그를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
+			return;
+		}
+
+		setDeletingId(activityId);
+		try {
+			const res = await fetch("/api/discord-activity/delete", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ id: activityId }),
+			});
+
+			if (!res.ok) {
+				const err = await res.json().catch(() => ({}));
+				console.error("활동 로그 삭제 실패:", err);
+				alert("활동 로그 삭제에 실패했습니다.");
+				return;
+			}
+
+			// 최신 데이터를 다시 불러와서 상태 동기화
+			await fetchActivityData();
+		} catch (err) {
+			console.error("활동 로그 삭제 중 오류:", err);
+			alert("활동 로그 삭제 중 오류가 발생했습니다.");
+		} finally {
+			setDeletingId(null);
+		}
+	}
 
 	async function fetchActivityData() {
 		setLoading(true);
@@ -578,6 +610,7 @@ export default function ActivityDashboardPage() {
 																const dur = typeof act.durationMinutes === "number"
 																	? act.durationMinutes
 																	: 0;
+																const isDeleting = deletingId === act.id;
 																return (
 																	<li
 																		key={act.id}
@@ -599,8 +632,20 @@ export default function ActivityDashboardPage() {
 																				채널: {act.channelName || act.channelId || "알 수 없음"}
 																			</div>
 																		</div>
-																		<div className="mt-1 md:mt-0 text-right md:text-right">
-																			<div>{formatMinutes(dur)}</div>
+																		<div className="mt-1 md:mt-0 flex flex-col md:items-end gap-1 text-right">
+																			<div className="flex items-center justify-end gap-2">
+																				<div>{formatMinutes(dur)}</div>
+																				<button
+																					className="px-2 py-1 border rounded text-[11px] md:text-xs hover:bg-red-600/10 hover:border-red-500 transition-colors disabled:opacity-50 disabled:cursor-default"
+																					onClick={(e) => {
+																						e.stopPropagation();
+																						void handleDeleteActivity(act.id);
+																					}}
+																					disabled={isDeleting}
+																				>
+																					{isDeleting ? "삭제 중..." : "삭제"}
+																				</button>
+																			</div>
 																			{startDate && endDate && (
 																				<div className="opacity-60">
 																					{startDate.toLocaleTimeString("ko-KR", {
