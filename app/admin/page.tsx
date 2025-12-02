@@ -62,6 +62,12 @@ export default function AdminPage() {
 			description: "사다리타기 생성 및 관리",
 			icon: "🪜",
 			path: "/admin/ladder-games"
+		},
+		{
+			title: "활동 시간 대시보드",
+			description: "Discord 사용자 활동 시간 통계 및 분석",
+			icon: "📊",
+			path: "/admin/activity-dashboard"
 		}
 	];
 
