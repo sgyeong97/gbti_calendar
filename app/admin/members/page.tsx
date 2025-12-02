@@ -383,12 +383,21 @@ function cancelEditBirthYear() {
 	}
 
 	return (
-		<div className="p-6 max-w-6xl mx-auto">
+		<div className="p-6 max-w-6xl mx-auto" style={{ background: "var(--background)", color: "var(--foreground)" }}>
 			<div className="flex items-center justify-between mb-6">
 				<h1 className="text-2xl font-semibold">활동인원 관리</h1>
 				<button
-					className="px-4 py-2 rounded text-black transition-colors cursor-pointer"
-					style={{ backgroundColor: "#FDC205" }}
+					className="px-4 py-2 rounded transition-colors cursor-pointer"
+					style={{ 
+						backgroundColor: "var(--accent)", 
+						color: "var(--foreground)" 
+					}}
+					onMouseEnter={(e) => {
+						e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 80%, var(--foreground) 20%)";
+					}}
+					onMouseLeave={(e) => {
+						e.currentTarget.style.background = "var(--accent)";
+					}}
 					onClick={() => router.push("/admin")}
 				>
 					관리자 페이지로 돌아가기
@@ -400,12 +409,28 @@ function cancelEditBirthYear() {
 				{Object.entries(tabTypes).map(([key, type]) => (
 					<button
 						key={key}
-						className={`px-4 py-2 rounded transition-colors cursor-pointer ${
-							activeTab === key 
-								? "text-black" 
-								: "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
-						}`}
-						style={activeTab === key ? { backgroundColor: "#FDC205" } : undefined}
+						className="px-4 py-2 rounded transition-colors cursor-pointer"
+						style={activeTab === key 
+							? { 
+								backgroundColor: "var(--accent)", 
+								color: "var(--foreground)" 
+							}
+							: { 
+								background: "color-mix(in srgb, var(--background) 90%, var(--accent) 10%)",
+								color: "var(--foreground)",
+								border: "1px solid var(--accent)"
+							}
+						}
+						onMouseEnter={(e) => {
+							if (activeTab !== key) {
+								e.currentTarget.style.background = "color-mix(in srgb, var(--background) 80%, var(--accent) 20%)";
+							}
+						}}
+						onMouseLeave={(e) => {
+							if (activeTab !== key) {
+								e.currentTarget.style.background = "color-mix(in srgb, var(--background) 90%, var(--accent) 10%)";
+							}
+						}}
 						onClick={() => setActiveTab(key as typeof activeTab)}
 					>
 						{type.icon} {type.name}
@@ -414,12 +439,18 @@ function cancelEditBirthYear() {
 			</div>
 
 			{/* 현재 탭 정보 */}
-			<div className="bg-white dark:bg-zinc-900 rounded-lg border p-6 mb-6">
+			<div 
+				className="rounded-lg p-6 mb-6"
+				style={{ 
+					background: "var(--background)", 
+					border: "1px solid var(--accent)" 
+				}}
+			>
 				<div className="flex items-center gap-3 mb-4">
 					<span className="text-2xl">{tabTypes[activeTab].icon}</span>
 					<div>
 						<h2 className="text-lg font-semibold">{tabTypes[activeTab].name}</h2>
-						<p className="text-sm text-zinc-600 dark:text-zinc-400">{tabTypes[activeTab].description}</p>
+						<p className="text-sm" style={{ color: "var(--foreground)", opacity: 0.7 }}>{tabTypes[activeTab].description}</p>
 					</div>
 				</div>
 
@@ -554,8 +585,17 @@ function cancelEditBirthYear() {
 								<option value="text">Text(.txt)</option>
 							</select>
 							<button
-								className="px-4 py-2 rounded text-black transition-colors cursor-pointer"
-								style={{ backgroundColor: "#FDC205" }}
+								className="px-4 py-2 rounded transition-colors cursor-pointer"
+								style={{ 
+									backgroundColor: "var(--accent)", 
+									color: "var(--foreground)" 
+								}}
+								onMouseEnter={(e) => {
+									e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 80%, var(--foreground) 20%)";
+								}}
+								onMouseLeave={(e) => {
+									e.currentTarget.style.background = "var(--accent)";
+								}}
 								onClick={handleDownload}
 							>
 								다운로드
@@ -576,8 +616,17 @@ function cancelEditBirthYear() {
 							}}
 						/>
 						<button
-							className="px-4 py-2 rounded text-black transition-colors cursor-pointer"
-							style={{ backgroundColor: "#FDC205" }}
+							className="px-4 py-2 rounded transition-colors cursor-pointer"
+							style={{ 
+								backgroundColor: "var(--accent)", 
+								color: "var(--foreground)" 
+							}}
+							onMouseEnter={(e) => {
+								e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 80%, var(--foreground) 20%)";
+							}}
+							onMouseLeave={(e) => {
+								e.currentTarget.style.background = "var(--accent)";
+							}}
 							onClick={addMember}
 							disabled={loading}
 						>
@@ -588,14 +637,33 @@ function cancelEditBirthYear() {
 			</div>
 
 			{/* 멤버 목록 */}
-			<div className="bg-white dark:bg-zinc-900 rounded-lg border p-6">
+			<div 
+				className="rounded-lg p-6"
+				style={{ 
+					background: "var(--background)", 
+					border: "1px solid var(--accent)" 
+				}}
+			>
 				<h3 className="text-lg font-semibold mb-4">멤버 목록 ({filteredMembers.length}명)</h3>
 				<div className="space-y-3">
 					{filteredMembers.length === 0 ? (
-						<div className="text-center text-zinc-500 py-8">해당 조건의 멤버가 없습니다.</div>
+						<div className="text-center py-8" style={{ color: "var(--foreground)", opacity: 0.7 }}>해당 조건의 멤버가 없습니다.</div>
 					) : (
 						filteredMembers.map((member) => (
-							<div key={member.id} className="flex items-center gap-4 p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded border">
+							<div 
+								key={member.id} 
+								className="flex items-center gap-4 p-4 rounded transition-colors"
+								style={{ 
+									border: "1px solid var(--accent)",
+									background: "var(--background)"
+								}}
+								onMouseEnter={(e) => {
+									e.currentTarget.style.background = "color-mix(in srgb, var(--background) 95%, var(--accent) 5%)";
+								}}
+								onMouseLeave={(e) => {
+									e.currentTarget.style.background = "var(--background)";
+								}}
+							>
 								<div className="flex-1">
 									<div className="font-medium flex items-center gap-2">
 										{member.name}

@@ -59,19 +59,38 @@ export default function LadderGameManagementPage() {
 	}
 
 	return (
-		<div className="p-6 max-w-6xl mx-auto">
+		<div className="p-6 max-w-6xl mx-auto" style={{ background: "var(--background)", color: "var(--foreground)" }}>
 			<div className="flex items-center justify-between mb-6">
 				<h1 className="text-2xl font-semibold">룰렛/사다리타기 만들기</h1>
 				<div className="flex gap-2">
 					<button
-						className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer"
+						className="px-4 py-2 rounded transition-colors cursor-pointer"
+						style={{ 
+							backgroundColor: "var(--accent)", 
+							color: "var(--foreground)" 
+						}}
+						onMouseEnter={(e) => {
+							e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 80%, var(--foreground) 20%)";
+						}}
+						onMouseLeave={(e) => {
+							e.currentTarget.style.background = "var(--accent)";
+						}}
 						onClick={() => setShowCreateModal(true)}
 					>
 						새로 만들기
 					</button>
 					<button
-						className="px-4 py-2 rounded text-black transition-colors cursor-pointer"
-						style={{ backgroundColor: "#FDC205" }}
+						className="px-4 py-2 rounded transition-colors cursor-pointer"
+						style={{ 
+							backgroundColor: "var(--accent)", 
+							color: "var(--foreground)" 
+						}}
+						onMouseEnter={(e) => {
+							e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 80%, var(--foreground) 20%)";
+						}}
+						onMouseLeave={(e) => {
+							e.currentTarget.style.background = "var(--accent)";
+						}}
 						onClick={() => router.push("/admin")}
 					>
 						관리자 페이지로 돌아가기
@@ -79,7 +98,7 @@ export default function LadderGameManagementPage() {
 				</div>
 			</div>
 
-			<div className="text-center py-8 text-zinc-500">
+			<div className="text-center py-8" style={{ color: "var(--foreground)", opacity: 0.7 }}>
 				룰렛 또는 사다리타기를 만들고 결과를 확인하세요!
 			</div>
 
@@ -94,7 +113,15 @@ export default function LadderGameManagementPage() {
 					</button>
 				</div>
 				{savedGames.length === 0 ? (
-					<div className="text-sm text-zinc-500 border rounded p-4 bg-white dark:bg-zinc-900">
+					<div 
+						className="text-sm rounded p-4"
+						style={{ 
+							color: "var(--foreground)", 
+							opacity: 0.7,
+							border: "1px solid var(--accent)",
+							background: "var(--background)"
+						}}
+					>
 						저장된 게임이 없습니다. 새로 만들어보세요!
 					</div>
 				) : (
@@ -102,24 +129,50 @@ export default function LadderGameManagementPage() {
 						{savedGames.map((game) => (
 							<div
 								key={game.id}
-								className="flex items-center justify-between border rounded-lg p-4 bg-white dark:bg-zinc-900"
+								className="flex items-center justify-between rounded-lg p-4"
+								style={{ 
+									border: "1px solid var(--accent)",
+									background: "var(--background)"
+								}}
 							>
 								<div>
 									<div className="font-semibold">{game.data.title}</div>
-									<div className="text-sm text-zinc-500">
+									<div className="text-sm" style={{ color: "var(--foreground)", opacity: 0.7 }}>
 										{game.data.gameType === "roulette" ? "룰렛" : "사다리타기"} ·{" "}
 										{new Date(game.createdAt).toLocaleString("ko-KR")}
 									</div>
 								</div>
 								<div className="flex gap-2">
 									<button
-										className="px-3 py-1 rounded border text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+										className="px-3 py-1 rounded text-sm transition-colors cursor-pointer"
+										style={{ 
+											border: "1px solid var(--accent)", 
+											background: "var(--background)", 
+											color: "var(--foreground)" 
+										}}
+										onMouseEnter={(e) => {
+											e.currentTarget.style.background = "color-mix(in srgb, var(--background) 80%, var(--accent) 20%)";
+										}}
+										onMouseLeave={(e) => {
+											e.currentTarget.style.background = "var(--background)";
+										}}
 										onClick={() => handleView(game.id)}
 									>
 										보기
 									</button>
 									<button
-										className="px-3 py-1 rounded border text-sm text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
+										className="px-3 py-1 rounded text-sm transition-colors cursor-pointer"
+										style={{ 
+											border: "1px solid #ef4444",
+											background: "var(--background)",
+											color: "#ef4444"
+										}}
+										onMouseEnter={(e) => {
+											e.currentTarget.style.background = "color-mix(in srgb, #ef4444 20%, var(--background) 80%)";
+										}}
+										onMouseLeave={(e) => {
+											e.currentTarget.style.background = "var(--background)";
+										}}
 										onClick={() => handleDelete(game.id)}
 									>
 										삭제
@@ -378,13 +431,34 @@ function CreateLadderGameModal({
 
 				<div className="flex justify-end gap-2 mt-6">
 					<button
-						className="px-4 py-2 rounded border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+						className="px-4 py-2 rounded transition-colors cursor-pointer"
+						style={{ 
+							border: "1px solid var(--accent)", 
+							background: "var(--background)", 
+							color: "var(--foreground)" 
+						}}
+						onMouseEnter={(e) => {
+							e.currentTarget.style.background = "color-mix(in srgb, var(--background) 80%, var(--accent) 20%)";
+						}}
+						onMouseLeave={(e) => {
+							e.currentTarget.style.background = "var(--background)";
+						}}
 						onClick={onClose}
 					>
 						취소
 					</button>
 					<button
-						className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer"
+						className="px-4 py-2 rounded transition-colors cursor-pointer"
+						style={{ 
+							backgroundColor: "var(--accent)", 
+							color: "var(--foreground)" 
+						}}
+						onMouseEnter={(e) => {
+							e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 80%, var(--foreground) 20%)";
+						}}
+						onMouseLeave={(e) => {
+							e.currentTarget.style.background = "var(--accent)";
+						}}
 						onClick={submit}
 					>
 						생성

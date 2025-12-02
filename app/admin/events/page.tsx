@@ -115,28 +115,56 @@ export default function EventManagementPage() {
 	}
 
 	if (loading) {
-		return <div className="p-6">로딩 중...</div>;
+		return <div className="p-6" style={{ background: "var(--background)", color: "var(--foreground)" }}>로딩 중...</div>;
 	}
 
 	return (
-		<div className="p-6 max-w-6xl mx-auto">
+		<div className="p-6 max-w-6xl mx-auto" style={{ background: "var(--background)", color: "var(--foreground)" }}>
 			<div className="flex items-center justify-between mb-6">
 				<h1 className="text-2xl font-semibold">이벤트 관리</h1>
 				<button
-					className="px-4 py-2 rounded text-black transition-colors cursor-pointer"
-					style={{ backgroundColor: "#FDC205" }}
+					className="px-4 py-2 rounded transition-colors cursor-pointer"
+					style={{ 
+						backgroundColor: "var(--accent)", 
+						color: "var(--foreground)" 
+					}}
+					onMouseEnter={(e) => {
+						e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 80%, var(--foreground) 20%)";
+					}}
+					onMouseLeave={(e) => {
+						e.currentTarget.style.background = "var(--accent)";
+					}}
 					onClick={() => router.push("/admin")}
 				>
 					관리자 페이지로 돌아가기
 				</button>
 			</div>
 
-			<div className="bg-white dark:bg-zinc-900 rounded-lg border p-6">
+			<div 
+				className="rounded-lg p-6"
+				style={{ 
+					background: "var(--background)", 
+					border: "1px solid var(--accent)" 
+				}}
+			>
 				<div className="flex items-center justify-between mb-4">
 					<h2 className="text-lg font-semibold">이벤트 목록</h2>
 					<button
-						className="px-4 py-2 rounded text-black transition-colors cursor-pointer disabled:opacity-50"
-						style={{ backgroundColor: "#FDC205" }}
+						className="px-4 py-2 rounded transition-colors cursor-pointer disabled:opacity-50"
+						style={{ 
+							backgroundColor: selectedEvents.size > 0 ? "var(--accent)" : "color-mix(in srgb, var(--background) 80%, var(--accent) 20%)",
+							color: "var(--foreground)" 
+						}}
+						onMouseEnter={(e) => {
+							if (selectedEvents.size > 0) {
+								e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 80%, var(--foreground) 20%)";
+							}
+						}}
+						onMouseLeave={(e) => {
+							if (selectedEvents.size > 0) {
+								e.currentTarget.style.background = "var(--accent)";
+							}
+						}}
 						onClick={deleteEvents}
 						disabled={selectedEvents.size === 0}
 					>
@@ -145,10 +173,23 @@ export default function EventManagementPage() {
 				</div>
 				<div className="space-y-2 max-h-96 overflow-y-auto">
 					{events.length === 0 ? (
-						<div className="text-center text-zinc-500 py-8">이벤트가 없습니다.</div>
+						<div className="text-center py-8" style={{ color: "var(--foreground)", opacity: 0.7 }}>이벤트가 없습니다.</div>
 					) : (
 						events.map((e) => (
-							<div key={e.id} className="flex items-start gap-3 p-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded">
+							<div 
+								key={e.id} 
+								className="flex items-start gap-3 p-3 rounded transition-colors"
+								style={{ 
+									border: "1px solid var(--accent)",
+									background: "var(--background)"
+								}}
+								onMouseEnter={(el) => {
+									el.currentTarget.style.background = "color-mix(in srgb, var(--background) 95%, var(--accent) 5%)";
+								}}
+								onMouseLeave={(el) => {
+									el.currentTarget.style.background = "var(--background)";
+								}}
+							>
 								<input
 									type="checkbox"
 									checked={selectedEvents.has(e.id)}
@@ -158,18 +199,18 @@ export default function EventManagementPage() {
 								<div className="flex-1">
 									<div className="font-medium">{e.title}</div>
 									{e.isRecurring ? (
-										<div className="text-sm text-zinc-500">
+										<div className="text-sm" style={{ color: "var(--foreground)", opacity: 0.7 }}>
 											반복 이벤트 - 요일: {e.recurringDays?.map(d => ['일', '월', '화', '수', '목', '금', '토'][d]).join(', ')}
 											<br />
 											시간: {Math.floor((e.recurringStartMinutes || 0) / 60)}:{(e.recurringStartMinutes || 0) % 60 < 10 ? '0' : ''}{(e.recurringStartMinutes || 0) % 60} - {Math.floor((e.recurringEndMinutes || 0) / 60)}:{(e.recurringEndMinutes || 0) % 60 < 10 ? '0' : ''}{(e.recurringEndMinutes || 0) % 60}
 										</div>
 									) : (
-										<div className="text-sm text-zinc-500">
+										<div className="text-sm" style={{ color: "var(--foreground)", opacity: 0.7 }}>
 											{new Date(e.startAt).toLocaleString()} - {new Date(e.endAt).toLocaleString()}
 										</div>
 									)}
 									{e.participants && e.participants.length > 0 && (
-										<div className="text-xs text-zinc-400">
+										<div className="text-xs" style={{ color: "var(--foreground)", opacity: 0.6 }}>
 											참여자: {e.participants.join(", ")}
 										</div>
 									)}

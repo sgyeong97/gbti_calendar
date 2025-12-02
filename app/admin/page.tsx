@@ -33,12 +33,21 @@ export default function AdminPage() {
 	];
 
 	return (
-		<div className="p-6 max-w-6xl mx-auto">
+		<div className="p-6 max-w-6xl mx-auto" style={{ background: "var(--background)", color: "var(--foreground)" }}>
 			<div className="flex items-center justify-between mb-8">
 				<h1 className="text-3xl font-bold">관리자 페이지</h1>
 				<button
-					className="px-4 py-2 rounded text-black transition-colors cursor-pointer"
-					style={{ backgroundColor: "#FDC205" }}
+					className="px-4 py-2 rounded transition-colors cursor-pointer"
+					style={{ 
+						backgroundColor: "var(--accent)", 
+						color: "var(--foreground)" 
+					}}
+					onMouseEnter={(e) => {
+						e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 80%, var(--foreground) 20%)";
+					}}
+					onMouseLeave={(e) => {
+						e.currentTarget.style.background = "var(--accent)";
+					}}
 					onClick={() => router.push("/calendar")}
 				>
 					캘린더로 돌아가기
@@ -49,7 +58,20 @@ export default function AdminPage() {
 				{adminCards.map((card) => (
 					<div
 						key={card.title}
-						className="bg-white dark:bg-zinc-900 rounded-lg border p-6 hover:shadow-lg transition-all cursor-pointer group"
+						className="rounded-lg p-6 transition-all cursor-pointer group"
+						style={{ 
+							background: "var(--background)", 
+							border: "1px solid var(--accent)",
+							boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+						}}
+						onMouseEnter={(e) => {
+							e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
+							e.currentTarget.style.background = "color-mix(in srgb, var(--background) 95%, var(--accent) 5%)";
+						}}
+						onMouseLeave={(e) => {
+							e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
+							e.currentTarget.style.background = "var(--background)";
+						}}
 						onClick={() => router.push(card.path)}
 					>
 						<div className="text-center">
@@ -57,7 +79,7 @@ export default function AdminPage() {
 								{card.icon}
 							</div>
 							<h2 className="text-xl font-semibold mb-2">{card.title}</h2>
-							<p className="text-zinc-600 dark:text-zinc-400 text-sm">
+							<p className="text-sm" style={{ color: "var(--foreground)", opacity: 0.7 }}>
 								{card.description}
 							</p>
 						</div>
