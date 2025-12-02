@@ -186,12 +186,20 @@ html .fc .fc-toolbar-chunk {
 }
 
 html .fc .fc-toolbar-chunk:first-child {
-  order: 1; /* 왼쪽: 버튼들 */
+  /* 왼쪽: 이전 달 버튼 */
+  flex: 0 0 auto;
+}
+
+html .fc .fc-toolbar-chunk:nth-child(2) {
+  /* 중앙: 제목 (년/월) */
+  flex: 1;
+  display: flex;
+  justify-content: center;
 }
 
 html .fc .fc-toolbar-chunk:last-child {
-  order: 2; /* 오른쪽: 제목 */
-  margin-left: auto;
+  /* 오른쪽: 다음 달 버튼 */
+  flex: 0 0 auto;
 }
 
 /* FullCalendar 상단 내비게이션 버튼(오늘, <, >)을 컬러 테마에 맞게 */
@@ -246,6 +254,8 @@ html .fc .fc-toolbar-title {
   font-weight: 600;
   color: var(--foreground);
   margin: 0;
+  cursor: help;
+  user-select: none;
 }
 
 /* 현재 날짜 셀 스타일 (클릭 가능 표시) */

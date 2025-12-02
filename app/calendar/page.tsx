@@ -255,7 +255,7 @@ export default function CalendarPage() {
   // FullCalendar 인스턴스 참조
   const calendarRef = useRef<any>(null);
 
-  // 버튼에 툴팁 추가
+  // 버튼 및 제목에 툴팁 추가
   useEffect(() => {
     const addButtonTooltips = () => {
       // prev 버튼
@@ -270,10 +270,13 @@ export default function CalendarPage() {
         nextButton.setAttribute('title', '다음 달');
       }
       
-      // today 버튼
-      const todayButton = document.querySelector('.fc-today-button');
-      if (todayButton) {
-        todayButton.setAttribute('title', '오늘 날짜로 이동');
+      // 제목(년/월)에 오늘 날짜 툴팁 추가
+      const titleElement = document.querySelector('.fc-toolbar-title');
+      if (titleElement) {
+        const today = new Date();
+        const todayStr = format(today, 'yyyy년 MM월 dd일');
+        titleElement.setAttribute('title', `오늘: ${todayStr}`);
+        titleElement.setAttribute('style', 'cursor: help;');
       }
     };
 
@@ -289,8 +292,8 @@ export default function CalendarPage() {
     };
     
     window.addEventListener('focus', addButtonTooltips);
-
-		return () => {
+    
+    return () => {
       clearTimeout(timer);
       window.removeEventListener('focus', addButtonTooltips);
     };
@@ -614,9 +617,9 @@ export default function CalendarPage() {
         locale={koLocale}
         firstDay={0}
         headerToolbar={{
-          left: "prev,next today",
-          center: "",
-          right: "title",
+          left: "prev",
+          center: "title",
+          right: "next",
         }}
         events={calendarEvents}
         dateClick={handleDateClick}
