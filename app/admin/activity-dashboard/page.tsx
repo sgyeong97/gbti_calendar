@@ -26,7 +26,14 @@ type ActivityStats = {
 	totalMinutes: number;
 	averageMinutesPerUser: number;
 	mostActiveUser: { userId: string; userName: string; minutes: number } | null;
-		mostActiveDay: { date: string; minutes: number } | null;
+	mostActiveDay: { date: string; minutes: number } | null;
+};
+
+type SuspiciousEntry = {
+	userId: string;
+	userName: string;
+	count: number;
+	activities: any[];
 };
 
 export default function ActivityDashboardPage() {
@@ -48,6 +55,8 @@ export default function ActivityDashboardPage() {
 	const [stats, setStats] = useState<ActivityStats | null>(null);
 	const [expandedKey, setExpandedKey] = useState<string | null>(null);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
+	const [suspicious, setSuspicious] = useState<SuspiciousEntry[]>([]);
+	const [expandedSuspiciousUser, setExpandedSuspiciousUser] = useState<string | null>(null);
 
 	useEffect(() => {
 		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
@@ -130,6 +139,8 @@ export default function ActivityDashboardPage() {
 
 			// 통계 계산
 			calculateStats(result.data || {});
+			// 수상한 활동 계산
+			calculateSuspicious(result.data || {});
 		} catch (err) {
 			console.error("활동 데이터 로딩 실패:", err);
 			alert("활동 데이터를 불러오지 못했습니다.");
@@ -189,6 +200,89 @@ export default function ActivityDashboardPage() {
 				mostActiveDay: null,
 			});
 		}
+	}
+
+	// 짧은 시간(같은 분) 안에 여러 채널을 이동한 0분 세션 등을 "수상한 활동"으로 표시
+	function calculateSuspicious(data: Record<string, ActivityData | UserActivityData>) {
+		const suspiciousByUser = new Map<string, SuspiciousEntry>();
+
+		// 1) 모든 활동 로그 평탄화
+		const allActivities: any[] = [];
+		for (const value of Object.values(data || {})) {
+			// 날짜 기준 데이터
+			if ((value as any).date && Array.isArray((value as any).activities)) {
+				allActivities.push(...((value as any).activities || []));
+			}
+			// 사용자 기준 데이터
+			else if ((value as any).userId && Array.isArray((value as any).activities)) {
+				allActivities.push(...((value as any).activities || []));
+			}
+		}
+
+		if (allActivities.length === 0) {
+			setSuspicious([]);
+			return;
+		}
+
+		// 2) 사용자/분 단위로 그룹화
+		type GroupKey = string;
+		const groups = new Map<GroupKey, any[]>();
+
+		for (const act of allActivities) {
+			const userId: string = act.userId || act.user_id || "";
+			if (!userId) continue;
+
+			const startRaw = act.startTime || act.startAt || act.date;
+			if (!startRaw) continue;
+			const d = new Date(startRaw);
+			if (Number.isNaN(d.getTime())) continue;
+
+			// 분 단위까지 자른 키 (예: 2025-12-02T07:56)
+			const minuteKey = d.toISOString().slice(0, 16);
+			const key = `${userId}|${minuteKey}`;
+
+			const arr = groups.get(key) || [];
+			arr.push(act);
+			groups.set(key, arr);
+		}
+
+		// 3) 같은 분 안에 여러 채널을 이동한 0분 세션들 찾기
+		for (const [, acts] of groups.entries()) {
+			if (!acts || acts.length < 2) continue; // 2개 이상만 의미 있음
+
+			// 0분 세션만 대상으로
+			const zeroSessions = acts.filter((a: any) => (a.durationMinutes ?? 0) === 0);
+			if (zeroSessions.length < 2) continue;
+
+			const channelSet = new Set(
+				zeroSessions.map(
+					(a: any) => a.channelId || a.channelName || (a.channel_id ?? "unknown"),
+				),
+			);
+			// 서로 다른 채널이 2개 이상인 경우 "수상한"으로 간주
+			if (channelSet.size < 2) continue;
+
+			for (const act of zeroSessions) {
+				const userId: string = act.userId || act.user_id || "";
+				const userName: string = act.userName || act.user_name || userId || "알 수 없음";
+				if (!userId) continue;
+
+				const entry = suspiciousByUser.get(userId) || {
+					userId,
+					userName,
+					count: 0,
+					activities: [] as any[],
+				};
+				entry.count += 1;
+				entry.activities.push(act);
+				suspiciousByUser.set(userId, entry);
+			}
+		}
+
+		const list = Array.from(suspiciousByUser.values()).sort(
+			(a, b) => b.count - a.count,
+		);
+		setSuspicious(list);
 	}
 
 	function formatMinutes(minutes: number): string {
@@ -671,6 +765,152 @@ export default function ActivityDashboardPage() {
 									</div>
 								);
 							}
+						})}
+					</div>
+				)}
+			</div>
+
+			{/* 수상한 활동 섹션 */}
+			<div
+				className="rounded-lg p-6 mt-6"
+				style={{
+					background: "var(--background)",
+					border: "1px solid var(--accent)",
+				}}
+			>
+				<h2 className="text-lg font-semibold mb-4">수상한 활동</h2>
+				<p className="text-xs md:text-sm mb-3 opacity-70">
+					같은 분(分) 안에 여러 채널을 짧게 이동한 0분 세션을 기반으로 추정합니다.
+				</p>
+
+				{suspicious.length === 0 ? (
+					<div
+						className="text-center py-6 text-sm"
+						style={{ color: "var(--foreground)", opacity: 0.7 }}
+					>
+						현재 기간에는 수상한 활동이 감지되지 않았습니다.
+					</div>
+				) : (
+					<div className="space-y-2 max-h-[400px] overflow-y-auto">
+						{suspicious.map((entry) => {
+							const isExpanded = expandedSuspiciousUser === entry.userId;
+							return (
+								<div
+									key={entry.userId}
+									className="p-3 rounded border cursor-pointer transition-colors"
+									style={{
+										borderColor: "var(--accent)",
+										background: "var(--background)",
+									}}
+									onMouseEnter={(e) => {
+										e.currentTarget.style.background =
+											"color-mix(in srgb, var(--background) 95%, var(--accent) 5%)";
+									}}
+									onMouseLeave={(e) => {
+										e.currentTarget.style.background = "var(--background)";
+									}}
+									onClick={() =>
+										setExpandedSuspiciousUser(
+											isExpanded ? null : entry.userId,
+										)
+									}
+								>
+									<div className="flex items-center justify-between">
+										<div>
+											<div className="font-medium">
+												{entry.userName || entry.userId}
+											</div>
+											<div className="text-xs opacity-70">
+												수상한 로그 {entry.count}개
+											</div>
+										</div>
+										<div className="text-xs opacity-70">
+											{isExpanded ? "접기 ▲" : "펼치기 ▼"}
+										</div>
+									</div>
+
+									{isExpanded && (
+										<div className="mt-3 pt-2 border-t border-dashed border-zinc-700/50 text-xs md:text-sm">
+											<ul className="space-y-1 max-h-64 overflow-y-auto pr-1">
+												{entry.activities
+													.slice()
+													.sort((a: any, b: any) => {
+														const aTime = new Date(
+															a.startTime || a.startAt || a.date,
+														).getTime();
+														const bTime = new Date(
+															b.startTime || b.startAt || b.date,
+														).getTime();
+														return bTime - aTime;
+													})
+													.map((act: any) => {
+														const start = act.startTime || act.startAt;
+														const end = act.endTime || act.endAt;
+														const startDate = start
+															? new Date(start)
+															: null;
+														const endDate = end ? new Date(end) : null;
+														const dur =
+															typeof act.durationMinutes === "number"
+																? act.durationMinutes
+																: 0;
+														return (
+															<li
+																key={act.id}
+																className="flex flex-col md:flex-row md:items-center md:justify-between py-1 border-b border-zinc-800/40 last:border-b-0"
+															>
+																<div>
+																	<div className="font-medium">
+																		{startDate
+																			? startDate.toLocaleString(
+																					"ko-KR",
+																					{
+																						month: "long",
+																						day: "numeric",
+																						weekday: "short",
+																						hour: "2-digit",
+																						minute: "2-digit",
+																					},
+																			  )
+																			: act.date}
+																	</div>
+																	<div className="opacity-70">
+																		채널:{" "}
+																		{act.channelName ||
+																			act.channelId ||
+																			"알 수 없음"}
+																	</div>
+																</div>
+																<div className="mt-1 md:mt-0 text-right">
+																	<div>{formatMinutes(dur)}</div>
+																	{startDate && endDate && (
+																		<div className="opacity-60">
+																			{startDate.toLocaleTimeString(
+																				"ko-KR",
+																				{
+																					hour: "2-digit",
+																					minute: "2-digit",
+																				},
+																			)}
+																			{" ~ "}
+																			{endDate.toLocaleTimeString(
+																				"ko-KR",
+																				{
+																					hour: "2-digit",
+																					minute: "2-digit",
+																				},
+																			)}
+																		</div>
+																	)}
+																</div>
+															</li>
+														);
+													})}
+											</ul>
+										</div>
+									)}
+								</div>
+							);
 						})}
 					</div>
 				)}
