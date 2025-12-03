@@ -45,6 +45,7 @@ export default function ActivityDashboardPage() {
 	const [searchTerm, setSearchTerm] = useState<string>("");
 	const [pageSize, setPageSize] = useState<number>(10);
 	const [currentPage, setCurrentPage] = useState<number>(1);
+	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc"); // 날짜별: desc(최신순), 사용자별: desc(활동량 많은순)
 	const [startDate, setStartDate] = useState<string>(
 		new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 	);
@@ -542,12 +543,21 @@ export default function ActivityDashboardPage() {
 
 	const sortedEntries = Object.entries(activityData).sort((a, b) => {
 		if (groupBy === "day") {
-			return b[0].localeCompare(a[0]); // 날짜 내림차순
+			// 날짜 정렬
+			if (sortOrder === "asc") {
+				return a[0].localeCompare(b[0]); // 날짜 오름차순
+			} else {
+				return b[0].localeCompare(a[0]); // 날짜 내림차순
+			}
 		} else {
 			const aData = a[1] as UserActivityData;
 			const bData = b[1] as UserActivityData;
-			// userId 기준으로 정렬 (같은 userId는 하나로 합쳐져 있음)
-			return bData.totalMinutes - aData.totalMinutes; // 활동 시간 내림차순
+			// 활동량 정렬
+			if (sortOrder === "asc") {
+				return aData.totalMinutes - bData.totalMinutes; // 활동량 오름차순
+			} else {
+				return bData.totalMinutes - aData.totalMinutes; // 활동량 내림차순
+			}
 		}
 	});
 
@@ -800,6 +810,31 @@ export default function ActivityDashboardPage() {
 							className="border rounded px-3 py-2 text-sm w-full md:w-56"
 						/>
 
+						{/* 정렬 */}
+						<button
+							className="px-3 py-2 text-sm rounded transition-colors"
+							style={{
+								backgroundColor: "transparent",
+								color: "var(--foreground)",
+								border: "1px solid var(--accent)",
+							}}
+							onClick={() => {
+								setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+								setCurrentPage(1);
+							}}
+							onMouseEnter={(e) => {
+								e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 20%, transparent)";
+							}}
+							onMouseLeave={(e) => {
+								e.currentTarget.style.background = "transparent";
+							}}
+						>
+							{groupBy === "day" 
+								? (sortOrder === "asc" ? "날짜 오름차순" : "날짜 내림차순")
+								: (sortOrder === "asc" ? "활동량 오름차순" : "활동량 내림차순")
+							}
+						</button>
+
 						{/* 페이지 크기 */}
 						<div className="flex items-center gap-1 text-sm">
 							<span className="opacity-70">한 번에</span>
@@ -881,33 +916,10 @@ export default function ActivityDashboardPage() {
 													{dayData.userCount}명 참여 · {formatMinutes(dayData.totalMinutes)}
 												</div>
 											</div>
-											<div className="flex items-center gap-2">
+											<div className="flex items-center gap-3">
 												<div className="text-right">
 													<div className="text-lg font-semibold">{formatMinutes(dayData.totalMinutes)}</div>
 												</div>
-												<button
-													className="px-3 py-1 text-xs rounded transition-colors"
-													style={{
-														backgroundColor: "transparent",
-														color: "var(--foreground)",
-														border: "1px solid var(--accent)",
-														opacity: 0.7,
-													}}
-													onMouseEnter={(e) => {
-														e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 20%, transparent)";
-													}}
-													onMouseLeave={(e) => {
-														e.currentTarget.style.background = "transparent";
-													}}
-													onClick={(e) => {
-														e.stopPropagation();
-														setGroupBy("user");
-														setSearchTerm("");
-														setCurrentPage(1);
-													}}
-												>
-													사용자별
-												</button>
 												<button
 													className="px-3 py-1 text-sm rounded transition-colors"
 													style={{
@@ -1010,33 +1022,10 @@ export default function ActivityDashboardPage() {
 													})()}
 												</div>
 											</div>
-											<div className="flex items-center gap-2">
+											<div className="flex items-center gap-3">
 												<div className="text-right">
 													<div className="text-lg font-semibold">{formatMinutes(userData.totalMinutes)}</div>
 												</div>
-												<button
-													className="px-3 py-1 text-xs rounded transition-colors"
-													style={{
-														backgroundColor: "transparent",
-														color: "var(--foreground)",
-														border: "1px solid var(--accent)",
-														opacity: 0.7,
-													}}
-													onMouseEnter={(e) => {
-														e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 20%, transparent)";
-													}}
-													onMouseLeave={(e) => {
-														e.currentTarget.style.background = "transparent";
-													}}
-													onClick={(e) => {
-														e.stopPropagation();
-														setGroupBy("day");
-														setSearchTerm("");
-														setCurrentPage(1);
-													}}
-												>
-													날짜별
-												</button>
 												<button
 													className="px-3 py-1 text-sm rounded transition-colors"
 													style={{
