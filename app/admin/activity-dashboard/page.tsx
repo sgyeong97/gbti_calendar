@@ -46,12 +46,35 @@ export default function ActivityDashboardPage() {
 	const [pageSize, setPageSize] = useState<number>(10);
 	const [currentPage, setCurrentPage] = useState<number>(1);
 	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc"); // 날짜별: desc(최신순), 사용자별: desc(활동량 많은순)
+	const [dateRangeType, setDateRangeType] = useState<"week" | "month" | "custom">("month");
 	const [startDate, setStartDate] = useState<string>(
 		new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 	);
 	const [endDate, setEndDate] = useState<string>(
 		new Date().toISOString().split('T')[0]
 	);
+
+	// 날짜 범위 타입 변경 시 날짜 자동 설정
+	useEffect(() => {
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+		const todayStr = today.toISOString().split('T')[0];
+
+		if (dateRangeType === "week") {
+			const weekAgo = new Date(today);
+			weekAgo.setDate(weekAgo.getDate() - 7);
+			const weekAgoStr = weekAgo.toISOString().split('T')[0];
+			setStartDate(weekAgoStr);
+			setEndDate(todayStr);
+		} else if (dateRangeType === "month") {
+			const monthAgo = new Date(today);
+			monthAgo.setDate(monthAgo.getDate() - 30);
+			const monthAgoStr = monthAgo.toISOString().split('T')[0];
+			setStartDate(monthAgoStr);
+			setEndDate(todayStr);
+		}
+		// custom인 경우는 사용자가 직접 입력하므로 변경하지 않음
+	}, [dateRangeType]);
 	const [activityData, setActivityData] = useState<Record<string, ActivityData | UserActivityData>>({});
 	const [stats, setStats] = useState<ActivityStats | null>(null);
 	const [expandedKey, setExpandedKey] = useState<string | null>(null);
@@ -713,24 +736,75 @@ export default function ActivityDashboardPage() {
 				}}
 			>
 				<div className="flex gap-4 flex-wrap items-end">
-					<div className="flex-1 min-w-[200px]">
-						<label className="block text-sm mb-2">시작 날짜</label>
-						<input
-							type="date"
-							value={startDate}
-							onChange={(e) => setStartDate(e.target.value)}
-							className="w-full border rounded px-3 py-2"
-						/>
+					{/* 날짜 범위 선택 버튼 */}
+					<div className="w-full mb-4">
+						<label className="block text-sm mb-2">기간 선택</label>
+						<div className="flex gap-2">
+							<button
+								className={`px-4 py-2 rounded transition-colors text-sm ${
+									dateRangeType === "week" ? "font-semibold" : "opacity-70"
+								}`}
+								style={{
+									backgroundColor: dateRangeType === "week" ? "var(--accent)" : "transparent",
+									color: "var(--foreground)",
+									border: "1px solid var(--accent)",
+								}}
+								onClick={() => setDateRangeType("week")}
+							>
+								최근 일주일
+							</button>
+							<button
+								className={`px-4 py-2 rounded transition-colors text-sm ${
+									dateRangeType === "month" ? "font-semibold" : "opacity-70"
+								}`}
+								style={{
+									backgroundColor: dateRangeType === "month" ? "var(--accent)" : "transparent",
+									color: "var(--foreground)",
+									border: "1px solid var(--accent)",
+								}}
+								onClick={() => setDateRangeType("month")}
+							>
+								최근 한달
+							</button>
+							<button
+								className={`px-4 py-2 rounded transition-colors text-sm ${
+									dateRangeType === "custom" ? "font-semibold" : "opacity-70"
+								}`}
+								style={{
+									backgroundColor: dateRangeType === "custom" ? "var(--accent)" : "transparent",
+									color: "var(--foreground)",
+									border: "1px solid var(--accent)",
+								}}
+								onClick={() => setDateRangeType("custom")}
+							>
+								커스텀
+							</button>
+						</div>
 					</div>
-					<div className="flex-1 min-w-[200px]">
-						<label className="block text-sm mb-2">종료 날짜</label>
-						<input
-							type="date"
-							value={endDate}
-							onChange={(e) => setEndDate(e.target.value)}
-							className="w-full border rounded px-3 py-2"
-						/>
-					</div>
+
+					{/* 커스텀 날짜 입력 (커스텀 선택 시에만 표시) */}
+					{dateRangeType === "custom" && (
+						<>
+							<div className="flex-1 min-w-[200px]">
+								<label className="block text-sm mb-2">시작 날짜</label>
+								<input
+									type="date"
+									value={startDate}
+									onChange={(e) => setStartDate(e.target.value)}
+									className="w-full border rounded px-3 py-2"
+								/>
+							</div>
+							<div className="flex-1 min-w-[200px]">
+								<label className="block text-sm mb-2">종료 날짜</label>
+								<input
+									type="date"
+									value={endDate}
+									onChange={(e) => setEndDate(e.target.value)}
+									className="w-full border rounded px-3 py-2"
+								/>
+							</div>
+						</>
+					)}
 					<div className="flex-1 min-w-[200px]">
 						<label className="block text-sm mb-2">그룹화 기준</label>
 						<div className="flex gap-2">
@@ -801,7 +875,7 @@ export default function ActivityDashboardPage() {
 						{/* 검색 */}
 						<input
 							type="text"
-							placeholder={groupBy === "day" ? "날짜/사용자 이름 검색..." : "사용자 이름 검색..."}
+							placeholder={groupBy === "day" ? "날짜 검색" : "사용자 이름 검색..."}
 							value={searchTerm}
 							onChange={(e) => {
 								setSearchTerm(e.target.value);
