@@ -597,58 +597,6 @@ export default function ActivityDashboardPage() {
 				</button>
 			</div>
 
-			{/* 필터 및 설정 */}
-			<div 
-				className="rounded-lg p-6 mb-6"
-				style={{ 
-					background: "var(--background)", 
-					border: "1px solid var(--accent)" 
-				}}
-			>
-				<div className="flex gap-4 flex-wrap items-end">
-					<div className="flex-1 min-w-[200px]">
-						<label className="block text-sm mb-2">시작 날짜</label>
-						<input
-							type="date"
-							value={startDate}
-							onChange={(e) => setStartDate(e.target.value)}
-							className="w-full border rounded px-3 py-2"
-						/>
-					</div>
-					<div className="flex-1 min-w-[200px]">
-						<label className="block text-sm mb-2">종료 날짜</label>
-						<input
-							type="date"
-							value={endDate}
-							onChange={(e) => setEndDate(e.target.value)}
-							className="w-full border rounded px-3 py-2"
-						/>
-					</div>
-					<div className="flex-1 min-w-[200px]">
-						<label className="block text-sm mb-2">그룹화 기준</label>
-						<select
-							value={groupBy}
-							onChange={(e) => setGroupBy(e.target.value as "day" | "user")}
-							className="w-full border rounded px-3 py-2"
-						>
-							<option value="day">날짜별</option>
-							<option value="user">사용자별</option>
-						</select>
-					</div>
-					<button
-						className="px-4 py-2 rounded transition-colors cursor-pointer"
-						style={{ 
-							backgroundColor: "var(--accent)", 
-							color: "var(--foreground)" 
-						}}
-						onClick={fetchActivityData}
-						disabled={loading}
-					>
-						{loading ? "로딩 중..." : "새로고침"}
-					</button>
-				</div>
-			</div>
-
 			{/* 통계 카드 */}
 			{stats && (
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
@@ -745,6 +693,58 @@ export default function ActivityDashboardPage() {
 					</div>
 				</div>
 			)}
+
+			{/* 필터 및 설정 */}
+			<div 
+				className="rounded-lg p-6 mb-6"
+				style={{ 
+					background: "var(--background)", 
+					border: "1px solid var(--accent)" 
+				}}
+			>
+				<div className="flex gap-4 flex-wrap items-end">
+					<div className="flex-1 min-w-[200px]">
+						<label className="block text-sm mb-2">시작 날짜</label>
+						<input
+							type="date"
+							value={startDate}
+							onChange={(e) => setStartDate(e.target.value)}
+							className="w-full border rounded px-3 py-2"
+						/>
+					</div>
+					<div className="flex-1 min-w-[200px]">
+						<label className="block text-sm mb-2">종료 날짜</label>
+						<input
+							type="date"
+							value={endDate}
+							onChange={(e) => setEndDate(e.target.value)}
+							className="w-full border rounded px-3 py-2"
+						/>
+					</div>
+					<div className="flex-1 min-w-[200px]">
+						<label className="block text-sm mb-2">그룹화 기준</label>
+						<select
+							value={groupBy}
+							onChange={(e) => setGroupBy(e.target.value as "day" | "user")}
+							className="w-full border rounded px-3 py-2"
+						>
+							<option value="day">날짜별</option>
+							<option value="user">사용자별</option>
+						</select>
+					</div>
+					<button
+						className="px-4 py-2 rounded transition-colors cursor-pointer"
+						style={{ 
+							backgroundColor: "var(--accent)", 
+							color: "var(--foreground)" 
+						}}
+						onClick={fetchActivityData}
+						disabled={loading}
+					>
+						{loading ? "로딩 중..." : "새로고침"}
+					</button>
+				</div>
+			</div>
 
 			{/* 활동 데이터 목록 */}
 			<div 
@@ -853,10 +853,33 @@ export default function ActivityDashboardPage() {
 													{dayData.userCount}명 참여 · {formatMinutes(dayData.totalMinutes)}
 												</div>
 											</div>
-											<div className="flex items-center gap-3">
+											<div className="flex items-center gap-2">
 												<div className="text-right">
 													<div className="text-lg font-semibold">{formatMinutes(dayData.totalMinutes)}</div>
 												</div>
+												<button
+													className="px-3 py-1 text-xs rounded transition-colors"
+													style={{
+														backgroundColor: "transparent",
+														color: "var(--foreground)",
+														border: "1px solid var(--accent)",
+														opacity: 0.7,
+													}}
+													onMouseEnter={(e) => {
+														e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 20%, transparent)";
+													}}
+													onMouseLeave={(e) => {
+														e.currentTarget.style.background = "transparent";
+													}}
+													onClick={(e) => {
+														e.stopPropagation();
+														setGroupBy("user");
+														setSearchTerm("");
+														setCurrentPage(1);
+													}}
+												>
+													사용자별
+												</button>
 												<button
 													className="px-3 py-1 text-sm rounded transition-colors"
 													style={{
@@ -959,10 +982,33 @@ export default function ActivityDashboardPage() {
 													})()}
 												</div>
 											</div>
-											<div className="flex items-center gap-3">
+											<div className="flex items-center gap-2">
 												<div className="text-right">
 													<div className="text-lg font-semibold">{formatMinutes(userData.totalMinutes)}</div>
 												</div>
+												<button
+													className="px-3 py-1 text-xs rounded transition-colors"
+													style={{
+														backgroundColor: "transparent",
+														color: "var(--foreground)",
+														border: "1px solid var(--accent)",
+														opacity: 0.7,
+													}}
+													onMouseEnter={(e) => {
+														e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 20%, transparent)";
+													}}
+													onMouseLeave={(e) => {
+														e.currentTarget.style.background = "transparent";
+													}}
+													onClick={(e) => {
+														e.stopPropagation();
+														setGroupBy("day");
+														setSearchTerm("");
+														setCurrentPage(1);
+													}}
+												>
+													날짜별
+												</button>
 												<button
 													className="px-3 py-1 text-sm rounded transition-colors"
 													style={{
