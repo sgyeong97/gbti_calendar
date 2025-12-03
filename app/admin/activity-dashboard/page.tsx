@@ -926,6 +926,11 @@ export default function ActivityDashboardPage() {
 									setCurrentPage(1);
 								}}
 								className="border rounded px-2 py-1 text-sm"
+								style={{
+									background: "var(--background)",
+									color: "var(--foreground)",
+									borderColor: "var(--accent)",
+								}}
 							>
 								<option value={5}>5개</option>
 								<option value={10}>10개</option>

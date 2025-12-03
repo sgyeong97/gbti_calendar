@@ -315,6 +315,11 @@ export default function UserDetailPage() {
 											router.push(`/admin/activity-dashboard/user/${e.target.value}`);
 										}}
 										className="w-full border rounded px-3 py-2"
+										style={{
+											background: "var(--background)",
+											color: "var(--foreground)",
+											borderColor: "var(--accent)",
+										}}
 									>
 										{allUsers.map((user) => (
 											<option key={user.userId} value={user.userId}>
@@ -352,6 +357,11 @@ export default function UserDetailPage() {
 									value={sortBy}
 									onChange={(e) => setSortBy(e.target.value as "date" | "time" | "count")}
 									className="w-full border rounded px-3 py-2"
+									style={{
+										background: "var(--background)",
+										color: "var(--foreground)",
+										borderColor: "var(--accent)",
+									}}
 								>
 									<option value="date">날짜순 (최신)</option>
 									<option value="time">활동 시간순</option>
@@ -556,6 +566,11 @@ export default function UserDetailPage() {
 													setMeetingCurrentPage(1);
 												}}
 												className="w-full border rounded px-3 py-2"
+												style={{
+													background: "var(--background)",
+													color: "var(--foreground)",
+													borderColor: "var(--accent)",
+												}}
 											>
 												<option value="count">만남 횟수순 (높은순)</option>
 												<option value="name">이름순</option>
@@ -570,6 +585,11 @@ export default function UserDetailPage() {
 													setMeetingCurrentPage(1);
 												}}
 												className="border rounded px-2 py-1 text-sm"
+												style={{
+													background: "var(--background)",
+													color: "var(--foreground)",
+													borderColor: "var(--accent)",
+												}}
 											>
 												<option value={5}>5개</option>
 												<option value={10}>10개</option>

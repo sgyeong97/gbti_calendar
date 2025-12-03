@@ -513,6 +513,11 @@ function cancelEditBirthYear() {
 						value={sortBy}
 						onChange={(e) => setSortBy(e.target.value as "name" | "birthYear")}
 							className="border rounded px-3 py-2"
+							style={{
+								background: "var(--background)",
+								color: "var(--foreground)",
+								borderColor: "var(--accent)",
+							}}
 						>
 							<option value="name">이름순</option>
 							<option value="birthYear">탄생년도순</option>
@@ -523,6 +528,11 @@ function cancelEditBirthYear() {
 							value={sortOrder}
 							onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
 							className="border rounded px-3 py-2"
+							style={{
+								background: "var(--background)",
+								color: "var(--foreground)",
+								borderColor: "var(--accent)",
+							}}
 						>
 							<option value="asc">오름차순</option>
 							<option value="desc">내림차순</option>
@@ -533,6 +543,11 @@ function cancelEditBirthYear() {
 							value={filterBirthYear || ""}
 							onChange={(e) => setFilterBirthYear(e.target.value ? parseInt(e.target.value) : null)}
 							className="border rounded px-3 py-2"
+							style={{
+								background: "var(--background)",
+								color: "var(--foreground)",
+								borderColor: "var(--accent)",
+							}}
 						>
 							<option value="">전체 년도</option>
 							{(() => {
@@ -610,6 +625,11 @@ function cancelEditBirthYear() {
 								value={exportFormat}
 								onChange={(e) => setExportFormat(e.target.value as any)}
 								className="border rounded px-3 py-2"
+								style={{
+									background: "var(--background)",
+									color: "var(--foreground)",
+									borderColor: "var(--accent)",
+								}}
 							>
 								<option value="excel">엑셀(.xls)</option>
 								<option value="csv">CSV(.csv)</option>
