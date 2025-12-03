@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import { applyColorTheme } from "@/app/lib/color-themes";
 
 type Platform = "discord" | "notice" | "chat";
 

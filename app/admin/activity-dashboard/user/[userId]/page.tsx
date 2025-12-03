@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useTheme } from "next-themes";
+import { applyColorTheme } from "@/app/lib/color-themes";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 type UserActivityData = {
@@ -62,10 +63,14 @@ export default function UserDetailPage() {
 	useEffect(() => {
 		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
 		setColorTheme(savedColorTheme);
+		
+		// 테마 적용
+		applyColorTheme();
 
 		const handleStorageChange = () => {
 			const newColorTheme = localStorage.getItem("gbti_color_theme") || "default";
 			setColorTheme(newColorTheme);
+			applyColorTheme();
 		};
 
 		window.addEventListener("storage", handleStorageChange);
@@ -73,6 +78,7 @@ export default function UserDetailPage() {
 		const observer = new MutationObserver(() => {
 			const newColorTheme = localStorage.getItem("gbti_color_theme") || "default";
 			setColorTheme(newColorTheme);
+			applyColorTheme();
 		});
 
 		const html = document.documentElement;
@@ -83,6 +89,11 @@ export default function UserDetailPage() {
 			observer.disconnect();
 		};
 	}, [theme]);
+
+	// colorTheme 변경 시 테마 적용
+	useEffect(() => {
+		applyColorTheme();
+	}, [colorTheme]);
 
 	useEffect(() => {
 		if (userId) {

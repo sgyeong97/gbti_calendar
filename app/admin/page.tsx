@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import { applyColorTheme } from "@/app/lib/color-themes";
 
 export default function AdminPage() {
 	const router = useRouter();
@@ -14,11 +15,15 @@ export default function AdminPage() {
 		setMounted(true);
 		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
 		setColorTheme(savedColorTheme);
+		
+		// 테마 적용
+		applyColorTheme();
 
 		// 테마 변경 감지
 		const handleStorageChange = () => {
 			const newColorTheme = localStorage.getItem("gbti_color_theme") || "default";
 			setColorTheme(newColorTheme);
+			applyColorTheme();
 		};
 
 		window.addEventListener("storage", handleStorageChange);
@@ -27,6 +32,7 @@ export default function AdminPage() {
 		const observer = new MutationObserver(() => {
 			const newColorTheme = localStorage.getItem("gbti_color_theme") || "default";
 			setColorTheme(newColorTheme);
+			applyColorTheme();
 		});
 
 		const html = document.documentElement;
@@ -37,6 +43,11 @@ export default function AdminPage() {
 			observer.disconnect();
 		};
 	}, [theme]);
+
+	// colorTheme 변경 시 테마 적용
+	useEffect(() => {
+		applyColorTheme();
+	}, [colorTheme]);
 
 	const adminCards = [
 		{

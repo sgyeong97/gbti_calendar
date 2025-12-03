@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import { applyColorTheme } from "@/app/lib/color-themes";
 
 type GameType = "roulette" | "ladder";
 
@@ -40,11 +41,15 @@ export default function LadderGameManagementPage() {
 	useEffect(() => {
 		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
 		setColorTheme(savedColorTheme);
+		
+		// 테마 적용
+		applyColorTheme();
 
 		// 테마 변경 감지
 		const handleStorageChange = () => {
 			const newColorTheme = localStorage.getItem("gbti_color_theme") || "default";
 			setColorTheme(newColorTheme);
+			applyColorTheme();
 		};
 
 		window.addEventListener("storage", handleStorageChange);
@@ -53,6 +58,7 @@ export default function LadderGameManagementPage() {
 		const observer = new MutationObserver(() => {
 			const newColorTheme = localStorage.getItem("gbti_color_theme") || "default";
 			setColorTheme(newColorTheme);
+			applyColorTheme();
 		});
 
 		const html = document.documentElement;
@@ -63,6 +69,11 @@ export default function LadderGameManagementPage() {
 			observer.disconnect();
 		};
 	}, [theme]);
+
+	// colorTheme 변경 시 테마 적용
+	useEffect(() => {
+		applyColorTheme();
+	}, [colorTheme]);
 
 	function updateSavedGames(next: StoredGame[]) {
 		setSavedGames(next);
