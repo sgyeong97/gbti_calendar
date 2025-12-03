@@ -69,6 +69,7 @@ export default function UserDetailPage() {
 	const [selectedMonth, setSelectedMonth] = useState<string>("");
 	const [deletingWeekKey, setDeletingWeekKey] = useState<string | null>(null);
 	const [showWeekDeleteConfirm, setShowWeekDeleteConfirm] = useState<string | null>(null);
+	const [expandedWeekKey, setExpandedWeekKey] = useState<string | null>(null);
 
 	useEffect(() => {
 		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
@@ -1430,60 +1431,172 @@ export default function UserDetailPage() {
 									조회되는 주별 만남 횟수가 없습니다.
 								</div>
 							) : (
-								<div className="space-y-3">
-									{weeklyMeetings.map((item: any) => {
+								(() => {
+									// 주별로 그룹화
+									const weekGroups = new Map<string, {
+										weekKey: string;
+										weekStart: string;
+										month: string;
+										users: Array<{
+											otherUserId: string;
+											otherUserName: string;
+											count: number;
+											lastMetAt?: string;
+											updatedAt?: string;
+										}>;
+										totalCount: number;
+									}>();
+
+									weeklyMeetings.forEach((item: any) => {
 										const weekKey = item.weekKey;
-										const weekStart = item.weekStart;
-										const otherUserName = item.otherUserName || item.otherUserId;
-										const count = item.count || 0;
-										
-										return (
-											<div
-												key={`${item.otherUserId}-${weekKey}`}
-												className="p-4 rounded transition-colors"
-												style={{ 
-													border: "1px solid var(--accent)",
-													background: "var(--background)"
-												}}
-												onMouseEnter={(e) => {
-													e.currentTarget.style.background = "color-mix(in srgb, var(--background) 95%, var(--accent) 5%)";
-												}}
-												onMouseLeave={(e) => {
-													e.currentTarget.style.background = "var(--background)";
-												}}
-											>
-												<div className="flex items-center justify-between">
-													<div className="flex-1">
-														<div className="font-medium text-lg">▶ {otherUserName}</div>
-														<div className="text-sm opacity-70 mt-1">
-															주: {weekStart} ({weekKey})
-														</div>
-													</div>
-													<div className="flex items-center gap-3">
-														<div className="text-xl font-semibold">{count}번</div>
-														<button
-															className="px-3 py-1 rounded text-sm transition-colors cursor-pointer"
-															style={{
-																backgroundColor: "#ef4444",
-																color: "white",
-															}}
+										if (!weekGroups.has(weekKey)) {
+											weekGroups.set(weekKey, {
+												weekKey: weekKey,
+												weekStart: item.weekStart || "",
+												month: item.month || "",
+												users: [],
+												totalCount: 0,
+											});
+										}
+										const group = weekGroups.get(weekKey)!;
+										group.users.push({
+											otherUserId: item.otherUserId,
+											otherUserName: item.otherUserName || item.otherUserId,
+											count: item.count || 0,
+											lastMetAt: item.lastMetAt,
+											updatedAt: item.updatedAt,
+										});
+										group.totalCount += item.count || 0;
+									});
+
+									// 주별로 정렬 (최신순)
+									const sortedWeeks = Array.from(weekGroups.values()).sort((a, b) => {
+										return b.weekKey.localeCompare(a.weekKey);
+									});
+
+									// 주 표시 형식 변환 (예: "2025-12-1" -> "12월 1주차")
+									const formatWeekLabel = (weekKey: string, weekStart: string) => {
+										const parts = weekKey.split('-');
+										if (parts.length >= 3) {
+											const year = parts[0];
+											const month = parseInt(parts[1], 10);
+											const weekNum = parseInt(parts[2], 10);
+											return `${month}월 ${weekNum}주차`;
+										}
+										return weekStart || weekKey;
+									};
+
+									return (
+										<div className="space-y-3">
+											{sortedWeeks.map((weekGroup) => {
+												const isExpanded = expandedWeekKey === weekGroup.weekKey;
+												const weekLabel = formatWeekLabel(weekGroup.weekKey, weekGroup.weekStart);
+												
+												return (
+													<div
+														key={weekGroup.weekKey}
+														className="rounded transition-colors"
+														style={{ 
+															border: "1px solid var(--accent)",
+															background: "var(--background)"
+														}}
+													>
+														{/* 주 헤더 */}
+														<div
+															className="p-4 cursor-pointer"
+															onClick={() => setExpandedWeekKey(isExpanded ? null : weekGroup.weekKey)}
 															onMouseEnter={(e) => {
-																e.currentTarget.style.background = "#dc2626";
+																e.currentTarget.style.background = "color-mix(in srgb, var(--background) 95%, var(--accent) 5%)";
 															}}
 															onMouseLeave={(e) => {
-																e.currentTarget.style.background = "#ef4444";
+																e.currentTarget.style.background = "var(--background)";
 															}}
-															onClick={() => setShowWeekDeleteConfirm(weekKey)}
-															disabled={deletingWeekKey === weekKey}
 														>
-															{deletingWeekKey === weekKey ? "삭제 중..." : "삭제"}
-														</button>
+															<div className="flex items-center justify-between">
+																<div className="flex items-center gap-2">
+																	<span className="text-lg">{isExpanded ? "▼" : "▶"}</span>
+																	<div>
+																		<div className="font-medium text-lg">{weekLabel}</div>
+																		<div className="text-sm opacity-70 mt-1">
+																			{weekGroup.weekStart} ({weekGroup.users.length}명)
+																		</div>
+																	</div>
+																</div>
+																<div className="flex items-center gap-3">
+																	<div className="text-xl font-semibold">{weekGroup.totalCount}번</div>
+																	<button
+																		className="px-3 py-1 rounded text-sm transition-colors cursor-pointer"
+																		style={{
+																			backgroundColor: "#ef4444",
+																			color: "white",
+																		}}
+																		onMouseEnter={(e) => {
+																			e.currentTarget.style.background = "#dc2626";
+																			e.stopPropagation();
+																		}}
+																		onMouseLeave={(e) => {
+																			e.currentTarget.style.background = "#ef4444";
+																			e.stopPropagation();
+																		}}
+																		onClick={(e) => {
+																			e.stopPropagation();
+																			setShowWeekDeleteConfirm(weekGroup.weekKey);
+																		}}
+																		disabled={deletingWeekKey === weekGroup.weekKey}
+																	>
+																		{deletingWeekKey === weekGroup.weekKey ? "삭제 중..." : "삭제"}
+																	</button>
+																</div>
+															</div>
+														</div>
+
+														{/* 유저 리스트 (펼쳐질 때) */}
+														{isExpanded && (
+															<div className="pt-2 pb-4 px-4 border-t border-dashed border-zinc-700/50">
+																<div className="space-y-2 mt-2">
+																	{weekGroup.users
+																		.sort((a, b) => b.count - a.count)
+																		.map((user) => (
+																			<div
+																				key={user.otherUserId}
+																				className="p-3 rounded transition-colors"
+																				style={{
+																					border: "1px solid var(--accent)",
+																					background: "color-mix(in srgb, var(--background) 98%, var(--accent) 2%)",
+																				}}
+																				onMouseEnter={(e) => {
+																					e.currentTarget.style.background = "color-mix(in srgb, var(--background) 95%, var(--accent) 5%)";
+																				}}
+																				onMouseLeave={(e) => {
+																					e.currentTarget.style.background = "color-mix(in srgb, var(--background) 98%, var(--accent) 2%)";
+																				}}
+																			>
+																				<div className="flex items-center justify-between">
+																					<div className="flex-1">
+																						<div className="font-medium">▶ {user.otherUserName}</div>
+																						{user.lastMetAt && (
+																							<div className="text-xs opacity-70 mt-1">
+																								마지막 만남: {new Date(user.lastMetAt).toLocaleDateString('ko-KR', {
+																									year: 'numeric',
+																									month: 'long',
+																									day: 'numeric',
+																								})}
+																							</div>
+																						)}
+																					</div>
+																					<div className="text-lg font-semibold">{user.count}번</div>
+																				</div>
+																			</div>
+																		))}
+																</div>
+															</div>
+														)}
 													</div>
-												</div>
-											</div>
-										);
-									})}
-								</div>
+												);
+											})}
+										</div>
+									);
+								})()
 							)
 						)}
 					</div>
