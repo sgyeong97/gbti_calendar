@@ -29,6 +29,7 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-flatpickr": "^4.0.11",
+    "recharts": "^2.15.4",
     "web-push": "^3.6.7",
     "zod": "^4.1.12"
   },

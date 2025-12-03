@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useTheme } from "next-themes";
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 type UserActivityData = {
 	userId: string;
@@ -46,6 +47,14 @@ export default function UserDetailPage() {
 	const [sortBy, setSortBy] = useState<"date" | "time" | "count">("date");
 	const [expandedDate, setExpandedDate] = useState<string | null>(null);
 	const [expandedMeetingUserId, setExpandedMeetingUserId] = useState<string | null>(null);
+	
+	// 만남 횟수 관련 상태
+	const [meetingViewMode, setMeetingViewMode] = useState<"list" | "chart">("list");
+	const [meetingChartType, setMeetingChartType] = useState<"bar" | "line" | "pie">("bar");
+	const [meetingSearchTerm, setMeetingSearchTerm] = useState<string>("");
+	const [meetingSortBy, setMeetingSortBy] = useState<"name" | "count">("count");
+	const [meetingPageSize, setMeetingPageSize] = useState<number>(10);
+	const [meetingCurrentPage, setMeetingCurrentPage] = useState<number>(1);
 
 	useEffect(() => {
 		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
@@ -500,83 +509,399 @@ export default function UserDetailPage() {
 								border: "1px solid var(--accent)" 
 							}}
 						>
-							<h2 className="text-lg font-semibold mb-4">유저별 만남 횟수</h2>
-							<div className="space-y-3">
-								{meetings.map((meeting) => {
-									const isExpanded = expandedMeetingUserId === meeting.userId;
-									
-									return (
-										<div
-											key={meeting.userId}
-											className="p-4 rounded transition-colors"
-											style={{ 
-												border: "1px solid var(--accent)",
-												background: "var(--background)"
-											}}
-											onMouseEnter={(e) => {
-												e.currentTarget.style.background = "color-mix(in srgb, var(--background) 95%, var(--accent) 5%)";
-											}}
-											onMouseLeave={(e) => {
-												e.currentTarget.style.background = "var(--background)";
-											}}
-										>
-											<div 
-												className="flex items-center justify-between cursor-pointer"
-												onClick={() => setExpandedMeetingUserId(isExpanded ? null : meeting.userId)}
-											>
-												<div className="font-medium text-lg">▶ {meeting.userName}</div>
-												<div className="text-xl font-semibold">{meeting.count}번</div>
-											</div>
-
-											{/* 같은 채널 기록 */}
-											{isExpanded && (
-												<div className="mt-4 pt-4 border-t border-dashed border-zinc-700/50">
-													<div className="font-medium mb-2">같은 채널에 있었던 기록</div>
-													<div className="space-y-3">
-														{meeting.meetings.map((m, idx) => (
-															<div key={idx} className="p-3 rounded" style={{ background: "var(--background)", border: "1px solid var(--accent)" }}>
-																<div className="font-medium mb-2">
-																	{formatDate(m.date)} · {m.channelName}
-																</div>
-																<ul className="space-y-1 text-sm">
-																	{m.activities.map((act: any, actIdx: number) => {
-																		const start = act.startTime || act.startAt;
-																		const end = act.endTime || act.endAt;
-																		const startDate = start ? new Date(start) : null;
-																		const endDate = end ? new Date(end) : null;
-																		const dur = typeof act.durationMinutes === "number" ? act.durationMinutes : 0;
-																		
-																		return (
-																			<li key={actIdx} className="flex items-center justify-between text-xs">
-																				<div>
-																					{startDate && endDate && (
-																						<span>
-																							{startDate.toLocaleTimeString("ko-KR", {
-																								hour: "2-digit",
-																								minute: "2-digit",
-																							})}
-																							{" ~ "}
-																							{endDate.toLocaleTimeString("ko-KR", {
-																								hour: "2-digit",
-																								minute: "2-digit",
-																							})}
-																						</span>
-																					)}
-																				</div>
-																				<div className="font-semibold">{formatMinutes(dur)}</div>
-																			</li>
-																		);
-																	})}
-																</ul>
-															</div>
-														))}
-													</div>
-												</div>
-											)}
-										</div>
-									);
-								})}
+							<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+								<h2 className="text-lg font-semibold">유저별 만남 횟수 ({meetings.length}명)</h2>
+								
+								{/* 리스트/차트 토글 */}
+								<div className="flex gap-2">
+									<button
+										className={`px-4 py-2 rounded text-sm transition-colors ${
+											meetingViewMode === "list"
+												? "font-semibold"
+												: "opacity-70"
+										}`}
+										style={{
+											backgroundColor: meetingViewMode === "list" ? "var(--accent)" : "transparent",
+											color: "var(--foreground)",
+											border: "1px solid var(--accent)",
+										}}
+										onClick={() => setMeetingViewMode("list")}
+									>
+										리스트
+									</button>
+									<button
+										className={`px-4 py-2 rounded text-sm transition-colors ${
+											meetingViewMode === "chart"
+												? "font-semibold"
+												: "opacity-70"
+										}`}
+										style={{
+											backgroundColor: meetingViewMode === "chart" ? "var(--accent)" : "transparent",
+											color: "var(--foreground)",
+											border: "1px solid var(--accent)",
+										}}
+										onClick={() => setMeetingViewMode("chart")}
+									>
+										차트
+									</button>
+								</div>
 							</div>
+
+							{meetingViewMode === "list" ? (
+								<>
+									{/* 검색 및 정렬 */}
+									<div className="flex flex-col md:flex-row gap-4 items-end mb-4">
+										<div className="flex-1 min-w-[200px]">
+											<label className="block text-sm mb-2">검색</label>
+											<input
+												type="text"
+												placeholder="사용자 이름 검색..."
+												value={meetingSearchTerm}
+												onChange={(e) => {
+													setMeetingSearchTerm(e.target.value);
+													setMeetingCurrentPage(1);
+												}}
+												className="w-full border rounded px-3 py-2"
+											/>
+										</div>
+										<div className="flex-1 min-w-[200px]">
+											<label className="block text-sm mb-2">정렬 기준</label>
+											<select
+												value={meetingSortBy}
+												onChange={(e) => {
+													setMeetingSortBy(e.target.value as "name" | "count");
+													setMeetingCurrentPage(1);
+												}}
+												className="w-full border rounded px-3 py-2"
+											>
+												<option value="count">만남 횟수순 (높은순)</option>
+												<option value="name">이름순</option>
+											</select>
+										</div>
+										<div className="flex items-center gap-1 text-sm">
+											<span className="opacity-70">한 번에</span>
+											<select
+												value={meetingPageSize}
+												onChange={(e) => {
+													setMeetingPageSize(parseInt(e.target.value, 10));
+													setMeetingCurrentPage(1);
+												}}
+												className="border rounded px-2 py-1 text-sm"
+											>
+												<option value={5}>5개</option>
+												<option value={10}>10개</option>
+												<option value={20}>20개</option>
+												<option value={50}>50개</option>
+											</select>
+										</div>
+									</div>
+
+									{/* 필터링 및 정렬된 만남 리스트 */}
+									{(() => {
+										const filtered = meetings.filter((m) => {
+											if (!meetingSearchTerm.trim()) return true;
+											const term = meetingSearchTerm.toLowerCase();
+											return (m.userName || m.userId).toLowerCase().includes(term);
+										});
+
+										const sorted = filtered.sort((a, b) => {
+											if (meetingSortBy === "name") {
+												return (a.userName || a.userId).localeCompare(b.userName || b.userId);
+											} else {
+												return b.count - a.count;
+											}
+										});
+
+										const totalPages = Math.max(1, Math.ceil(sorted.length / meetingPageSize));
+										const safeCurrentPage = Math.min(meetingCurrentPage, totalPages);
+										const startIndex = (safeCurrentPage - 1) * meetingPageSize;
+										const pageMeetings = sorted.slice(startIndex, startIndex + meetingPageSize);
+
+										return (
+											<>
+												{/* 페이지네이션 상단 */}
+												{sorted.length > 0 && (
+													<div className="flex items-center justify-between text-xs md:text-sm mb-3 opacity-70">
+														<div>
+															{startIndex + 1}–{Math.min(startIndex + meetingPageSize, sorted.length)} / {sorted.length}개
+														</div>
+														<div className="flex items-center gap-2">
+															<button
+																className="px-2 py-1 border rounded disabled:opacity-40 disabled:cursor-default cursor-pointer"
+																onClick={() => setMeetingCurrentPage((p) => Math.max(1, p - 1))}
+																disabled={safeCurrentPage <= 1}
+															>
+																이전
+															</button>
+															<span>
+																{safeCurrentPage} / {totalPages}
+															</span>
+															<button
+																className="px-2 py-1 border rounded disabled:opacity-40 disabled:cursor-default cursor-pointer"
+																onClick={() => setMeetingCurrentPage((p) => Math.min(totalPages, p + 1))}
+																disabled={safeCurrentPage >= totalPages}
+															>
+																다음
+															</button>
+														</div>
+													</div>
+												)}
+
+												{pageMeetings.length === 0 ? (
+													<div className="text-center py-8" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+														검색 결과가 없습니다.
+													</div>
+												) : (
+													<div className="space-y-3">
+														{pageMeetings.map((meeting) => {
+															const isExpanded = expandedMeetingUserId === meeting.userId;
+															
+															return (
+																<div
+																	key={meeting.userId}
+																	className="p-4 rounded transition-colors"
+																	style={{ 
+																		border: "1px solid var(--accent)",
+																		background: "var(--background)"
+																	}}
+																	onMouseEnter={(e) => {
+																		e.currentTarget.style.background = "color-mix(in srgb, var(--background) 95%, var(--accent) 5%)";
+																	}}
+																	onMouseLeave={(e) => {
+																		e.currentTarget.style.background = "var(--background)";
+																	}}
+																>
+																	<div 
+																		className="flex items-center justify-between cursor-pointer"
+																		onClick={() => setExpandedMeetingUserId(isExpanded ? null : meeting.userId)}
+																	>
+																		<div className="font-medium text-lg">▶ {meeting.userName}</div>
+																		<div className="text-xl font-semibold">{meeting.count}번</div>
+																	</div>
+
+																	{/* 같은 채널 기록 */}
+																	{isExpanded && (
+																		<div className="mt-4 pt-4 border-t border-dashed border-zinc-700/50">
+																			<div className="font-medium mb-2">같은 채널에 있었던 기록</div>
+																			<div className="space-y-3">
+																				{meeting.meetings.map((m, idx) => (
+																					<div key={idx} className="p-3 rounded" style={{ background: "var(--background)", border: "1px solid var(--accent)" }}>
+																						<div className="font-medium mb-2">
+																							{formatDate(m.date)} · {m.channelName}
+																						</div>
+																						<ul className="space-y-1 text-sm">
+																							{m.activities.map((act: any, actIdx: number) => {
+																								const start = act.startTime || act.startAt;
+																								const end = act.endTime || act.endAt;
+																								const startDate = start ? new Date(start) : null;
+																								const endDate = end ? new Date(end) : null;
+																								const dur = typeof act.durationMinutes === "number" ? act.durationMinutes : 0;
+																								
+																								return (
+																									<li key={actIdx} className="flex items-center justify-between text-xs">
+																										<div>
+																											{startDate && endDate && (
+																												<span>
+																													{startDate.toLocaleTimeString("ko-KR", {
+																														hour: "2-digit",
+																														minute: "2-digit",
+																													})}
+																													{" ~ "}
+																													{endDate.toLocaleTimeString("ko-KR", {
+																														hour: "2-digit",
+																														minute: "2-digit",
+																													})}
+																												</span>
+																											)}
+																										</div>
+																										<div className="font-semibold">{formatMinutes(dur)}</div>
+																									</li>
+																								);
+																							})}
+																						</ul>
+																					</div>
+																				))}
+																			</div>
+																		</div>
+																	)}
+																</div>
+															);
+														})}
+													</div>
+												)}
+											</>
+										);
+									})()}
+								</>
+							) : (
+								<>
+									{/* 차트 타입 선택 */}
+									<div className="flex gap-2 mb-4">
+										<button
+											className={`px-4 py-2 rounded text-sm transition-colors ${
+												meetingChartType === "bar" ? "font-semibold" : "opacity-70"
+											}`}
+											style={{
+												backgroundColor: meetingChartType === "bar" ? "var(--accent)" : "transparent",
+												color: "var(--foreground)",
+												border: "1px solid var(--accent)",
+											}}
+											onClick={() => setMeetingChartType("bar")}
+										>
+											막대 그래프
+										</button>
+										<button
+											className={`px-4 py-2 rounded text-sm transition-colors ${
+												meetingChartType === "line" ? "font-semibold" : "opacity-70"
+											}`}
+											style={{
+												backgroundColor: meetingChartType === "line" ? "var(--accent)" : "transparent",
+												color: "var(--foreground)",
+												border: "1px solid var(--accent)",
+											}}
+											onClick={() => setMeetingChartType("line")}
+										>
+											라인 그래프
+										</button>
+										<button
+											className={`px-4 py-2 rounded text-sm transition-colors ${
+												meetingChartType === "pie" ? "font-semibold" : "opacity-70"
+											}`}
+											style={{
+												backgroundColor: meetingChartType === "pie" ? "var(--accent)" : "transparent",
+												color: "var(--foreground)",
+												border: "1px solid var(--accent)",
+											}}
+											onClick={() => setMeetingChartType("pie")}
+										>
+											원형 그래프
+										</button>
+									</div>
+
+									{/* 차트 데이터 준비 */}
+									{(() => {
+										const chartData = meetings
+											.filter((m) => {
+												if (!meetingSearchTerm.trim()) return true;
+												const term = meetingSearchTerm.toLowerCase();
+												return (m.userName || m.userId).toLowerCase().includes(term);
+											})
+											.sort((a, b) => b.count - a.count)
+											.slice(0, 20) // 차트는 상위 20개만 표시
+											.map((m) => ({
+												name: (m.userName || m.userId).length > 10 
+													? (m.userName || m.userId).substring(0, 10) + "..."
+													: (m.userName || m.userId),
+												value: m.count,
+												fullName: m.userName || m.userId,
+											}));
+
+										const COLORS = [
+											"#FFD700", "#FF6B6B", "#4ECDC4", "#45B7D1", 
+											"#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8",
+											"#F7DC6F", "#BB8FCE", "#85C1E2", "#F8B88B",
+										];
+
+										return (
+											<div style={{ width: "100%", height: "500px" }}>
+												{meetingChartType === "bar" && (
+													<ResponsiveContainer>
+														<BarChart data={chartData}>
+															<CartesianGrid strokeDasharray="3 3" />
+															<XAxis 
+																dataKey="name" 
+																angle={-45}
+																textAnchor="end"
+																height={100}
+																style={{ fill: "var(--foreground)" }}
+															/>
+															<YAxis style={{ fill: "var(--foreground)" }} />
+															<Tooltip 
+																contentStyle={{ 
+																	backgroundColor: "var(--background)",
+																	border: "1px solid var(--accent)",
+																	color: "var(--foreground)",
+																}}
+																formatter={(value: any, payload: any) => {
+																	return [`${value}번`, payload[0]?.payload?.fullName || ""];
+																}}
+															/>
+															<Legend />
+															<Bar dataKey="value" fill="var(--accent)" name="만남 횟수" />
+														</BarChart>
+													</ResponsiveContainer>
+												)}
+
+												{meetingChartType === "line" && (
+													<ResponsiveContainer>
+														<LineChart data={chartData}>
+															<CartesianGrid strokeDasharray="3 3" />
+															<XAxis 
+																dataKey="name" 
+																angle={-45}
+																textAnchor="end"
+																height={100}
+																style={{ fill: "var(--foreground)" }}
+															/>
+															<YAxis style={{ fill: "var(--foreground)" }} />
+															<Tooltip 
+																contentStyle={{ 
+																	backgroundColor: "var(--background)",
+																	border: "1px solid var(--accent)",
+																	color: "var(--foreground)",
+																}}
+																formatter={(value: any, payload: any) => {
+																	return [`${value}번`, payload[0]?.payload?.fullName || ""];
+																}}
+															/>
+															<Legend />
+															<Line 
+																type="monotone" 
+																dataKey="value" 
+																stroke="var(--accent)" 
+																strokeWidth={2}
+																name="만남 횟수"
+															/>
+														</LineChart>
+													</ResponsiveContainer>
+												)}
+
+												{meetingChartType === "pie" && (
+													<ResponsiveContainer>
+														<PieChart>
+															<Pie
+																data={chartData}
+																cx="50%"
+																cy="50%"
+																labelLine={false}
+																label={({ name, percent }: { name: string; percent: number }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+																outerRadius={150}
+																fill="#8884d8"
+																dataKey="value"
+															>
+																{chartData.map((entry, index) => (
+																	<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+																))}
+															</Pie>
+															<Tooltip 
+																contentStyle={{ 
+																	backgroundColor: "var(--background)",
+																	border: "1px solid var(--accent)",
+																	color: "var(--foreground)",
+																}}
+																formatter={(value: any, payload: any) => {
+																	return [`${value}번`, payload?.fullName || ""];
+																}}
+															/>
+															<Legend />
+														</PieChart>
+													</ResponsiveContainer>
+												)}
+											</div>
+										);
+									})()}
+								</>
+							)}
 						</div>
 					)}
 				</>
