@@ -45,6 +45,7 @@ export default function UserDetailPage() {
 	const [userData, setUserData] = useState<UserActivityData | null>(null);
 	const [daySummaries, setDaySummaries] = useState<DaySummary[]>([]);
 	const [meetings, setMeetings] = useState<MeetingEntry[]>([]);
+	const [allUsers, setAllUsers] = useState<Array<{ userId: string; userName: string }>>([]);
 	const [searchTerm, setSearchTerm] = useState<string>("");
 	const [sortBy, setSortBy] = useState<"date" | "time" | "count">("date");
 	const [expandedDate, setExpandedDate] = useState<string | null>(null);
@@ -86,8 +87,49 @@ export default function UserDetailPage() {
 	useEffect(() => {
 		if (userId) {
 			fetchUserData();
+			fetchAllUsers();
 		}
 	}, [userId]);
+
+	// 모든 사용자 목록 가져오기
+	async function fetchAllUsers() {
+		try {
+			// 최근 1년 데이터에서 사용자 목록 가져오기
+			const today = new Date();
+			const yearAgo = new Date(today);
+			yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+			
+			const params = new URLSearchParams({
+				groupBy: "user",
+				startDate: yearAgo.toISOString().split('T')[0],
+				endDate: today.toISOString().split('T')[0],
+			});
+
+			const res = await fetch(`/api/discord-activity?${params}`);
+			if (!res.ok) return;
+			
+			const result = await res.json();
+			const rawData = result.data || {};
+			
+			// 사용자 목록 추출
+			const usersList: Array<{ userId: string; userName: string }> = [];
+			for (const [key, value] of Object.entries(rawData)) {
+				const userData = value as UserActivityData;
+				if (userData.userId && userData.userName) {
+					usersList.push({
+						userId: userData.userId,
+						userName: userData.userName,
+					});
+				}
+			}
+			
+			// userName으로 정렬
+			usersList.sort((a, b) => (a.userName || a.userId).localeCompare(b.userName || b.userId));
+			setAllUsers(usersList);
+		} catch (err) {
+			console.error("사용자 목록 로딩 실패:", err);
+		}
+	}
 
 	async function fetchUserData() {
 		setLoading(true);
@@ -253,9 +295,32 @@ export default function UserDetailPage() {
 							border: "1px solid var(--accent)" 
 						}}
 					>
-						<div className="text-2xl font-bold mb-2">{userData.userName || userData.userId}</div>
-						<div className="text-lg opacity-70">
-							총 {formatMinutes(userData.totalMinutes)} · {userData.dayCount}일 활동
+						<div className="flex items-center justify-between mb-4">
+							<div>
+								<div className="text-2xl font-bold mb-2">{userData.userName || userData.userId}</div>
+								<div className="text-lg opacity-70">
+									총 {formatMinutes(userData.totalMinutes)} · {userData.dayCount}일 활동
+								</div>
+							</div>
+							{/* 사용자 선택 드롭다운 */}
+							{allUsers.length > 0 && (
+								<div className="min-w-[250px]">
+									<label className="block text-sm mb-2">사용자 선택</label>
+									<select
+										value={userId}
+										onChange={(e) => {
+											router.push(`/admin/activity-dashboard/user/${e.target.value}`);
+										}}
+										className="w-full border rounded px-3 py-2"
+									>
+										{allUsers.map((user) => (
+											<option key={user.userId} value={user.userId}>
+												{user.userName || user.userId}
+											</option>
+										))}
+									</select>
+								</div>
+							)}
 						</div>
 					</div>
 
@@ -422,42 +487,47 @@ export default function UserDetailPage() {
 							<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
 								<h2 className="text-lg font-semibold">유저별 만남 횟수 ({meetings.length}명)</h2>
 								
-								{/* 리스트/차트 토글 */}
-								<div className="flex gap-2">
-									<button
-										className={`px-4 py-2 rounded text-sm transition-colors ${
-											meetingViewMode === "list"
-												? "font-semibold"
-												: "opacity-70"
-										}`}
-										style={{
-											backgroundColor: meetingViewMode === "list" ? "var(--accent)" : "transparent",
-											color: "var(--foreground)",
-											border: "1px solid var(--accent)",
-										}}
-										onClick={() => setMeetingViewMode("list")}
-									>
-										리스트
-									</button>
-									<button
-										className={`px-4 py-2 rounded text-sm transition-colors ${
-											meetingViewMode === "chart"
-												? "font-semibold"
-												: "opacity-70"
-										}`}
-										style={{
-											backgroundColor: meetingViewMode === "chart" ? "var(--accent)" : "transparent",
-											color: "var(--foreground)",
-											border: "1px solid var(--accent)",
-										}}
-										onClick={() => setMeetingViewMode("chart")}
-									>
-										차트
-									</button>
-								</div>
+								{meetings.length > 0 && (
+									<div className="flex gap-2">
+										<button
+											className={`px-4 py-2 rounded text-sm transition-colors ${
+												meetingViewMode === "list"
+													? "font-semibold"
+													: "opacity-70"
+											}`}
+											style={{
+												backgroundColor: meetingViewMode === "list" ? "var(--accent)" : "transparent",
+												color: "var(--foreground)",
+												border: "1px solid var(--accent)",
+											}}
+											onClick={() => setMeetingViewMode("list")}
+										>
+											리스트
+										</button>
+										<button
+											className={`px-4 py-2 rounded text-sm transition-colors ${
+												meetingViewMode === "chart"
+													? "font-semibold"
+													: "opacity-70"
+											}`}
+											style={{
+												backgroundColor: meetingViewMode === "chart" ? "var(--accent)" : "transparent",
+												color: "var(--foreground)",
+												border: "1px solid var(--accent)",
+											}}
+											onClick={() => setMeetingViewMode("chart")}
+										>
+											차트
+										</button>
+									</div>
+								)}
 							</div>
 
-							{meetingViewMode === "list" ? (
+							{meetings.length === 0 ? (
+								<div className="text-center py-8" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+									조회되는 만남횟수가 없습니다.
+								</div>
+							) : meetingViewMode === "list" ? (
 								<>
 									{/* 검색 및 정렬 */}
 									<div className="flex flex-col md:flex-row gap-4 items-end mb-4">
