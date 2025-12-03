@@ -243,6 +243,95 @@ export default function UserDetailPage() {
 		});
 	}
 
+	// 시간대별 활동 집계 (0시~23시)
+	function getHourlyActivity(activities: any[]) {
+		const hourlyMap = new Map<number, { minutes: number; count: number }>();
+		
+		// 0시~23시 초기화
+		for (let i = 0; i < 24; i++) {
+			hourlyMap.set(i, { minutes: 0, count: 0 });
+		}
+
+		for (const act of activities) {
+			const startTime = act.startTime || act.startAt;
+			const endTime = act.endTime || act.endAt;
+			const minutes = typeof act.durationMinutes === "number" ? act.durationMinutes : 0;
+			
+			if (!startTime) continue;
+
+			const start = new Date(startTime);
+			const end = endTime ? new Date(endTime) : new Date(start.getTime() + minutes * 60000);
+			
+			// 활동이 시작된 시간대와 종료된 시간대 사이의 모든 시간대에 분배
+			const startHour = start.getHours();
+			const endHour = end.getHours();
+			
+			// 같은 시간대에 시작하고 끝나면 해당 시간대에만 추가
+			if (startHour === endHour) {
+				const existing = hourlyMap.get(startHour);
+				if (existing) {
+					existing.minutes += minutes;
+					existing.count += 1;
+				}
+			} else {
+				// 여러 시간대에 걸쳐 있으면 각 시간대에 비례 분배
+				const totalMs = end.getTime() - start.getTime();
+				if (totalMs > 0) {
+					// 시작 시간대
+					const startHourEnd = new Date(start);
+					startHourEnd.setHours(startHour + 1, 0, 0, 0);
+					const startHourMs = Math.min(startHourEnd.getTime() - start.getTime(), totalMs);
+					const startHourMinutes = Math.round((startHourMs / totalMs) * minutes);
+					
+					const startExisting = hourlyMap.get(startHour);
+					if (startExisting) {
+						startExisting.minutes += startHourMinutes;
+						startExisting.count += 1;
+					}
+
+					// 중간 시간대들
+					for (let h = startHour + 1; h < endHour; h++) {
+						const hourMinutes = Math.round((60 * 60000 / totalMs) * minutes);
+						const hourExisting = hourlyMap.get(h);
+						if (hourExisting) {
+							hourExisting.minutes += hourMinutes;
+							hourExisting.count += 1;
+						}
+					}
+
+					// 종료 시간대
+					const endHourStart = new Date(end);
+					endHourStart.setHours(endHour, 0, 0, 0);
+					const endHourMs = end.getTime() - endHourStart.getTime();
+					const endHourMinutes = Math.round((endHourMs / totalMs) * minutes);
+					
+					const endExisting = hourlyMap.get(endHour);
+					if (endExisting) {
+						endExisting.minutes += endHourMinutes;
+						endExisting.count += 1;
+					}
+				} else {
+					// 시간이 0이면 시작 시간대에만 추가
+					const existing = hourlyMap.get(startHour);
+					if (existing) {
+						existing.minutes += minutes;
+						existing.count += 1;
+					}
+				}
+			}
+		}
+
+		// 배열로 변환하고 시간대 순서대로 정렬
+		return Array.from(hourlyMap.entries())
+			.map(([hour, data]) => ({
+				hour,
+				label: `${hour}시`,
+				minutes: Math.round(data.minutes),
+				count: data.count,
+			}))
+			.sort((a, b) => a.hour - b.hour);
+	}
+
 	// 필터링 및 정렬
 	const filteredAndSortedDays = daySummaries
 		.filter((day) => {
@@ -331,6 +420,89 @@ export default function UserDetailPage() {
 							)}
 						</div>
 					</div>
+
+					{/* 주 활동 시간대 차트 */}
+					{userData.activities && userData.activities.length > 0 && (() => {
+						const hourlyData = getHourlyActivity(userData.activities);
+						const maxMinutes = Math.max(...hourlyData.map(h => h.minutes), 1);
+						const topHours = hourlyData
+							.filter(h => h.minutes > 0)
+							.sort((a, b) => b.minutes - a.minutes)
+							.slice(0, 5);
+						
+						return (
+							<div 
+								className="rounded-lg p-6 mb-6"
+								style={{ 
+									background: "var(--background)", 
+									border: "1px solid var(--accent)" 
+								}}
+							>
+								<h2 className="text-lg font-semibold mb-4">주 활동 시간대</h2>
+								<div style={{ width: "100%", height: "300px" }}>
+									<ResponsiveContainer>
+										<BarChart data={hourlyData}>
+											<CartesianGrid strokeDasharray="3 3" />
+											<XAxis 
+												dataKey="label" 
+												style={{ fill: "var(--foreground)" }}
+												angle={-45}
+												textAnchor="end"
+												height={80}
+											/>
+											<YAxis 
+												style={{ fill: "var(--foreground)" }}
+												label={{ value: '활동 시간 (분)', angle: -90, position: 'insideLeft', style: { fill: 'var(--foreground)' } }}
+											/>
+											<Tooltip 
+												contentStyle={{ 
+													backgroundColor: "var(--background)",
+													border: "1px solid var(--accent)",
+													color: "var(--foreground)",
+												}}
+												formatter={(value: any, payload: any) => {
+													const hours = Math.floor(value / 60);
+													const mins = value % 60;
+													const timeStr = hours > 0 ? `${hours}시간 ${mins}분` : `${mins}분`;
+													const count = payload?.[0]?.payload?.count || 0;
+													return [`${timeStr} (${count}회 활동)`, "활동 시간"];
+												}}
+											/>
+											<Bar dataKey="minutes" fill="var(--accent)" />
+										</BarChart>
+									</ResponsiveContainer>
+								</div>
+								
+								{/* 시간대별 요약 정보 */}
+								{topHours.length > 0 && (
+									<div className="mt-4">
+										<div className="text-sm font-semibold mb-2">가장 활동이 많은 시간대 (상위 5개)</div>
+										<div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
+											{topHours.map((h) => {
+												const hours = Math.floor(h.minutes / 60);
+												const mins = h.minutes % 60;
+												const timeStr = hours > 0 ? `${hours}시간 ${mins}분` : `${mins}분`;
+												return (
+													<div 
+														key={h.hour}
+														className="rounded p-2"
+														style={{ 
+															background: "color-mix(in srgb, var(--accent) 20%, transparent)",
+															border: "1px solid var(--accent)"
+														}}
+													>
+														<div className="font-semibold">{h.label}</div>
+														<div className="opacity-70">{timeStr}</div>
+														<div className="opacity-60 text-xs">{h.count}회 활동</div>
+													</div>
+												);
+											})}
+										</div>
+									</div>
+								)}
+							</div>
+						);
+					})()}
 
 					{/* 검색 및 정렬 */}
 					<div 
