@@ -50,6 +50,8 @@ export default function UserDetailPage() {
 	const [searchTerm, setSearchTerm] = useState<string>("");
 	const [sortBy, setSortBy] = useState<"date" | "time" | "count">("date");
 	const [expandedDate, setExpandedDate] = useState<string | null>(null);
+	const [dayPageSize, setDayPageSize] = useState<number>(10);
+	const [dayCurrentPage, setDayCurrentPage] = useState<number>(1);
 	const [expandedMeetingUserId, setExpandedMeetingUserId] = useState<string | null>(null);
 	
 	// 만남 횟수 관련 상태
@@ -61,6 +63,12 @@ export default function UserDetailPage() {
 	const [meetingCurrentPage, setMeetingCurrentPage] = useState<number>(1);
 	const [deleting, setDeleting] = useState(false);
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+	const [meetingCountMode, setMeetingCountMode] = useState<"total" | "weekly">("total");
+	const [weeklyMeetings, setWeeklyMeetings] = useState<any[]>([]);
+	const [loadingWeekly, setLoadingWeekly] = useState(false);
+	const [selectedMonth, setSelectedMonth] = useState<string>("");
+	const [deletingWeekKey, setDeletingWeekKey] = useState<string | null>(null);
+	const [showWeekDeleteConfirm, setShowWeekDeleteConfirm] = useState<string | null>(null);
 
 	useEffect(() => {
 		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
@@ -225,6 +233,60 @@ export default function UserDetailPage() {
 		}
 	}
 
+	// 주별 만남 횟수 조회
+	async function fetchWeeklyMeetingCounts(userId: string, month?: string) {
+		setLoadingWeekly(true);
+		try {
+			const params = new URLSearchParams({ userId });
+			if (month) params.set("month", month);
+
+			const res = await fetch(`/api/discord-activity/meeting-counts/weekly?${params}`);
+			if (!res.ok) {
+				console.error("주별 만남 횟수 조회 실패:", res.status);
+				setWeeklyMeetings([]);
+				return;
+			}
+
+			const result = await res.json();
+			const weeklyData = result.data || [];
+			setWeeklyMeetings(weeklyData);
+		} catch (err) {
+			console.error("주별 만남 횟수 조회 실패:", err);
+			setWeeklyMeetings([]);
+		} finally {
+			setLoadingWeekly(false);
+		}
+	}
+
+	// 주별 기록 삭제
+	async function handleDeleteWeek(weekKey: string) {
+		setDeletingWeekKey(weekKey);
+		try {
+			const res = await fetch(`/api/discord-activity/delete-week?weekKey=${encodeURIComponent(weekKey)}&deleteActivities=true&deleteMeetingCounts=true`, {
+				method: "DELETE",
+			});
+
+			if (!res.ok) {
+				const error = await res.json();
+				throw new Error(error.error || "삭제 실패");
+			}
+
+			const result = await res.json();
+			alert(`해당 주의 기록이 삭제되었습니다.\n삭제된 활동 기록: ${result.deleted?.activityCount || 0}개\n삭제된 주별 만남 횟수: ${result.deleted?.meetingCountWeekly || 0}개`);
+			
+			// 주별 데이터 다시 로드
+			if (meetingCountMode === "weekly") {
+				fetchWeeklyMeetingCounts(userId, selectedMonth || undefined);
+			}
+		} catch (err: any) {
+			console.error("삭제 실패:", err);
+			alert(`삭제 중 오류가 발생했습니다: ${err.message || String(err)}`);
+		} finally {
+			setDeletingWeekKey(null);
+			setShowWeekDeleteConfirm(null);
+		}
+	}
+
 	async function fetchMeetingCounts(userId: string) {
 		try {
 			const res = await fetch(`/api/discord-activity/meeting-counts?userId=${userId}`);
@@ -254,6 +316,13 @@ export default function UserDetailPage() {
 			setMeetings([]);
 		}
 	}
+
+	// 만남 횟수 모드 변경 시 데이터 로드
+	useEffect(() => {
+		if (meetingCountMode === "weekly" && userId) {
+			fetchWeeklyMeetingCounts(userId, selectedMonth || undefined);
+		}
+	}, [meetingCountMode, userId, selectedMonth]);
 
 	function formatMinutes(minutes: number): string {
 		const hours = Math.floor(minutes / 60);
@@ -379,6 +448,13 @@ export default function UserDetailPage() {
 				return b.totalMinutes - a.totalMinutes;
 			}
 		});
+
+	// 날짜별 활동 페이징 계산
+	const dayTotalPages = Math.ceil(filteredAndSortedDays.length / dayPageSize);
+	const paginatedDays = filteredAndSortedDays.slice(
+		(dayCurrentPage - 1) * dayPageSize,
+		dayCurrentPage * dayPageSize
+	);
 
 	return (
 		<div className="p-6 max-w-7xl mx-auto" style={{ background: "var(--background)", color: "var(--foreground)" }}>
@@ -664,15 +740,24 @@ export default function UserDetailPage() {
 							border: "1px solid var(--accent)" 
 						}}
 					>
-						<h2 className="text-lg font-semibold mb-4">날짜별 활동 ({filteredAndSortedDays.length}일)</h2>
+						<div className="flex items-center justify-between mb-4">
+							<h2 className="text-lg font-semibold">날짜별 활동 ({filteredAndSortedDays.length}일)</h2>
+							<div className="text-sm opacity-70">
+								{filteredAndSortedDays.length > 0 
+									? `${(dayCurrentPage - 1) * dayPageSize + 1}-${Math.min(dayCurrentPage * dayPageSize, filteredAndSortedDays.length)} / ${filteredAndSortedDays.length}개`
+									: "0개"
+								}
+							</div>
+						</div>
 						
 						{filteredAndSortedDays.length === 0 ? (
 							<div className="text-center py-8" style={{ color: "var(--foreground)", opacity: 0.7 }}>
 								검색 결과가 없습니다.
 							</div>
 						) : (
-							<div className="space-y-3">
-								{filteredAndSortedDays.map((day) => {
+							<>
+								<div className="space-y-3 mb-4">
+									{paginatedDays.map((day) => {
 									const isExpanded = expandedDate === day.date;
 									
 									return (
@@ -769,24 +854,95 @@ export default function UserDetailPage() {
 										</div>
 									);
 								})}
-							</div>
+								</div>
+								
+								{/* 페이징 */}
+								{dayTotalPages > 1 && (
+									<div className="flex items-center justify-between mt-4 pt-4 border-t border-zinc-700/50">
+										<button
+											className="px-3 py-2 rounded transition-colors cursor-pointer text-sm"
+											style={{
+												background: dayCurrentPage > 1 ? "var(--accent)" : "transparent",
+												color: "var(--foreground)",
+												border: "1px solid var(--accent)",
+												opacity: dayCurrentPage > 1 ? 1 : 0.5,
+											}}
+											onClick={() => setDayCurrentPage(prev => Math.max(1, prev - 1))}
+											disabled={dayCurrentPage === 1}
+										>
+											이전
+										</button>
+										<span className="text-sm opacity-70">
+											{dayCurrentPage} / {dayTotalPages}
+										</span>
+										<button
+											className="px-3 py-2 rounded transition-colors cursor-pointer text-sm"
+											style={{
+												background: dayCurrentPage < dayTotalPages ? "var(--accent)" : "transparent",
+												color: "var(--foreground)",
+												border: "1px solid var(--accent)",
+												opacity: dayCurrentPage < dayTotalPages ? 1 : 0.5,
+											}}
+											onClick={() => setDayCurrentPage(prev => Math.min(dayTotalPages, prev + 1))}
+											disabled={dayCurrentPage === dayTotalPages}
+										>
+											다음
+										</button>
+									</div>
+								)}
+							</>
 						)}
 					</div>
 
 					{/* 만남 횟수 리스트 */}
-					{meetings.length > 0 && (
-						<div 
-							className="rounded-lg p-6"
-							style={{ 
-								background: "var(--background)", 
-								border: "1px solid var(--accent)" 
-							}}
-						>
-							<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-								<h2 className="text-lg font-semibold">유저별 만남 횟수 ({meetings.length}명)</h2>
+					<div 
+						className="rounded-lg p-6"
+						style={{ 
+							background: "var(--background)", 
+							border: "1px solid var(--accent)" 
+						}}
+					>
+						<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+							<h2 className="text-lg font-semibold">
+								유저별 만남 횟수 ({meetingCountMode === "total" ? meetings.length : weeklyMeetings.length}명)
+							</h2>
+							
+							<div className="flex gap-2 items-center">
+								{/* 누적 카운트 / 위클리 토글 */}
+								<button
+									className={`px-3 py-2 rounded text-sm transition-colors ${
+										meetingCountMode === "total"
+											? "font-semibold"
+											: "opacity-70"
+									}`}
+									style={{
+										backgroundColor: meetingCountMode === "total" ? "var(--accent)" : "transparent",
+										color: "var(--foreground)",
+										border: "1px solid var(--accent)",
+									}}
+									onClick={() => setMeetingCountMode("total")}
+								>
+									누적 카운트
+								</button>
+								<button
+									className={`px-3 py-2 rounded text-sm transition-colors ${
+										meetingCountMode === "weekly"
+											? "font-semibold"
+											: "opacity-70"
+									}`}
+									style={{
+										backgroundColor: meetingCountMode === "weekly" ? "var(--accent)" : "transparent",
+										color: "var(--foreground)",
+										border: "1px solid var(--accent)",
+									}}
+									onClick={() => setMeetingCountMode("weekly")}
+								>
+									위클리 만남 횟수
+								</button>
 								
-								{meetings.length > 0 && (
-									<div className="flex gap-2">
+								{/* 리스트/차트 토글 */}
+								{(meetingCountMode === "total" ? meetings.length > 0 : weeklyMeetings.length > 0) && (
+									<div className="flex gap-2 ml-2">
 										<button
 											className={`px-4 py-2 rounded text-sm transition-colors ${
 												meetingViewMode === "list"
@@ -820,8 +976,45 @@ export default function UserDetailPage() {
 									</div>
 								)}
 							</div>
+						</div>
 
-							{meetings.length === 0 ? (
+						{/* 위클리 모드일 때 월 선택 */}
+						{meetingCountMode === "weekly" && (
+							<div className="mb-4">
+								<label className="block text-sm mb-2">월 선택 (선택사항)</label>
+								<div className="flex gap-2 items-center">
+									<input
+										type="month"
+										value={selectedMonth}
+										onChange={(e) => {
+											setSelectedMonth(e.target.value);
+										}}
+										className="border rounded px-3 py-2 text-sm"
+										style={{
+											background: "var(--background)",
+											color: "var(--foreground)",
+											borderColor: "var(--accent)",
+										}}
+									/>
+									<button
+										className="px-3 py-2 rounded text-sm transition-colors cursor-pointer"
+										style={{
+											background: "var(--accent)",
+											color: "var(--foreground)",
+										}}
+										onClick={() => {
+											setSelectedMonth("");
+											fetchWeeklyMeetingCounts(userId);
+										}}
+									>
+										전체 기간
+									</button>
+								</div>
+							</div>
+						)}
+
+						{meetingCountMode === "total" ? (
+							meetings.length === 0 ? (
 								<div className="text-center py-8" style={{ color: "var(--foreground)", opacity: 0.7 }}>
 									조회되는 만남횟수가 없습니다.
 								</div>
@@ -840,26 +1033,53 @@ export default function UserDetailPage() {
 													setMeetingCurrentPage(1);
 												}}
 												className="w-full border rounded px-3 py-2"
-											/>
-										</div>
-										<div className="flex-1 min-w-[200px]">
-											<label className="block text-sm mb-2">정렬 기준</label>
-											<select
-												value={meetingSortBy}
-												onChange={(e) => {
-													setMeetingSortBy(e.target.value as "name" | "count");
-													setMeetingCurrentPage(1);
-												}}
-												className="w-full border rounded px-3 py-2"
 												style={{
 													background: "var(--background)",
 													color: "var(--foreground)",
 													borderColor: "var(--accent)",
 												}}
-											>
-												<option value="count">만남 횟수순 (높은순)</option>
-												<option value="name">이름순</option>
-											</select>
+											/>
+										</div>
+										<div className="flex-1 min-w-[200px]">
+											<label className="block text-sm mb-2">정렬 기준</label>
+											<div className="flex gap-2">
+												<button
+													className={`px-3 py-2 rounded text-sm transition-colors flex-1 ${
+														meetingSortBy === "count"
+															? "font-semibold"
+															: "opacity-70"
+													}`}
+													style={{
+														backgroundColor: meetingSortBy === "count" ? "var(--accent)" : "transparent",
+														color: "var(--foreground)",
+														border: "1px solid var(--accent)",
+													}}
+													onClick={() => {
+														setMeetingSortBy("count");
+														setMeetingCurrentPage(1);
+													}}
+												>
+													만남 횟수
+												</button>
+												<button
+													className={`px-3 py-2 rounded text-sm transition-colors flex-1 ${
+														meetingSortBy === "name"
+															? "font-semibold"
+															: "opacity-70"
+													}`}
+													style={{
+														backgroundColor: meetingSortBy === "name" ? "var(--accent)" : "transparent",
+														color: "var(--foreground)",
+														border: "1px solid var(--accent)",
+													}}
+													onClick={() => {
+														setMeetingSortBy("name");
+														setMeetingCurrentPage(1);
+													}}
+												>
+													이름순
+												</button>
+											</div>
 										</div>
 										<div className="flex items-center gap-1 text-sm">
 											<span className="opacity-70">한 번에</span>
@@ -1058,13 +1278,21 @@ export default function UserDetailPage() {
 											return userName.replace(/\[.*?\]\s*/g, '').trim() || userName;
 										};
 
-										const chartData = meetings
-											.filter((m) => {
-												if (!meetingSearchTerm.trim()) return true;
-												const term = meetingSearchTerm.toLowerCase();
-												return (m.userName || m.userId).toLowerCase().includes(term);
-											})
-											.sort((a, b) => b.count - a.count)
+										const filtered = meetings.filter((m) => {
+											if (!meetingSearchTerm.trim()) return true;
+											const term = meetingSearchTerm.toLowerCase();
+											return (m.userName || m.userId).toLowerCase().includes(term);
+										});
+
+										const sorted = filtered.sort((a, b) => {
+											if (meetingSortBy === "name") {
+												return (a.userName || a.userId).localeCompare(b.userName || b.userId);
+											} else {
+												return b.count - a.count;
+											}
+										});
+
+										const chartData = sorted
 											.slice(0, 20) // 차트는 상위 20개만 표시
 											.map((m, index) => {
 												const cleanName = cleanUserName(m.userName || m.userId);
@@ -1190,7 +1418,135 @@ export default function UserDetailPage() {
 										);
 									})()}
 								</>
-							)}
+							)
+						) : (
+							// 위클리 만남 횟수 모드
+							loadingWeekly ? (
+								<div className="text-center py-8" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+									로딩 중...
+								</div>
+							) : weeklyMeetings.length === 0 ? (
+								<div className="text-center py-8" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+									조회되는 주별 만남 횟수가 없습니다.
+								</div>
+							) : (
+								<div className="space-y-3">
+									{weeklyMeetings.map((item: any) => {
+										const weekKey = item.weekKey;
+										const weekStart = item.weekStart;
+										const otherUserName = item.otherUserName || item.otherUserId;
+										const count = item.count || 0;
+										
+										return (
+											<div
+												key={`${item.otherUserId}-${weekKey}`}
+												className="p-4 rounded transition-colors"
+												style={{ 
+													border: "1px solid var(--accent)",
+													background: "var(--background)"
+												}}
+												onMouseEnter={(e) => {
+													e.currentTarget.style.background = "color-mix(in srgb, var(--background) 95%, var(--accent) 5%)";
+												}}
+												onMouseLeave={(e) => {
+													e.currentTarget.style.background = "var(--background)";
+												}}
+											>
+												<div className="flex items-center justify-between">
+													<div className="flex-1">
+														<div className="font-medium text-lg">▶ {otherUserName}</div>
+														<div className="text-sm opacity-70 mt-1">
+															주: {weekStart} ({weekKey})
+														</div>
+													</div>
+													<div className="flex items-center gap-3">
+														<div className="text-xl font-semibold">{count}번</div>
+														<button
+															className="px-3 py-1 rounded text-sm transition-colors cursor-pointer"
+															style={{
+																backgroundColor: "#ef4444",
+																color: "white",
+															}}
+															onMouseEnter={(e) => {
+																e.currentTarget.style.background = "#dc2626";
+															}}
+															onMouseLeave={(e) => {
+																e.currentTarget.style.background = "#ef4444";
+															}}
+															onClick={() => setShowWeekDeleteConfirm(weekKey)}
+															disabled={deletingWeekKey === weekKey}
+														>
+															{deletingWeekKey === weekKey ? "삭제 중..." : "삭제"}
+														</button>
+													</div>
+												</div>
+											</div>
+										);
+									})}
+								</div>
+							)
+						)}
+					</div>
+
+					{/* 주별 삭제 확인 팝업 */}
+					{showWeekDeleteConfirm && (
+						<div
+							className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+							onClick={() => setShowWeekDeleteConfirm(null)}
+						>
+							<div
+								className="rounded-lg p-6 max-w-md w-full mx-4"
+								style={{
+									background: "var(--background)",
+									border: "1px solid var(--accent)",
+								}}
+								onClick={(e) => e.stopPropagation()}
+							>
+								<h3 className="text-xl font-bold mb-4">삭제 확인</h3>
+								<p className="mb-6" style={{ color: "var(--foreground)", opacity: 0.9 }}>
+									정말로 <strong>{showWeekDeleteConfirm}</strong> 주의 만남 횟수와 활동 기록을 삭제하시겠습니까?
+									<br />
+									<br />
+									삭제되는 항목:
+									<br />
+									• 해당 주의 활동 기록
+									<br />
+									• 해당 주의 주별 만남 횟수
+									<br />
+									<br />
+									전체 누적 만남 횟수는 유지됩니다.
+									<br />
+									이 작업은 되돌릴 수 없습니다.
+								</p>
+								<div className="flex gap-3 justify-end">
+									<button
+										className="px-4 py-2 rounded transition-colors cursor-pointer"
+										style={{
+											background: "var(--accent)",
+											color: "var(--foreground)",
+										}}
+										onClick={() => setShowWeekDeleteConfirm(null)}
+									>
+										취소
+									</button>
+									<button
+										className="px-4 py-2 rounded transition-colors cursor-pointer text-white"
+										style={{
+											backgroundColor: "#ef4444",
+										}}
+										onMouseEnter={(e) => {
+											e.currentTarget.style.background = "#dc2626";
+										}}
+										onMouseLeave={(e) => {
+											e.currentTarget.style.background = "#ef4444";
+										}}
+										onClick={() => handleDeleteWeek(showWeekDeleteConfirm)}
+										disabled={deletingWeekKey === showWeekDeleteConfirm}
+									>
+										{deletingWeekKey === showWeekDeleteConfirm ? "삭제 중..." : "삭제"}
+									</button>
+								</div>
+							</div>
 						</div>
 					)}
 				</>
