@@ -40,6 +40,9 @@ export default function DayDetailPage() {
 	const [chartType, setChartType] = useState<"bar" | "line" | "pie">("bar");
 	const [pageSize, setPageSize] = useState<number>(10);
 	const [currentPage, setCurrentPage] = useState<number>(1);
+	const [availableDates, setAvailableDates] = useState<string[]>([]);
+	const [deleting, setDeleting] = useState(false);
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
 	useEffect(() => {
 		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
@@ -71,8 +74,74 @@ export default function DayDetailPage() {
 	useEffect(() => {
 		if (date) {
 			fetchDayData();
+			fetchAvailableDates();
 		}
 	}, [date]);
+
+	// 사용 가능한 날짜 목록 가져오기
+	async function fetchAvailableDates() {
+		try {
+			// 최근 60일 데이터 가져오기
+			const today = new Date();
+			const sixtyDaysAgo = new Date(today);
+			sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+			const params = new URLSearchParams({
+				groupBy: "day",
+				startDate: sixtyDaysAgo.toISOString().split('T')[0],
+				endDate: today.toISOString().split('T')[0],
+			});
+
+			const res = await fetch(`/api/discord-activity?${params}`);
+			if (!res.ok) throw new Error("Failed to fetch dates");
+
+			const result = await res.json();
+			const rawData = result.data || {};
+			const normalizedData = normalizeDates(rawData);
+
+			// 날짜 목록 추출 및 정렬 (최신순)
+			const dates = Object.keys(normalizedData)
+				.filter(d => d)
+				.sort((a, b) => b.localeCompare(a));
+
+			setAvailableDates(dates);
+		} catch (err) {
+			console.error("날짜 목록 로딩 실패:", err);
+		}
+	}
+
+	// 날짜별 기록 삭제
+	async function handleDeleteDate() {
+		if (!date) return;
+
+		setDeleting(true);
+		try {
+			const res = await fetch("/api/discord-activity/delete-by-dates", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ dates: [date] }),
+			});
+
+			if (!res.ok) {
+				const error = await res.json();
+				throw new Error(error.error || "삭제 실패");
+			}
+
+			const result = await res.json();
+			alert(`해당 날짜의 기록이 삭제되었습니다.\n삭제된 활동 기록: ${result.deleted?.activityCount || 0}개`);
+			
+			// 대시보드로 돌아가기
+			router.push("/admin/activity-dashboard");
+		} catch (err: any) {
+			console.error("삭제 실패:", err);
+			alert(`삭제 중 오류가 발생했습니다: ${err.message || String(err)}`);
+		} finally {
+			setDeleting(false);
+			setShowDeleteConfirm(false);
+		}
+	}
 
 	// 로컬 시간대 기준으로 날짜 추출 (UTC 변환으로 인한 날짜 밀림 방지)
 	function getLocalDateString(dateStr: string): string {
@@ -397,11 +466,112 @@ export default function DayDetailPage() {
 							border: "1px solid var(--accent)" 
 						}}
 					>
-						<div className="text-2xl font-bold mb-2">{formatDate(activityData.date)}</div>
-						<div className="text-lg opacity-70">
-							총 {formatMinutes(activityData.totalMinutes)} · {activityData.userCount}명 참여
+						<div className="flex items-center justify-between mb-4">
+							<div>
+								<div className="text-2xl font-bold mb-2">{formatDate(activityData.date)}</div>
+								<div className="text-lg opacity-70">
+									총 {formatMinutes(activityData.totalMinutes)} · {activityData.userCount}명 참여
+								</div>
+							</div>
+							<div className="flex gap-3 items-end">
+								{/* 날짜 선택 드롭다운 */}
+								{availableDates.length > 0 && (
+									<div className="min-w-[200px]">
+										<label className="block text-sm mb-2">날짜 선택</label>
+										<select
+											value={date}
+											onChange={(e) => {
+												router.push(`/admin/activity-dashboard/day/${e.target.value}`);
+											}}
+											className="w-full border rounded px-3 py-2"
+											style={{
+												background: "var(--background)",
+												color: "var(--foreground)",
+												borderColor: "var(--accent)",
+											}}
+										>
+											{availableDates.map((d) => (
+												<option key={d} value={d}>
+													{formatDate(d)}
+												</option>
+											))}
+										</select>
+									</div>
+								)}
+								{/* 삭제 버튼 */}
+								<button
+									className="px-4 py-2 rounded transition-colors cursor-pointer text-sm"
+									style={{
+										backgroundColor: "#ef4444",
+										color: "white",
+									}}
+									onMouseEnter={(e) => {
+										e.currentTarget.style.background = "#dc2626";
+									}}
+									onMouseLeave={(e) => {
+										e.currentTarget.style.background = "#ef4444";
+									}}
+									onClick={() => setShowDeleteConfirm(true)}
+									disabled={deleting}
+								>
+									{deleting ? "삭제 중..." : "삭제"}
+								</button>
+							</div>
 						</div>
 					</div>
+
+					{/* 삭제 확인 팝업 */}
+					{showDeleteConfirm && (
+						<div
+							className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+							onClick={() => setShowDeleteConfirm(false)}
+						>
+							<div
+								className="rounded-lg p-6 max-w-md w-full mx-4"
+								style={{
+									background: "var(--background)",
+									border: "1px solid var(--accent)",
+								}}
+								onClick={(e) => e.stopPropagation()}
+							>
+								<h3 className="text-xl font-bold mb-4">삭제 확인</h3>
+								<p className="mb-6" style={{ color: "var(--foreground)", opacity: 0.9 }}>
+									정말로 <strong>{formatDate(date)}</strong>의 모든 활동 기록을 삭제하시겠습니까?
+									<br />
+									<br />
+									이 작업은 되돌릴 수 없습니다.
+								</p>
+								<div className="flex gap-3 justify-end">
+									<button
+										className="px-4 py-2 rounded transition-colors cursor-pointer"
+										style={{
+											background: "var(--accent)",
+											color: "var(--foreground)",
+										}}
+										onClick={() => setShowDeleteConfirm(false)}
+									>
+										취소
+									</button>
+									<button
+										className="px-4 py-2 rounded transition-colors cursor-pointer text-white"
+										style={{
+											backgroundColor: "#ef4444",
+										}}
+										onMouseEnter={(e) => {
+											e.currentTarget.style.background = "#dc2626";
+										}}
+										onMouseLeave={(e) => {
+											e.currentTarget.style.background = "#ef4444";
+										}}
+										onClick={handleDeleteDate}
+										disabled={deleting}
+									>
+										{deleting ? "삭제 중..." : "삭제"}
+									</button>
+								</div>
+							</div>
+						</div>
+					)}
 
 					{/* 시간대별 활동 차트 */}
 					{activityData.activities && activityData.activities.length > 0 && (() => {

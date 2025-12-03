@@ -59,6 +59,8 @@ export default function UserDetailPage() {
 	const [meetingSortBy, setMeetingSortBy] = useState<"name" | "count">("count");
 	const [meetingPageSize, setMeetingPageSize] = useState<number>(10);
 	const [meetingCurrentPage, setMeetingCurrentPage] = useState<number>(1);
+	const [deleting, setDeleting] = useState(false);
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
 	useEffect(() => {
 		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
@@ -191,6 +193,35 @@ export default function UserDetailPage() {
 			alert("활동 데이터를 불러오지 못했습니다.");
 		} finally {
 			setLoading(false);
+		}
+	}
+
+	// 유저 기록 삭제
+	async function handleDeleteUser() {
+		if (!userId) return;
+
+		setDeleting(true);
+		try {
+			const res = await fetch(`/api/discord-activity/delete-user?userId=${encodeURIComponent(userId)}`, {
+				method: "DELETE",
+			});
+
+			if (!res.ok) {
+				const error = await res.json();
+				throw new Error(error.error || "삭제 실패");
+			}
+
+			const result = await res.json();
+			alert(`해당 유저의 모든 기록이 삭제되었습니다.\n삭제된 활동 기록: ${result.deleted?.activityCount || 0}개\n삭제된 만남 횟수: ${result.deleted?.meetingCount || 0}개`);
+			
+			// 대시보드로 돌아가기
+			router.push("/admin/activity-dashboard");
+		} catch (err: any) {
+			console.error("삭제 실패:", err);
+			alert(`삭제 중 오류가 발생했습니다: ${err.message || String(err)}`);
+		} finally {
+			setDeleting(false);
+			setShowDeleteConfirm(false);
 		}
 	}
 
@@ -394,30 +425,50 @@ export default function UserDetailPage() {
 									총 {formatMinutes(userData.totalMinutes)} · {userData.dayCount}일 활동
 								</div>
 							</div>
-							{/* 사용자 선택 드롭다운 */}
-							{allUsers.length > 0 && (
-								<div className="min-w-[250px]">
-									<label className="block text-sm mb-2">사용자 선택</label>
-									<select
-										value={userId}
-										onChange={(e) => {
-											router.push(`/admin/activity-dashboard/user/${e.target.value}`);
-										}}
-										className="w-full border rounded px-3 py-2"
-										style={{
-											background: "var(--background)",
-											color: "var(--foreground)",
-											borderColor: "var(--accent)",
-										}}
-									>
-										{allUsers.map((user) => (
-											<option key={user.userId} value={user.userId}>
-												{user.userName || user.userId}
-											</option>
-										))}
-									</select>
-								</div>
-							)}
+							<div className="flex gap-3 items-end">
+								{/* 사용자 선택 드롭다운 */}
+								{allUsers.length > 0 && (
+									<div className="min-w-[250px]">
+										<label className="block text-sm mb-2">사용자 선택</label>
+										<select
+											value={userId}
+											onChange={(e) => {
+												router.push(`/admin/activity-dashboard/user/${e.target.value}`);
+											}}
+											className="w-full border rounded px-3 py-2"
+											style={{
+												background: "var(--background)",
+												color: "var(--foreground)",
+												borderColor: "var(--accent)",
+											}}
+										>
+											{allUsers.map((user) => (
+												<option key={user.userId} value={user.userId}>
+													{user.userName || user.userId}
+												</option>
+											))}
+										</select>
+									</div>
+								)}
+								{/* 삭제 버튼 */}
+								<button
+									className="px-4 py-2 rounded transition-colors cursor-pointer text-sm"
+									style={{
+										backgroundColor: "#ef4444",
+										color: "white",
+									}}
+									onMouseEnter={(e) => {
+										e.currentTarget.style.background = "#dc2626";
+									}}
+									onMouseLeave={(e) => {
+										e.currentTarget.style.background = "#ef4444";
+									}}
+									onClick={() => setShowDeleteConfirm(true)}
+									disabled={deleting}
+								>
+									{deleting ? "삭제 중..." : "삭제"}
+								</button>
+							</div>
 						</div>
 					</div>
 
@@ -503,6 +554,68 @@ export default function UserDetailPage() {
 							</div>
 						);
 					})()}
+
+					{/* 삭제 확인 팝업 */}
+					{showDeleteConfirm && (
+						<div
+							className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+							onClick={() => setShowDeleteConfirm(false)}
+						>
+							<div
+								className="rounded-lg p-6 max-w-md w-full mx-4"
+								style={{
+									background: "var(--background)",
+									border: "1px solid var(--accent)",
+								}}
+								onClick={(e) => e.stopPropagation()}
+							>
+								<h3 className="text-xl font-bold mb-4">삭제 확인</h3>
+								<p className="mb-6" style={{ color: "var(--foreground)", opacity: 0.9 }}>
+									정말로 <strong>{userData.userName || userData.userId}</strong>의 모든 활동 기록을 삭제하시겠습니까?
+									<br />
+									<br />
+									삭제되는 항목:
+									<br />
+									• 모든 활동 기록
+									<br />
+									• 모든 만남 횟수 (전체 누적 + 주별)
+									<br />
+									• 유저 정보
+									<br />
+									<br />
+									이 작업은 되돌릴 수 없습니다.
+								</p>
+								<div className="flex gap-3 justify-end">
+									<button
+										className="px-4 py-2 rounded transition-colors cursor-pointer"
+										style={{
+											background: "var(--accent)",
+											color: "var(--foreground)",
+										}}
+										onClick={() => setShowDeleteConfirm(false)}
+									>
+										취소
+									</button>
+									<button
+										className="px-4 py-2 rounded transition-colors cursor-pointer text-white"
+										style={{
+											backgroundColor: "#ef4444",
+										}}
+										onMouseEnter={(e) => {
+											e.currentTarget.style.background = "#dc2626";
+										}}
+										onMouseLeave={(e) => {
+											e.currentTarget.style.background = "#ef4444";
+										}}
+										onClick={handleDeleteUser}
+										disabled={deleting}
+									>
+										{deleting ? "삭제 중..." : "삭제"}
+									</button>
+								</div>
+							</div>
+						</div>
+					)}
 
 					{/* 검색 및 정렬 */}
 					<div 
