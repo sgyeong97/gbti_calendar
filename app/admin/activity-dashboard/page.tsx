@@ -240,6 +240,17 @@ export default function ActivityDashboardPage() {
 	}
 
 	// date 필드 보정: startTime 또는 createdAt의 날짜를 사용
+	// 로컬 시간대 기준으로 날짜 추출 (UTC 변환으로 인한 날짜 밀림 방지)
+	function getLocalDateString(dateStr: string): string {
+		const date = new Date(dateStr);
+		if (isNaN(date.getTime())) return "";
+		// 로컬 시간대 기준으로 YYYY-MM-DD 형식 추출
+		const year = date.getFullYear();
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const day = String(date.getDate()).padStart(2, '0');
+		return `${year}-${month}-${day}`;
+	}
+
 	function normalizeDates(data: Record<string, ActivityData | UserActivityData>): Record<string, ActivityData | UserActivityData> {
 		const normalized: Record<string, ActivityData | UserActivityData> = {};
 
@@ -250,15 +261,14 @@ export default function ActivityDashboardPage() {
 				const activitiesByDate = new Map<string, any[]>();
 
 				for (const act of dayData.activities || []) {
-					// startTime 우선, 없으면 createdAt 사용
+					// startTime 우선, 없으면 createdAt 사용, 마지막으로 date 필드 사용
 					const timeStr = act.startTime || act.startAt || act.createdAt || act.created_at || act.date;
 					if (!timeStr) continue;
 
-					const time = new Date(timeStr);
-					if (isNaN(time.getTime())) continue;
+					// 로컬 시간대 기준으로 날짜 추출
+					const actualDate = getLocalDateString(timeStr);
+					if (!actualDate) continue;
 
-					// YYYY-MM-DD 형식으로 날짜 추출
-					const actualDate = time.toISOString().split('T')[0];
 					const activities = activitiesByDate.get(actualDate) || [];
 					activities.push({
 						...act,
@@ -289,9 +299,8 @@ export default function ActivityDashboardPage() {
 				const normalizedActivities = (userData.activities || []).map((act: any) => {
 					const timeStr = act.startTime || act.startAt || act.createdAt || act.created_at || act.date;
 					if (timeStr) {
-						const time = new Date(timeStr);
-						if (!isNaN(time.getTime())) {
-							const actualDate = time.toISOString().split('T')[0];
+						const actualDate = getLocalDateString(timeStr);
+						if (actualDate) {
 							return { ...act, date: actualDate };
 						}
 					}
@@ -331,8 +340,23 @@ export default function ActivityDashboardPage() {
 			const result = await res.json();
 			const rawData = result.data || {};
 
+			// 디버깅: 받아온 데이터 확인
+			console.log("[대시보드] 받아온 원본 데이터:", rawData);
+			if (groupBy === "day") {
+				for (const [dateKey, dayData] of Object.entries(rawData)) {
+					const activities = (dayData as ActivityData).activities || [];
+					console.log(`[대시보드] 날짜 ${dateKey}: ${activities.length}개 활동`);
+					activities.forEach((act: any, idx: number) => {
+						if (idx < 3) { // 처음 3개만 로그
+							console.log(`  - 활동 ${idx + 1}: date=${act.date}, startTime=${act.startTime}, createdAt=${act.createdAt}`);
+						}
+					});
+				}
+			}
+
 			// date 필드 보정 (startTime 또는 createdAt의 날짜 사용)
 			const dateNormalized = normalizeDates(rawData);
+			console.log("[대시보드] 날짜 보정 후 데이터:", dateNormalized);
 			// userName 정규화 (userId 기준으로 가장 최근 userName 사용)
 			const normalizedData = normalizeUserNames(dateNormalized);
 			setActivityData(normalizedData);
