@@ -190,7 +190,7 @@ export default function UserDetailPage() {
 				}
 			}
 
-			// 채널과 관계없이, 시간이 겹치는 모든 다른 사용자 활동 찾기
+			// 같은 채널에서 시간이 겹치는 다른 사용자 활동 찾기
 			const meetingMap = new Map<string, MeetingEntry>();
 
 			for (const userAct of activities) {
@@ -199,12 +199,12 @@ export default function UserDetailPage() {
 				const userActChannelId = userAct.channelId || userAct.channel_id || "";
 				const userActDate = userAct.date || (userActStart ? new Date(userActStart).toISOString().split('T')[0] : "");
 				
-				if (!userActStart || !userActEnd || !userActDate) continue;
+				if (!userActStart || !userActEnd || !userActChannelId || !userActDate) continue;
 
 				const userActStartTime = new Date(userActStart).getTime();
 				const userActEndTime = new Date(userActEnd).getTime();
 
-				// 모든 다른 사용자 활동 확인 (채널 무관)
+				// 같은 채널의 다른 사용자 활동 확인
 				for (const otherAct of allActivities) {
 					const otherUserId = otherAct.userId || otherAct.user_id || "";
 					const otherUserName = otherAct.userName || otherAct.user_name || otherUserId;
@@ -215,6 +215,8 @@ export default function UserDetailPage() {
 
 					// 같은 사용자는 제외
 					if (otherUserId === userId || !otherUserId) continue;
+					// 같은 채널이 아니면 제외 (같은 채널에서 만난 것만 카운트)
+					if (otherActChannelId !== userActChannelId) continue;
 					// 같은 날짜가 아니면 제외 (날짜가 다르면 시간 겹침 의미 없음)
 					if (otherActDate !== userActDate) continue;
 					// 시간이 겹치지 않으면 제외
@@ -223,24 +225,24 @@ export default function UserDetailPage() {
 					const otherActStartTime = new Date(otherActStart).getTime();
 					const otherActEndTime = new Date(otherActEnd).getTime();
 
-					// 시간 겹침 확인 (채널과 관계없이)
+					// 시간 겹침 확인 (같은 채널에서)
 					if (userActStartTime <= otherActEndTime && userActEndTime >= otherActStartTime) {
 						const existing = meetingMap.get(otherUserId);
 						
-						// 각 활동 세션마다 카운트 증가 (같은 날짜/채널 조합이어도 각 세션은 별도로 카운트)
+						// 각 활동 세션마다 카운트 증가
 						if (existing) {
 							existing.count += 1;
 							// 같은 날짜/채널의 기록이 있는지 확인
 							const existingMeeting = existing.meetings.find(
-								m => m.date === userActDate && m.channelId === otherActChannelId
+								m => m.date === userActDate && m.channelId === userActChannelId
 							);
 							if (existingMeeting) {
 								existingMeeting.activities.push(otherAct);
 							} else {
 								existing.meetings.push({
 									date: userActDate,
-									channelId: otherActChannelId,
-									channelName: otherAct.channelName || otherAct.channel_name || otherActChannelId,
+									channelId: userActChannelId,
+									channelName: otherAct.channelName || otherAct.channel_name || userActChannelId,
 									activities: [otherAct],
 								});
 							}
@@ -251,8 +253,8 @@ export default function UserDetailPage() {
 								count: 1,
 								meetings: [{
 									date: userActDate,
-									channelId: otherActChannelId,
-									channelName: otherAct.channelName || otherAct.channel_name || otherActChannelId,
+									channelId: userActChannelId,
+									channelName: otherAct.channelName || otherAct.channel_name || userActChannelId,
 									activities: [otherAct],
 								}],
 							});
