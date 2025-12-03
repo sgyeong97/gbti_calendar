@@ -64,14 +64,81 @@ export default function DayDetailPage() {
 		}
 	}, [date]);
 
+	// 로컬 시간대 기준으로 날짜 추출 (UTC 변환으로 인한 날짜 밀림 방지)
+	function getLocalDateString(dateStr: string): string {
+		const date = new Date(dateStr);
+		if (isNaN(date.getTime())) return "";
+		// 로컬 시간대 기준으로 YYYY-MM-DD 형식 추출
+		const year = date.getFullYear();
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const day = String(date.getDate()).padStart(2, '0');
+		return `${year}-${month}-${day}`;
+	}
+
+	// 날짜 보정: startTime 또는 createdAt의 날짜를 사용하여 재그룹화
+	function normalizeDates(data: Record<string, ActivityData>): Record<string, ActivityData> {
+		const normalized: Record<string, ActivityData> = {};
+		const activitiesByDate = new Map<string, any[]>();
+
+		// 모든 활동을 날짜별로 재그룹화
+		for (const value of Object.values(data || {})) {
+			const dayData = value as ActivityData;
+			for (const act of dayData.activities || []) {
+				// startTime 우선, 없으면 createdAt 사용, 마지막으로 date 필드 사용
+				const timeStr = act.startTime || act.startAt || act.createdAt || act.created_at || act.date;
+				if (!timeStr) continue;
+
+				// 로컬 시간대 기준으로 날짜 추출
+				const actualDate = getLocalDateString(timeStr);
+				if (!actualDate) continue;
+
+				const activities = activitiesByDate.get(actualDate) || [];
+				activities.push({
+					...act,
+					date: actualDate, // date 필드도 보정
+				});
+				activitiesByDate.set(actualDate, activities);
+			}
+		}
+
+		// 각 날짜별로 ActivityData 생성
+		for (const [dateKey, activities] of activitiesByDate.entries()) {
+			const totalMinutes = activities.reduce((sum, a) => sum + (a.durationMinutes || 0), 0);
+			const users = new Set<string>();
+			activities.forEach((a: any) => {
+				if (a.userName) users.add(a.userName);
+			});
+
+			normalized[dateKey] = {
+				date: dateKey,
+				totalMinutes,
+				userCount: users.size,
+				users: Array.from(users),
+				activities,
+			};
+		}
+
+		return normalized;
+	}
+
 	async function fetchDayData() {
 		setLoading(true);
 		try {
-			// 날짜 범위를 해당 날짜로 설정
+			// 날짜 범위를 넓게 설정 (봇 API의 date 필드가 부정확할 수 있으므로)
+			// 해당 날짜 전후 1일씩 포함하여 요청
+			const targetDate = new Date(date);
+			const prevDate = new Date(targetDate);
+			prevDate.setDate(prevDate.getDate() - 1);
+			const nextDate = new Date(targetDate);
+			nextDate.setDate(nextDate.getDate() + 1);
+			
+			const startDate = prevDate.toISOString().split('T')[0];
+			const endDate = nextDate.toISOString().split('T')[0];
+			
 			const params = new URLSearchParams({
 				groupBy: "day",
-				startDate: date,
-				endDate: date,
+				startDate,
+				endDate,
 			});
 
 			const res = await fetch(`/api/discord-activity?${params}`);
@@ -80,8 +147,11 @@ export default function DayDetailPage() {
 			const result = await res.json();
 			const rawData = result.data || {};
 			
+			// 날짜 보정 적용 (대시보드 메인 페이지와 동일한 로직)
+			const normalizedData = normalizeDates(rawData);
+			
 			// 해당 날짜의 데이터 찾기
-			const dayData = rawData[date] as ActivityData;
+			const dayData = normalizedData[date] as ActivityData;
 			if (dayData) {
 				setActivityData(dayData);
 				
