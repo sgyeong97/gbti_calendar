@@ -723,14 +723,42 @@ export default function ActivityDashboardPage() {
 					</div>
 					<div className="flex-1 min-w-[200px]">
 						<label className="block text-sm mb-2">그룹화 기준</label>
-						<select
-							value={groupBy}
-							onChange={(e) => setGroupBy(e.target.value as "day" | "user")}
-							className="w-full border rounded px-3 py-2"
-						>
-							<option value="day">날짜별</option>
-							<option value="user">사용자별</option>
-						</select>
+						<div className="flex gap-2">
+							<button
+								className={`flex-1 px-4 py-2 rounded transition-colors text-sm ${
+									groupBy === "day" ? "font-semibold" : "opacity-70"
+								}`}
+								style={{
+									backgroundColor: groupBy === "day" ? "var(--accent)" : "transparent",
+									color: "var(--foreground)",
+									border: "1px solid var(--accent)",
+								}}
+								onClick={() => {
+									if (groupBy !== "day") {
+										setGroupBy("day");
+									}
+								}}
+							>
+								날짜별
+							</button>
+							<button
+								className={`flex-1 px-4 py-2 rounded transition-colors text-sm ${
+									groupBy === "user" ? "font-semibold" : "opacity-70"
+								}`}
+								style={{
+									backgroundColor: groupBy === "user" ? "var(--accent)" : "transparent",
+									color: "var(--foreground)",
+									border: "1px solid var(--accent)",
+								}}
+								onClick={() => {
+									if (groupBy !== "user") {
+										setGroupBy("user");
+									}
+								}}
+							>
+								사용자별
+							</button>
+						</div>
 					</div>
 					<button
 						className="px-4 py-2 rounded transition-colors cursor-pointer"
