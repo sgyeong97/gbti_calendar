@@ -834,7 +834,7 @@ export default function ActivityDashboardPage() {
 								return (
 									<div
 										key={key}
-										className="p-4 rounded transition-colors cursor-pointer"
+										className="p-4 rounded transition-colors"
 										style={{ 
 											border: "1px solid var(--accent)",
 											background: "var(--background)"
@@ -845,17 +845,37 @@ export default function ActivityDashboardPage() {
 										onMouseLeave={(e) => {
 											e.currentTarget.style.background = "var(--background)";
 										}}
-										onClick={() => setExpandedKey(expandedKey === key ? null : key)}
 									>
 										<div className="flex items-center justify-between">
-											<div>
+											<div className="flex-1 cursor-pointer" onClick={() => setExpandedKey(expandedKey === key ? null : key)}>
 												<div className="font-medium">{formatDate(dayData.date)}</div>
 												<div className="text-sm opacity-70">
 													{dayData.userCount}명 참여 · {formatMinutes(dayData.totalMinutes)}
 												</div>
 											</div>
-											<div className="text-right">
-												<div className="text-lg font-semibold">{formatMinutes(dayData.totalMinutes)}</div>
+											<div className="flex items-center gap-3">
+												<div className="text-right">
+													<div className="text-lg font-semibold">{formatMinutes(dayData.totalMinutes)}</div>
+												</div>
+												<button
+													className="px-3 py-1 text-sm rounded transition-colors"
+													style={{
+														backgroundColor: "var(--accent)",
+														color: "var(--foreground)"
+													}}
+													onMouseEnter={(e) => {
+														e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 80%, var(--foreground) 20%)";
+													}}
+													onMouseLeave={(e) => {
+														e.currentTarget.style.background = "var(--accent)";
+													}}
+													onClick={(e) => {
+														e.stopPropagation();
+														router.push(`/admin/activity-dashboard/day/${dayData.date}`);
+													}}
+												>
+													자세히보기
+												</button>
 											</div>
 										</div>
 
@@ -910,7 +930,7 @@ export default function ActivityDashboardPage() {
 								return (
 									<div
 										key={key}
-										className="p-4 rounded transition-colors cursor-pointer"
+										className="p-4 rounded transition-colors"
 										style={{ 
 											border: "1px solid var(--accent)",
 											background: "var(--background)"
@@ -921,10 +941,9 @@ export default function ActivityDashboardPage() {
 										onMouseLeave={(e) => {
 											e.currentTarget.style.background = "var(--background)";
 										}}
-										onClick={() => setExpandedKey(expandedKey === key ? null : key)}
 									>
 										<div className="flex items-center justify-between">
-											<div>
+											<div className="flex-1 cursor-pointer" onClick={() => setExpandedKey(expandedKey === key ? null : key)}>
 												<div className="font-medium">{userData.userName || userData.userId}</div>
 												<div className="text-sm opacity-70">
 													{userData.dayCount}일 활동 ·{" "}
@@ -940,8 +959,29 @@ export default function ActivityDashboardPage() {
 													})()}
 												</div>
 											</div>
-											<div className="text-right">
-												<div className="text-lg font-semibold">{formatMinutes(userData.totalMinutes)}</div>
+											<div className="flex items-center gap-3">
+												<div className="text-right">
+													<div className="text-lg font-semibold">{formatMinutes(userData.totalMinutes)}</div>
+												</div>
+												<button
+													className="px-3 py-1 text-sm rounded transition-colors"
+													style={{
+														backgroundColor: "var(--accent)",
+														color: "var(--foreground)"
+													}}
+													onMouseEnter={(e) => {
+														e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 80%, var(--foreground) 20%)";
+													}}
+													onMouseLeave={(e) => {
+														e.currentTarget.style.background = "var(--accent)";
+													}}
+													onClick={(e) => {
+														e.stopPropagation();
+														router.push(`/admin/activity-dashboard/user/${userData.userId}`);
+													}}
+												>
+													자세히보기
+												</button>
 											</div>
 										</div>
 
