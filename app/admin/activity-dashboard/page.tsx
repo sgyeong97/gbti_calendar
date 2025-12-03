@@ -798,115 +798,67 @@ export default function ActivityDashboardPage() {
 					{/* 날짜 범위 선택 및 입력 */}
 					<div className="flex-1 min-w-[200px]">
 						<label className="block text-sm mb-2">기간 선택</label>
-						<div className="flex gap-2 items-center">
-							<button
-								className={`px-3 py-2 rounded transition-colors text-sm ${
-									dateRangeType === "week" ? "font-semibold" : "opacity-70"
-								}`}
-								style={{
-									backgroundColor: dateRangeType === "week" ? "var(--accent)" : "transparent",
-									color: "var(--foreground)",
-									border: "1px solid var(--accent)",
-								}}
-								onClick={() => setDateRangeType("week")}
-							>
-								최근 일주일
-							</button>
-							<button
-								className={`px-3 py-2 rounded transition-colors text-sm ${
-									dateRangeType === "month" ? "font-semibold" : "opacity-70"
-								}`}
-								style={{
-									backgroundColor: dateRangeType === "month" ? "var(--accent)" : "transparent",
-									color: "var(--foreground)",
-									border: "1px solid var(--accent)",
-								}}
-								onClick={() => setDateRangeType("month")}
-							>
-								최근 한달
-							</button>
-							<button
-								className={`px-3 py-2 rounded transition-colors text-sm ${
-									dateRangeType === "custom" ? "font-semibold" : "opacity-70"
-								}`}
-								style={{
-									backgroundColor: dateRangeType === "custom" ? "var(--accent)" : "transparent",
-									color: "var(--foreground)",
-									border: "1px solid var(--accent)",
-								}}
-								onClick={() => setDateRangeType("custom")}
-							>
-								커스텀
-							</button>
+						<div className="flex flex-col gap-2">
+							<div className="flex gap-2 items-center">
+								<button
+									className={`px-3 py-2 rounded transition-colors text-sm ${
+										dateRangeType === "week" ? "font-semibold" : "opacity-70"
+									}`}
+									style={{
+										backgroundColor: dateRangeType === "week" ? "var(--accent)" : "transparent",
+										color: "var(--foreground)",
+										border: "1px solid var(--accent)",
+									}}
+									onClick={() => setDateRangeType("week")}
+								>
+									일주일
+								</button>
+								<button
+									className={`px-3 py-2 rounded transition-colors text-sm ${
+										dateRangeType === "month" ? "font-semibold" : "opacity-70"
+									}`}
+									style={{
+										backgroundColor: dateRangeType === "month" ? "var(--accent)" : "transparent",
+										color: "var(--foreground)",
+										border: "1px solid var(--accent)",
+									}}
+									onClick={() => setDateRangeType("month")}
+								>
+									한달
+								</button>
+								<button
+									className={`px-3 py-2 rounded transition-colors text-sm ${
+										dateRangeType === "custom" ? "font-semibold" : "opacity-70"
+									}`}
+									style={{
+										backgroundColor: dateRangeType === "custom" ? "var(--accent)" : "transparent",
+										color: "var(--foreground)",
+										border: "1px solid var(--accent)",
+									}}
+									onClick={() => setDateRangeType("custom")}
+								>
+									커스텀
+								</button>
+							</div>
 							{dateRangeType === "custom" && (
-								<>
+								<div className="flex gap-2 items-center">
 									<input
 										type="date"
 										value={startDate}
 										onChange={(e) => setStartDate(e.target.value)}
-										className="border rounded px-2 py-2 text-sm"
+										className="border rounded px-3 py-2 text-sm flex-1"
 									/>
 									<span className="opacity-70">~</span>
 									<input
 										type="date"
 										value={endDate}
 										onChange={(e) => setEndDate(e.target.value)}
-										className="border rounded px-2 py-2 text-sm"
+										className="border rounded px-3 py-2 text-sm flex-1"
 									/>
-								</>
+								</div>
 							)}
 						</div>
 					</div>
-					<div className="flex-1 min-w-[200px]">
-						<label className="block text-sm mb-2">그룹화 기준</label>
-						<div className="flex gap-2">
-							<button
-								className={`flex-1 px-4 py-2 rounded transition-colors text-sm ${
-									groupBy === "day" ? "font-semibold" : "opacity-70"
-								}`}
-								style={{
-									backgroundColor: groupBy === "day" ? "var(--accent)" : "transparent",
-									color: "var(--foreground)",
-									border: "1px solid var(--accent)",
-								}}
-								onClick={() => {
-									if (groupBy !== "day") {
-										setGroupBy("day");
-									}
-								}}
-							>
-								날짜별
-							</button>
-							<button
-								className={`flex-1 px-4 py-2 rounded transition-colors text-sm ${
-									groupBy === "user" ? "font-semibold" : "opacity-70"
-								}`}
-								style={{
-									backgroundColor: groupBy === "user" ? "var(--accent)" : "transparent",
-									color: "var(--foreground)",
-									border: "1px solid var(--accent)",
-								}}
-								onClick={() => {
-									if (groupBy !== "user") {
-										setGroupBy("user");
-									}
-								}}
-							>
-								사용자별
-							</button>
-						</div>
-					</div>
-					<button
-						className="px-4 py-2 rounded transition-colors cursor-pointer"
-						style={{ 
-							backgroundColor: "var(--accent)", 
-							color: "var(--foreground)" 
-						}}
-						onClick={fetchActivityData}
-						disabled={loading}
-					>
-						{loading ? "로딩 중..." : "새로고침"}
-					</button>
 				</div>
 			</div>
 
