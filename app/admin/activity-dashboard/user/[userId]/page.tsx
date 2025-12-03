@@ -25,7 +25,9 @@ type MeetingEntry = {
 	userId: string;
 	userName: string;
 	count: number;
-	meetings: Array<{
+	lastMetAt?: string;
+	updatedAt?: string;
+	meetings?: Array<{
 		date: string;
 		channelId: string;
 		channelName: string;
@@ -132,8 +134,8 @@ export default function UserDetailPage() {
 				const summaries = Array.from(dayMap.values());
 				setDaySummaries(summaries);
 
-				// 만남 횟수 계산: 같은 채널에 동시에 있던 사람들
-				await calculateMeetings(userData.activities || []);
+				// 만남 횟수: 봇 API에서 가져오기
+				await fetchMeetingCounts(userId);
 			} else {
 				setUserData(null);
 				setDaySummaries([]);
@@ -147,126 +149,93 @@ export default function UserDetailPage() {
 		}
 	}
 
-	async function calculateMeetings(activities: any[]) {
-		// 모든 활동 데이터를 가져와서 같은 채널/시간대의 다른 사용자 찾기
+	async function fetchMeetingCounts(userId: string) {
 		try {
-			// 사용자의 활동 날짜 범위 계산
-			const dates = new Set<string>();
-			const channelIds = new Set<string>();
-			for (const act of activities) {
-				const actDate = act.date || (act.startTime ? new Date(act.startTime).toISOString().split('T')[0] : "");
-				const actChannelId = act.channelId || act.channel_id || "";
-				if (actDate) dates.add(actDate);
-				if (actChannelId) channelIds.add(actChannelId);
-			}
-
-			if (dates.size === 0) {
-				setMeetings([]);
-				return;
-			}
-
-			const dateArray = Array.from(dates).sort();
-			const startDate = dateArray[0];
-			const endDate = dateArray[dateArray.length - 1];
-
-			// 해당 기간의 모든 활동 데이터 가져오기
-			const params = new URLSearchParams({
-				groupBy: "day",
-				startDate,
-				endDate,
-			});
-
-			const res = await fetch(`/api/discord-activity?${params}`);
+			const res = await fetch(`/api/discord-activity/meeting-counts?userId=${userId}`);
 			if (!res.ok) {
+				console.error("만남 횟수 조회 실패:", res.status);
 				setMeetings([]);
 				return;
 			}
 
 			const result = await res.json();
-			const allActivities: any[] = [];
-			for (const value of Object.values(result.data || {})) {
-				if ((value as any).activities && Array.isArray((value as any).activities)) {
-					allActivities.push(...(value as any).activities);
+			const meetingData = result.data || [];
+
+			// otherUserId를 userId로 변환하고, userName을 가져오기 위해 활동 데이터에서 찾기
+			// 또는 userId로 사용자 정보를 가져와야 할 수도 있음
+			// 일단 otherUserId를 userName으로 사용하고, 나중에 사용자 정보를 매핑할 수 있도록 구조화
+			const meetings: MeetingEntry[] = meetingData.map((item: any) => ({
+				userId: item.otherUserId,
+				userName: item.otherUserId, // 일단 userId를 userName으로 사용, 나중에 매핑 가능
+				count: item.count,
+				lastMetAt: item.lastMetAt,
+				updatedAt: item.updatedAt,
+			}));
+
+			// userName 매핑: 활동 데이터에서 userName 찾기
+			if (userData) {
+				const userIdToName = new Map<string, string>();
+				for (const act of userData.activities || []) {
+					const actUserId = act.userId || act.user_id || "";
+					const actUserName = act.userName || act.user_name || "";
+					if (actUserId && actUserName && !userIdToName.has(actUserId)) {
+						userIdToName.set(actUserId, actUserName);
+					}
 				}
-			}
 
-			// 같은 채널에서 시간이 겹치는 다른 사용자 활동 찾기
-			const meetingMap = new Map<string, MeetingEntry>();
+				// 모든 활동 데이터에서 다른 사용자들의 userName 찾기
+				// 사용자의 활동 기간 동안의 모든 활동 데이터 가져오기
+				const dates = new Set<string>();
+				for (const act of userData.activities || []) {
+					const actDate = act.date || (act.startTime ? new Date(act.startTime).toISOString().split('T')[0] : "");
+					if (actDate) dates.add(actDate);
+				}
 
-			for (const userAct of activities) {
-				const userActStart = userAct.startTime || userAct.startAt;
-				const userActEnd = userAct.endTime || userAct.endAt;
-				const userActChannelId = userAct.channelId || userAct.channel_id || "";
-				const userActDate = userAct.date || (userActStart ? new Date(userActStart).toISOString().split('T')[0] : "");
-				
-				if (!userActStart || !userActEnd || !userActChannelId || !userActDate) continue;
+				if (dates.size > 0) {
+					const dateArray = Array.from(dates).sort();
+					const startDate = dateArray[0];
+					const endDate = dateArray[dateArray.length - 1];
 
-				const userActStartTime = new Date(userActStart).getTime();
-				const userActEndTime = new Date(userActEnd).getTime();
+					const params = new URLSearchParams({
+						groupBy: "day",
+						startDate,
+						endDate,
+					});
 
-				// 같은 채널의 다른 사용자 활동 확인
-				for (const otherAct of allActivities) {
-					const otherUserId = otherAct.userId || otherAct.user_id || "";
-					const otherUserName = otherAct.userName || otherAct.user_name || otherUserId;
-					const otherActStart = otherAct.startTime || otherAct.startAt;
-					const otherActEnd = otherAct.endTime || otherAct.endAt;
-					const otherActChannelId = otherAct.channelId || otherAct.channel_id || "";
-					const otherActDate = otherAct.date || (otherActStart ? new Date(otherActStart).toISOString().split('T')[0] : "");
-
-					// 같은 사용자는 제외
-					if (otherUserId === userId || !otherUserId) continue;
-					// 같은 채널이 아니면 제외 (같은 채널에서 만난 것만 카운트)
-					if (otherActChannelId !== userActChannelId) continue;
-					// 같은 날짜가 아니면 제외 (날짜가 다르면 시간 겹침 의미 없음)
-					if (otherActDate !== userActDate) continue;
-					// 시간이 겹치지 않으면 제외
-					if (!otherActStart || !otherActEnd) continue;
-
-					const otherActStartTime = new Date(otherActStart).getTime();
-					const otherActEndTime = new Date(otherActEnd).getTime();
-
-					// 시간 겹침 확인 (같은 채널에서)
-					if (userActStartTime <= otherActEndTime && userActEndTime >= otherActStartTime) {
-						const existing = meetingMap.get(otherUserId);
-						
-						// 각 활동 세션마다 카운트 증가
-						if (existing) {
-							existing.count += 1;
-							// 같은 날짜/채널의 기록이 있는지 확인
-							const existingMeeting = existing.meetings.find(
-								m => m.date === userActDate && m.channelId === userActChannelId
-							);
-							if (existingMeeting) {
-								existingMeeting.activities.push(otherAct);
-							} else {
-								existing.meetings.push({
-									date: userActDate,
-									channelId: userActChannelId,
-									channelName: otherAct.channelName || otherAct.channel_name || userActChannelId,
-									activities: [otherAct],
-								});
+					const res2 = await fetch(`/api/discord-activity?${params}`);
+					if (res2.ok) {
+						const result2 = await res2.json();
+						const allActivities: any[] = [];
+						for (const value of Object.values(result2.data || {})) {
+							if ((value as any).activities && Array.isArray((value as any).activities)) {
+								allActivities.push(...(value as any).activities);
 							}
-						} else {
-							meetingMap.set(otherUserId, {
-								userId: otherUserId,
-								userName: otherUserName,
-								count: 1,
-								meetings: [{
-									date: userActDate,
-									channelId: userActChannelId,
-									channelName: otherAct.channelName || otherAct.channel_name || userActChannelId,
-									activities: [otherAct],
-								}],
-							});
+						}
+
+						for (const act of allActivities) {
+							const actUserId = act.userId || act.user_id || "";
+							const actUserName = act.userName || act.user_name || "";
+							if (actUserId && actUserName && !userIdToName.has(actUserId)) {
+								userIdToName.set(actUserId, actUserName);
+							}
 						}
 					}
 				}
+
+				// userName 매핑 적용
+				meetings.forEach((meeting) => {
+					const mappedName = userIdToName.get(meeting.userId);
+					if (mappedName) {
+						meeting.userName = mappedName;
+					}
+				});
 			}
 
-			const meetingList = Array.from(meetingMap.values()).sort((a, b) => b.count - a.count);
-			setMeetings(meetingList);
+			// 만남 횟수순으로 정렬
+			meetings.sort((a, b) => b.count - a.count);
+			setMeetings(meetings);
 		} catch (err) {
-			console.error("만남 횟수 계산 실패:", err);
+			console.error("만남 횟수 조회 실패:", err);
 			setMeetings([]);
 		}
 	}
@@ -681,48 +650,32 @@ export default function UserDetailPage() {
 																		<div className="text-xl font-semibold">{meeting.count}번</div>
 																	</div>
 
-																	{/* 같은 채널 기록 */}
+																	{/* 만남 정보 */}
 																	{isExpanded && (
 																		<div className="mt-4 pt-4 border-t border-dashed border-zinc-700/50">
-																			<div className="font-medium mb-2">같은 채널에 있었던 기록</div>
-																			<div className="space-y-3">
-																				{meeting.meetings.map((m, idx) => (
-																					<div key={idx} className="p-3 rounded" style={{ background: "var(--background)", border: "1px solid var(--accent)" }}>
-																						<div className="font-medium mb-2">
-																							{formatDate(m.date)} · {m.channelName}
-																						</div>
-																						<ul className="space-y-1 text-sm">
-																							{m.activities.map((act: any, actIdx: number) => {
-																								const start = act.startTime || act.startAt;
-																								const end = act.endTime || act.endAt;
-																								const startDate = start ? new Date(start) : null;
-																								const endDate = end ? new Date(end) : null;
-																								const dur = typeof act.durationMinutes === "number" ? act.durationMinutes : 0;
-																								
-																								return (
-																									<li key={actIdx} className="flex items-center justify-between text-xs">
-																										<div>
-																											{startDate && endDate && (
-																												<span>
-																													{startDate.toLocaleTimeString("ko-KR", {
-																														hour: "2-digit",
-																														minute: "2-digit",
-																													})}
-																													{" ~ "}
-																													{endDate.toLocaleTimeString("ko-KR", {
-																														hour: "2-digit",
-																														minute: "2-digit",
-																													})}
-																												</span>
-																											)}
-																										</div>
-																										<div className="font-semibold">{formatMinutes(dur)}</div>
-																									</li>
-																								);
-																							})}
-																						</ul>
+																			<div className="text-sm space-y-2">
+																				{meeting.lastMetAt && (
+																					<div className="opacity-70">
+																						마지막 만남: {new Date(meeting.lastMetAt).toLocaleString("ko-KR", {
+																							year: "numeric",
+																							month: "long",
+																							day: "numeric",
+																							hour: "2-digit",
+																							minute: "2-digit",
+																						})}
 																					</div>
-																				))}
+																				)}
+																				{meeting.updatedAt && (
+																					<div className="opacity-70 text-xs">
+																						업데이트: {new Date(meeting.updatedAt).toLocaleString("ko-KR", {
+																							year: "numeric",
+																							month: "long",
+																							day: "numeric",
+																							hour: "2-digit",
+																							minute: "2-digit",
+																						})}
+																					</div>
+																				)}
 																			</div>
 																		</div>
 																	)}
