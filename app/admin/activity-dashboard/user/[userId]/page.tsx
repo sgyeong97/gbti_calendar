@@ -674,6 +674,12 @@ export default function UserDetailPage() {
 
 									{/* 차트 데이터 준비 */}
 									{(() => {
+										// 이름에서 [] 안의 칭호/레벨 제거하는 함수
+										const cleanUserName = (userName: string): string => {
+											// [로 시작하는 부분을 모두 제거
+											return userName.replace(/\[.*?\]\s*/g, '').trim() || userName;
+										};
+
 										const chartData = meetings
 											.filter((m) => {
 												if (!meetingSearchTerm.trim()) return true;
@@ -682,13 +688,17 @@ export default function UserDetailPage() {
 											})
 											.sort((a, b) => b.count - a.count)
 											.slice(0, 20) // 차트는 상위 20개만 표시
-											.map((m) => ({
-												name: (m.userName || m.userId).length > 10 
-													? (m.userName || m.userId).substring(0, 10) + "..."
-													: (m.userName || m.userId),
-												value: m.count,
-												fullName: m.userName || m.userId,
-											}));
+											.map((m, index) => {
+												const cleanName = cleanUserName(m.userName || m.userId);
+												return {
+													name: cleanName.length > 10 
+														? cleanName.substring(0, 10) + "..."
+														: cleanName,
+													value: m.count,
+													fullName: m.userName || m.userId,
+													index: index, // 색상 인덱스용
+												};
+											});
 
 										const COLORS = [
 											"#FFD700", "#FF6B6B", "#4ECDC4", "#45B7D1", 
@@ -698,33 +708,37 @@ export default function UserDetailPage() {
 
 										return (
 											<div style={{ width: "100%", height: "500px" }}>
-												{meetingChartType === "bar" && (
-													<ResponsiveContainer>
-														<BarChart data={chartData}>
-															<CartesianGrid strokeDasharray="3 3" />
-															<XAxis 
-																dataKey="name" 
-																angle={-45}
-																textAnchor="end"
-																height={100}
-																style={{ fill: "var(--foreground)" }}
-															/>
-															<YAxis style={{ fill: "var(--foreground)" }} />
-															<Tooltip 
-																contentStyle={{ 
-																	backgroundColor: "var(--background)",
-																	border: "1px solid var(--accent)",
-																	color: "var(--foreground)",
-																}}
-																formatter={(value: any, payload: any) => {
-																	return [`${value}번`, payload[0]?.payload?.fullName || ""];
-																}}
-															/>
-															<Legend />
-															<Bar dataKey="value" fill="var(--accent)" name="만남 횟수" />
-														</BarChart>
-													</ResponsiveContainer>
-												)}
+											{meetingChartType === "bar" && (
+												<ResponsiveContainer>
+													<BarChart data={chartData}>
+														<CartesianGrid strokeDasharray="3 3" />
+														<XAxis 
+															dataKey="name" 
+															angle={-45}
+															textAnchor="end"
+															height={100}
+															style={{ fill: "var(--foreground)" }}
+														/>
+														<YAxis style={{ fill: "var(--foreground)" }} />
+														<Tooltip 
+															contentStyle={{ 
+																backgroundColor: "var(--background)",
+																border: "1px solid var(--accent)",
+																color: "var(--foreground)",
+															}}
+															formatter={(value: any, payload: any) => {
+																return [`${value}번`, payload[0]?.payload?.fullName || ""];
+															}}
+														/>
+														<Legend />
+														<Bar dataKey="value" name="만남 횟수">
+															{chartData.map((entry, index) => (
+																<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+															))}
+														</Bar>
+													</BarChart>
+												</ResponsiveContainer>
+											)}
 
 												{meetingChartType === "line" && (
 													<ResponsiveContainer>
@@ -768,7 +782,10 @@ export default function UserDetailPage() {
 																cx="50%"
 																cy="50%"
 																labelLine={false}
-																label={({ name, percent }: { name: string; percent: number }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+																label={({ name, percent }: { name: string; percent: number }) => {
+																	// name은 이미 cleanName이므로 그대로 사용
+																	return `${name}: ${(percent * 100).toFixed(0)}%`;
+																}}
 																outerRadius={150}
 																fill="#8884d8"
 																dataKey="value"
