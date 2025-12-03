@@ -54,19 +54,37 @@ export default function ActivityDashboardPage() {
 		new Date().toISOString().split('T')[0]
 	);
 
+	// 한국 시간 기준으로 오늘 날짜 가져오기
+	function getKoreaToday(): string {
+		const now = new Date();
+		// 한국 시간대 (UTC+9)로 변환
+		const koreaOffset = 9 * 60; // 분 단위
+		const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+		const koreaTime = new Date(utc + (koreaOffset * 60000));
+		
+		const year = koreaTime.getFullYear();
+		const month = String(koreaTime.getMonth() + 1).padStart(2, '0');
+		const day = String(koreaTime.getDate()).padStart(2, '0');
+		return `${year}-${month}-${day}`;
+	}
+
 	// 날짜 범위 타입 변경 시 날짜 자동 설정
 	useEffect(() => {
-		const today = new Date();
-		today.setHours(0, 0, 0, 0);
-		const todayStr = today.toISOString().split('T')[0];
+		const todayStr = getKoreaToday();
 
 		if (dateRangeType === "week") {
+			// 한국 시간 기준으로 날짜 계산
+			const today = new Date(todayStr);
+			today.setHours(0, 0, 0, 0);
 			const weekAgo = new Date(today);
 			weekAgo.setDate(weekAgo.getDate() - 7);
 			const weekAgoStr = weekAgo.toISOString().split('T')[0];
 			setStartDate(weekAgoStr);
 			setEndDate(todayStr);
 		} else if (dateRangeType === "month") {
+			// 한국 시간 기준으로 날짜 계산
+			const today = new Date(todayStr);
+			today.setHours(0, 0, 0, 0);
 			const monthAgo = new Date(today);
 			monthAgo.setDate(monthAgo.getDate() - 30);
 			const monthAgoStr = monthAgo.toISOString().split('T')[0];
@@ -114,7 +132,7 @@ export default function ActivityDashboardPage() {
 		setCurrentPage(1);
 		setExpandedKey(null);
 		fetchActivityData();
-	}, [groupBy, startDate, endDate]);
+	}, [groupBy, startDate, endDate, dateRangeType]);
 
 	async function handleDeleteActivity(activityId: string) {
 		if (!activityId) return;
@@ -736,12 +754,53 @@ export default function ActivityDashboardPage() {
 				}}
 			>
 				<div className="flex gap-4 flex-wrap items-end">
-					{/* 날짜 범위 선택 버튼 */}
-					<div className="w-full mb-4">
-						<label className="block text-sm mb-2">기간 선택</label>
+					{/* 그룹화 기준 */}
+					<div className="flex-1 min-w-[200px]">
+						<label className="block text-sm mb-2">그룹화 기준</label>
 						<div className="flex gap-2">
 							<button
-								className={`px-4 py-2 rounded transition-colors text-sm ${
+								className={`flex-1 px-4 py-2 rounded transition-colors text-sm ${
+									groupBy === "day" ? "font-semibold" : "opacity-70"
+								}`}
+								style={{
+									backgroundColor: groupBy === "day" ? "var(--accent)" : "transparent",
+									color: "var(--foreground)",
+									border: "1px solid var(--accent)",
+								}}
+								onClick={() => {
+									if (groupBy !== "day") {
+										setGroupBy("day");
+									}
+								}}
+							>
+								날짜별
+							</button>
+							<button
+								className={`flex-1 px-4 py-2 rounded transition-colors text-sm ${
+									groupBy === "user" ? "font-semibold" : "opacity-70"
+								}`}
+								style={{
+									backgroundColor: groupBy === "user" ? "var(--accent)" : "transparent",
+									color: "var(--foreground)",
+									border: "1px solid var(--accent)",
+								}}
+								onClick={() => {
+									if (groupBy !== "user") {
+										setGroupBy("user");
+									}
+								}}
+							>
+								사용자별
+							</button>
+						</div>
+					</div>
+
+					{/* 날짜 범위 선택 및 입력 */}
+					<div className="flex-1 min-w-[200px]">
+						<label className="block text-sm mb-2">기간 선택</label>
+						<div className="flex gap-2 items-center">
+							<button
+								className={`px-3 py-2 rounded transition-colors text-sm ${
 									dateRangeType === "week" ? "font-semibold" : "opacity-70"
 								}`}
 								style={{
@@ -754,7 +813,7 @@ export default function ActivityDashboardPage() {
 								최근 일주일
 							</button>
 							<button
-								className={`px-4 py-2 rounded transition-colors text-sm ${
+								className={`px-3 py-2 rounded transition-colors text-sm ${
 									dateRangeType === "month" ? "font-semibold" : "opacity-70"
 								}`}
 								style={{
@@ -767,7 +826,7 @@ export default function ActivityDashboardPage() {
 								최근 한달
 							</button>
 							<button
-								className={`px-4 py-2 rounded transition-colors text-sm ${
+								className={`px-3 py-2 rounded transition-colors text-sm ${
 									dateRangeType === "custom" ? "font-semibold" : "opacity-70"
 								}`}
 								style={{
@@ -779,32 +838,25 @@ export default function ActivityDashboardPage() {
 							>
 								커스텀
 							</button>
+							{dateRangeType === "custom" && (
+								<>
+									<input
+										type="date"
+										value={startDate}
+										onChange={(e) => setStartDate(e.target.value)}
+										className="border rounded px-2 py-2 text-sm"
+									/>
+									<span className="opacity-70">~</span>
+									<input
+										type="date"
+										value={endDate}
+										onChange={(e) => setEndDate(e.target.value)}
+										className="border rounded px-2 py-2 text-sm"
+									/>
+								</>
+							)}
 						</div>
 					</div>
-
-					{/* 커스텀 날짜 입력 (커스텀 선택 시에만 표시) */}
-					{dateRangeType === "custom" && (
-						<>
-							<div className="flex-1 min-w-[200px]">
-								<label className="block text-sm mb-2">시작 날짜</label>
-								<input
-									type="date"
-									value={startDate}
-									onChange={(e) => setStartDate(e.target.value)}
-									className="w-full border rounded px-3 py-2"
-								/>
-							</div>
-							<div className="flex-1 min-w-[200px]">
-								<label className="block text-sm mb-2">종료 날짜</label>
-								<input
-									type="date"
-									value={endDate}
-									onChange={(e) => setEndDate(e.target.value)}
-									className="w-full border rounded px-3 py-2"
-								/>
-							</div>
-						</>
-					)}
 					<div className="flex-1 min-w-[200px]">
 						<label className="block text-sm mb-2">그룹화 기준</label>
 						<div className="flex gap-2">
