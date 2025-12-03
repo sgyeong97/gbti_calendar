@@ -161,75 +161,14 @@ export default function UserDetailPage() {
 			const result = await res.json();
 			const meetingData = result.data || [];
 
-			// otherUserId를 userId로 변환하고, userName을 가져오기 위해 활동 데이터에서 찾기
-			// 또는 userId로 사용자 정보를 가져와야 할 수도 있음
-			// 일단 otherUserId를 userName으로 사용하고, 나중에 사용자 정보를 매핑할 수 있도록 구조화
+			// API 응답에서 otherUserName을 직접 사용
 			const meetings: MeetingEntry[] = meetingData.map((item: any) => ({
 				userId: item.otherUserId,
-				userName: item.otherUserId, // 일단 userId를 userName으로 사용, 나중에 매핑 가능
+				userName: item.otherUserName || item.otherUserId, // API에서 제공하는 otherUserName 사용
 				count: item.count,
 				lastMetAt: item.lastMetAt,
 				updatedAt: item.updatedAt,
 			}));
-
-			// userName 매핑: 활동 데이터에서 userName 찾기
-			if (userData) {
-				const userIdToName = new Map<string, string>();
-				for (const act of userData.activities || []) {
-					const actUserId = act.userId || act.user_id || "";
-					const actUserName = act.userName || act.user_name || "";
-					if (actUserId && actUserName && !userIdToName.has(actUserId)) {
-						userIdToName.set(actUserId, actUserName);
-					}
-				}
-
-				// 모든 활동 데이터에서 다른 사용자들의 userName 찾기
-				// 사용자의 활동 기간 동안의 모든 활동 데이터 가져오기
-				const dates = new Set<string>();
-				for (const act of userData.activities || []) {
-					const actDate = act.date || (act.startTime ? new Date(act.startTime).toISOString().split('T')[0] : "");
-					if (actDate) dates.add(actDate);
-				}
-
-				if (dates.size > 0) {
-					const dateArray = Array.from(dates).sort();
-					const startDate = dateArray[0];
-					const endDate = dateArray[dateArray.length - 1];
-
-					const params = new URLSearchParams({
-						groupBy: "day",
-						startDate,
-						endDate,
-					});
-
-					const res2 = await fetch(`/api/discord-activity?${params}`);
-					if (res2.ok) {
-						const result2 = await res2.json();
-						const allActivities: any[] = [];
-						for (const value of Object.values(result2.data || {})) {
-							if ((value as any).activities && Array.isArray((value as any).activities)) {
-								allActivities.push(...(value as any).activities);
-							}
-						}
-
-						for (const act of allActivities) {
-							const actUserId = act.userId || act.user_id || "";
-							const actUserName = act.userName || act.user_name || "";
-							if (actUserId && actUserName && !userIdToName.has(actUserId)) {
-								userIdToName.set(actUserId, actUserName);
-							}
-						}
-					}
-				}
-
-				// userName 매핑 적용
-				meetings.forEach((meeting) => {
-					const mappedName = userIdToName.get(meeting.userId);
-					if (mappedName) {
-						meeting.userName = mappedName;
-					}
-				});
-			}
 
 			// 만남 횟수순으로 정렬
 			meetings.sort((a, b) => b.count - a.count);
