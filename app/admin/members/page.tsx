@@ -60,29 +60,29 @@ export default function MemberManagementPage() {
 	useEffect(() => {
 		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
 		setColorTheme(savedColorTheme);
+		
+		// 테마 적용
+		applyColorTheme();
 
-		// 테마 변경 감지
+		// 테마 변경 감지 (다른 탭에서 변경된 경우)
 		const handleStorageChange = () => {
 			const newColorTheme = localStorage.getItem("gbti_color_theme") || "default";
-			setColorTheme(newColorTheme);
+			if (newColorTheme !== colorTheme) {
+				setColorTheme(newColorTheme);
+			}
 		};
 
 		window.addEventListener("storage", handleStorageChange);
-		
-		// MutationObserver로 html 클래스 변경 감지
-		const observer = new MutationObserver(() => {
-			const newColorTheme = localStorage.getItem("gbti_color_theme") || "default";
-			setColorTheme(newColorTheme);
-		});
-
-		const html = document.documentElement;
-		observer.observe(html, { attributes: true, attributeFilter: ["class"] });
 
 		return () => {
 			window.removeEventListener("storage", handleStorageChange);
-			observer.disconnect();
 		};
 	}, [theme]);
+
+	// colorTheme 변경 시 테마 적용
+	useEffect(() => {
+		applyColorTheme();
+	}, [colorTheme]);
 
 	async function fetchMembers() {
 		setLoading(true);

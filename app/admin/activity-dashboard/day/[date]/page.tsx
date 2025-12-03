@@ -48,26 +48,18 @@ export default function DayDetailPage() {
 		// 테마 적용
 		applyColorTheme();
 
+		// 테마 변경 감지 (다른 탭에서 변경된 경우)
 		const handleStorageChange = () => {
 			const newColorTheme = localStorage.getItem("gbti_color_theme") || "default";
-			setColorTheme(newColorTheme);
-			applyColorTheme();
+			if (newColorTheme !== colorTheme) {
+				setColorTheme(newColorTheme);
+			}
 		};
 
 		window.addEventListener("storage", handleStorageChange);
-		
-		const observer = new MutationObserver(() => {
-			const newColorTheme = localStorage.getItem("gbti_color_theme") || "default";
-			setColorTheme(newColorTheme);
-			applyColorTheme();
-		});
-
-		const html = document.documentElement;
-		observer.observe(html, { attributes: true, attributeFilter: ["class"] });
 
 		return () => {
 			window.removeEventListener("storage", handleStorageChange);
-			observer.disconnect();
 		};
 	}, [theme]);
 
