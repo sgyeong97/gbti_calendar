@@ -123,6 +123,199 @@ export default function ActivityDashboardPage() {
 		}
 	}
 
+	// userId 기준으로 userName 정규화: 가장 최근 createdAt의 userName 사용
+	function normalizeUserNames(data: Record<string, ActivityData | UserActivityData>): Record<string, ActivityData | UserActivityData> {
+		// 1) 모든 활동 수집
+		const allActivities: any[] = [];
+		for (const value of Object.values(data || {})) {
+			if ((value as any).activities && Array.isArray((value as any).activities)) {
+				allActivities.push(...(value as any).activities);
+			}
+		}
+
+		if (allActivities.length === 0) return data;
+
+		// 2) userId별로 가장 최근 createdAt의 userName 찾기
+		const userIdToLatestName = new Map<string, { userName: string; createdAt: string }>();
+		for (const act of allActivities) {
+			const userId = act.userId || act.user_id || "";
+			if (!userId) continue;
+
+			const createdAt = act.createdAt || act.created_at || act.startTime || act.startAt || "";
+			if (!createdAt) continue;
+
+			const existing = userIdToLatestName.get(userId);
+			if (!existing || createdAt > existing.createdAt) {
+				const userName = act.userName || act.user_name || userId;
+				userIdToLatestName.set(userId, { userName, createdAt });
+			}
+		}
+
+		// 3) 모든 활동의 userName을 정규화된 userName으로 교체
+		const normalizedData: Record<string, ActivityData | UserActivityData> = {};
+		for (const [key, value] of Object.entries(data)) {
+			if (groupBy === "day") {
+				const dayData = value as ActivityData;
+				const normalizedActivities = (dayData.activities || []).map((act: any) => {
+					const userId = act.userId || act.user_id || "";
+					const latest = userIdToLatestName.get(userId);
+					if (latest) {
+						return { ...act, userName: latest.userName };
+					}
+					return act;
+				});
+				// users 배열도 userId 기준으로 정규화
+				const normalizedUsers = new Set<string>();
+				normalizedActivities.forEach((act: any) => {
+					const userId = act.userId || act.user_id || "";
+					const latest = userIdToLatestName.get(userId);
+					if (latest) {
+						normalizedUsers.add(latest.userName);
+					}
+				});
+				normalizedData[key] = {
+					...dayData,
+					activities: normalizedActivities,
+					users: Array.from(normalizedUsers),
+					userCount: normalizedUsers.size,
+				};
+			} else {
+				const userData = value as UserActivityData;
+				const normalizedActivities = (userData.activities || []).map((act: any) => {
+					const userId = act.userId || act.user_id || "";
+					const latest = userIdToLatestName.get(userId);
+					if (latest) {
+						return { ...act, userName: latest.userName };
+					}
+					return act;
+				});
+				const userId = userData.userId || "";
+				const latest = userIdToLatestName.get(userId);
+				normalizedData[key] = {
+					...userData,
+					activities: normalizedActivities,
+					userName: latest ? latest.userName : (userData.userName || userData.userId),
+				};
+			}
+		}
+
+		// 4) 사용자별 그룹화인 경우, userId 기준으로 재그룹화
+		if (groupBy === "user") {
+			const userIdGroups = new Map<string, UserActivityData>();
+			for (const value of Object.values(normalizedData)) {
+				const userData = value as UserActivityData;
+				const userId = userData.userId || "";
+				if (!userId) continue;
+
+				const existing = userIdGroups.get(userId);
+				if (existing) {
+					// 기존 데이터와 병합
+					existing.totalMinutes += userData.totalMinutes;
+					existing.activities.push(...(userData.activities || []));
+					// days 중복 제거
+					const allDays = new Set([...(existing.days || []), ...(userData.days || [])]);
+					existing.days = Array.from(allDays);
+					existing.dayCount = existing.days.length;
+				} else {
+					userIdGroups.set(userId, { ...userData });
+				}
+			}
+
+			// userId를 키로 하는 새 객체 생성
+			const regrouped: Record<string, UserActivityData> = {};
+			for (const [userId, userData] of userIdGroups.entries()) {
+				// activities를 시간순 정렬
+				userData.activities.sort((a: any, b: any) => {
+					const aTime = new Date(a.startTime || a.startAt || a.date).getTime();
+					const bTime = new Date(b.startTime || b.startAt || b.date).getTime();
+					return bTime - aTime; // 최신순
+				});
+				// userId를 키로 사용 (표시는 userName 사용)
+				regrouped[userId] = userData;
+			}
+			return regrouped;
+		}
+
+		return normalizedData;
+	}
+
+	// date 필드 보정: startTime 또는 createdAt의 날짜를 사용
+	function normalizeDates(data: Record<string, ActivityData | UserActivityData>): Record<string, ActivityData | UserActivityData> {
+		const normalized: Record<string, ActivityData | UserActivityData> = {};
+
+		for (const [key, value] of Object.entries(data)) {
+			if (groupBy === "day") {
+				const dayData = value as ActivityData;
+				// 날짜별 그룹화인 경우, 각 활동의 실제 날짜를 계산해서 재그룹화
+				const activitiesByDate = new Map<string, any[]>();
+
+				for (const act of dayData.activities || []) {
+					// startTime 우선, 없으면 createdAt 사용
+					const timeStr = act.startTime || act.startAt || act.createdAt || act.created_at || act.date;
+					if (!timeStr) continue;
+
+					const time = new Date(timeStr);
+					if (isNaN(time.getTime())) continue;
+
+					// YYYY-MM-DD 형식으로 날짜 추출
+					const actualDate = time.toISOString().split('T')[0];
+					const activities = activitiesByDate.get(actualDate) || [];
+					activities.push({
+						...act,
+						date: actualDate, // date 필드도 보정
+					});
+					activitiesByDate.set(actualDate, activities);
+				}
+
+				// 각 날짜별로 ActivityData 생성
+				for (const [dateKey, activities] of activitiesByDate.entries()) {
+					const totalMinutes = activities.reduce((sum, a) => sum + (a.durationMinutes || 0), 0);
+					const users = new Set<string>();
+					activities.forEach((a: any) => {
+						if (a.userName) users.add(a.userName);
+					});
+
+					normalized[dateKey] = {
+						date: dateKey,
+						totalMinutes,
+						userCount: users.size,
+						users: Array.from(users),
+						activities,
+					};
+				}
+			} else {
+				// 사용자별 그룹화인 경우, 각 활동의 date 필드만 보정
+				const userData = value as UserActivityData;
+				const normalizedActivities = (userData.activities || []).map((act: any) => {
+					const timeStr = act.startTime || act.startAt || act.createdAt || act.created_at || act.date;
+					if (timeStr) {
+						const time = new Date(timeStr);
+						if (!isNaN(time.getTime())) {
+							const actualDate = time.toISOString().split('T')[0];
+							return { ...act, date: actualDate };
+						}
+					}
+					return act;
+				});
+
+				// days 배열도 실제 날짜로 재계산
+				const actualDays = new Set<string>();
+				normalizedActivities.forEach((act: any) => {
+					if (act.date) actualDays.add(act.date);
+				});
+
+				normalized[key] = {
+					...userData,
+					activities: normalizedActivities,
+					days: Array.from(actualDays),
+					dayCount: actualDays.size,
+				};
+			}
+		}
+
+		return normalized;
+	}
+
 	async function fetchActivityData() {
 		setLoading(true);
 		try {
@@ -136,12 +329,18 @@ export default function ActivityDashboardPage() {
 			if (!res.ok) throw new Error("Failed to fetch");
 			
 			const result = await res.json();
-			setActivityData(result.data || {});
+			const rawData = result.data || {};
+
+			// date 필드 보정 (startTime 또는 createdAt의 날짜 사용)
+			const dateNormalized = normalizeDates(rawData);
+			// userName 정규화 (userId 기준으로 가장 최근 userName 사용)
+			const normalizedData = normalizeUserNames(dateNormalized);
+			setActivityData(normalizedData);
 
 			// 통계 계산
-			calculateStats(result.data || {});
+			calculateStats(normalizedData);
 			// 수상한 활동 계산
-			calculateSuspicious(result.data || {});
+			calculateSuspicious(normalizedData);
 		} catch (err) {
 			console.error("활동 데이터 로딩 실패:", err);
 			alert("활동 데이터를 불러오지 못했습니다.");
@@ -323,6 +522,7 @@ export default function ActivityDashboardPage() {
 		} else {
 			const aData = a[1] as UserActivityData;
 			const bData = b[1] as UserActivityData;
+			// userId 기준으로 정렬 (같은 userId는 하나로 합쳐져 있음)
 			return bData.totalMinutes - aData.totalMinutes; // 활동 시간 내림차순
 		}
 	});
