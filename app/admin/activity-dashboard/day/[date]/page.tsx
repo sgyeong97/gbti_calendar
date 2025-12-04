@@ -32,7 +32,8 @@ export default function DayDetailPage() {
 	const [activityData, setActivityData] = useState<ActivityData | null>(null);
 	const [userSummaries, setUserSummaries] = useState<UserSummary[]>([]);
 	const [searchTerm, setSearchTerm] = useState<string>("");
-	const [sortBy, setSortBy] = useState<"name" | "time" | "count">("time");
+	const [sortBy, setSortBy] = useState<"name" | "time">("time");
+	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 	const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
 	
 	// 리스트/차트 토글 및 페이징
@@ -299,13 +300,15 @@ export default function DayDetailPage() {
 			return (user.userName || user.userId).toLowerCase().includes(term);
 		})
 		.sort((a, b) => {
+			let result = 0;
 			if (sortBy === "name") {
-				return (a.userName || a.userId).localeCompare(b.userName || b.userId);
-			} else if (sortBy === "count") {
-				return b.activityCount - a.activityCount;
+				result = (a.userName || a.userId).localeCompare(b.userName || b.userId);
 			} else {
-				return b.totalMinutes - a.totalMinutes;
+				// time
+				result = a.totalMinutes - b.totalMinutes;
 			}
+			// 정렬 방향 적용
+			return sortOrder === "asc" ? result : -result;
 		});
 
 	// 페이징 계산
@@ -668,61 +671,85 @@ export default function DayDetailPage() {
 							</div>
 							<div className="flex-1 min-w-[200px]">
 								<label className="block text-sm mb-2">정렬 기준</label>
-								<div className="flex gap-2">
-									<button
-										className={`px-3 py-2 rounded text-sm transition-colors flex-1 ${
-											sortBy === "time"
-												? "font-semibold"
-												: "opacity-70"
-										}`}
-										style={{
-											backgroundColor: sortBy === "time" ? "var(--accent)" : "transparent",
-											color: "var(--foreground)",
-											border: "1px solid var(--accent)",
-										}}
-										onClick={() => {
-											setSortBy("time");
-											setCurrentPage(1);
-										}}
-									>
-										활동 시간순
-									</button>
-									<button
-										className={`px-3 py-2 rounded text-sm transition-colors flex-1 ${
-											sortBy === "count"
-												? "font-semibold"
-												: "opacity-70"
-										}`}
-										style={{
-											backgroundColor: sortBy === "count" ? "var(--accent)" : "transparent",
-											color: "var(--foreground)",
-											border: "1px solid var(--accent)",
-										}}
-										onClick={() => {
-											setSortBy("count");
-											setCurrentPage(1);
-										}}
-									>
-										활동 횟수순
-									</button>
-									<button
-										className={`px-3 py-2 rounded text-sm transition-colors flex-1 ${
-											sortBy === "name"
-												? "font-semibold"
-												: "opacity-70"
-										}`}
-										style={{
-											backgroundColor: sortBy === "name" ? "var(--accent)" : "transparent",
-											color: "var(--foreground)",
-											border: "1px solid var(--accent)",
-										}}
-										onClick={() => {
-											setSortBy("name");
-											setCurrentPage(1);
-										}}
-									>
-										이름순
-									</button>
+								<div className="flex flex-col gap-2">
+									{/* 정렬 기준 선택 */}
+									<div className="flex gap-2">
+										<button
+											className={`px-3 py-2 rounded text-sm transition-colors flex-1 ${
+												sortBy === "time"
+													? "font-semibold"
+													: "opacity-70"
+											}`}
+											style={{
+												backgroundColor: sortBy === "time" ? "var(--accent)" : "transparent",
+												color: "var(--foreground)",
+												border: "1px solid var(--accent)",
+											}}
+											onClick={() => {
+												setSortBy("time");
+												setCurrentPage(1);
+											}}
+										>
+											시간순
+										</button>
+										<button
+											className={`px-3 py-2 rounded text-sm transition-colors flex-1 ${
+												sortBy === "name"
+													? "font-semibold"
+													: "opacity-70"
+											}`}
+											style={{
+												backgroundColor: sortBy === "name" ? "var(--accent)" : "transparent",
+												color: "var(--foreground)",
+												border: "1px solid var(--accent)",
+											}}
+											onClick={() => {
+												setSortBy("name");
+												setCurrentPage(1);
+											}}
+										>
+											이름순
+										</button>
+									</div>
+									{/* 정렬 방향 선택 */}
+									<div className="flex gap-2">
+										<button
+											className={`px-3 py-2 rounded text-sm transition-colors flex-1 ${
+												sortOrder === "asc"
+													? "font-semibold"
+													: "opacity-70"
+											}`}
+											style={{
+												backgroundColor: sortOrder === "asc" ? "var(--accent)" : "transparent",
+												color: "var(--foreground)",
+												border: "1px solid var(--accent)",
+											}}
+											onClick={() => {
+												setSortOrder("asc");
+												setCurrentPage(1);
+											}}
+										>
+											오름차순
+										</button>
+										<button
+											className={`px-3 py-2 rounded text-sm transition-colors flex-1 ${
+												sortOrder === "desc"
+													? "font-semibold"
+													: "opacity-70"
+											}`}
+											style={{
+												backgroundColor: sortOrder === "desc" ? "var(--accent)" : "transparent",
+												color: "var(--foreground)",
+												border: "1px solid var(--accent)",
+											}}
+											onClick={() => {
+												setSortOrder("desc");
+												setCurrentPage(1);
+											}}
+										>
+											내림차순
+										</button>
+									</div>
 								</div>
 							</div>
 						</div>
@@ -1015,7 +1042,7 @@ export default function DayDetailPage() {
 											name: (user.userName || user.userId).length > 10 
 												? (user.userName || user.userId).substring(0, 10) + "..."
 												: (user.userName || user.userId),
-											value: sortBy === "time" ? user.totalMinutes : user.activityCount,
+											value: sortBy === "time" ? user.totalMinutes : user.activityCount, // 이름순일 때는 활동 횟수 사용
 											fullName: user.userName || user.userId,
 											minutes: user.totalMinutes,
 											count: user.activityCount,
@@ -1053,7 +1080,9 @@ export default function DayDetailPage() {
 																	const mins = value % 60;
 																	return [`${hours}시간 ${mins}분`, payload[0]?.payload?.fullName || ""];
 																} else {
-																	return [`${value}회`, payload[0]?.payload?.fullName || ""];
+																	// 이름순일 때는 활동 횟수 표시
+																	const count = payload[0]?.payload?.count || 0;
+																	return [`${count}회`, payload[0]?.payload?.fullName || ""];
 																}
 															}}
 														/>
@@ -1085,7 +1114,9 @@ export default function DayDetailPage() {
 																	const mins = value % 60;
 																	return [`${hours}시간 ${mins}분`, payload[0]?.payload?.fullName || ""];
 																} else {
-																	return [`${value}회`, payload[0]?.payload?.fullName || ""];
+																	// 이름순일 때는 활동 횟수 표시
+																	const count = payload[0]?.payload?.count || 0;
+																	return [`${count}회`, payload[0]?.payload?.fullName || ""];
 																}
 															}}
 														/>
@@ -1122,7 +1153,9 @@ export default function DayDetailPage() {
 																	const mins = value % 60;
 																	return [`${hours}시간 ${mins}분`, payload?.fullName || ""];
 																} else {
-																	return [`${value}회`, payload?.fullName || ""];
+																	// 이름순일 때는 활동 횟수 표시
+																	const count = payload?.count || 0;
+																	return [`${count}회`, payload?.fullName || ""];
 																}
 															}}
 														/>
