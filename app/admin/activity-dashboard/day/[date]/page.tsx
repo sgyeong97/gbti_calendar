@@ -668,20 +668,62 @@ export default function DayDetailPage() {
 							</div>
 							<div className="flex-1 min-w-[200px]">
 								<label className="block text-sm mb-2">정렬 기준</label>
-								<select
-									value={sortBy}
-									onChange={(e) => setSortBy(e.target.value as "name" | "time" | "count")}
-									className="w-full border rounded px-3 py-2"
-									style={{
-										background: "var(--background)",
-										color: "var(--foreground)",
-										borderColor: "var(--accent)",
-									}}
-								>
-									<option value="time">활동 시간순</option>
-									<option value="count">활동 횟수순</option>
-									<option value="name">이름순</option>
-								</select>
+								<div className="flex gap-2">
+									<button
+										className={`px-3 py-2 rounded text-sm transition-colors flex-1 ${
+											sortBy === "time"
+												? "font-semibold"
+												: "opacity-70"
+										}`}
+										style={{
+											backgroundColor: sortBy === "time" ? "var(--accent)" : "transparent",
+											color: "var(--foreground)",
+											border: "1px solid var(--accent)",
+										}}
+										onClick={() => {
+											setSortBy("time");
+											setCurrentPage(1);
+										}}
+									>
+										활동 시간순
+									</button>
+									<button
+										className={`px-3 py-2 rounded text-sm transition-colors flex-1 ${
+											sortBy === "count"
+												? "font-semibold"
+												: "opacity-70"
+										}`}
+										style={{
+											backgroundColor: sortBy === "count" ? "var(--accent)" : "transparent",
+											color: "var(--foreground)",
+											border: "1px solid var(--accent)",
+										}}
+										onClick={() => {
+											setSortBy("count");
+											setCurrentPage(1);
+										}}
+									>
+										활동 횟수순
+									</button>
+									<button
+										className={`px-3 py-2 rounded text-sm transition-colors flex-1 ${
+											sortBy === "name"
+												? "font-semibold"
+												: "opacity-70"
+										}`}
+										style={{
+											backgroundColor: sortBy === "name" ? "var(--accent)" : "transparent",
+											color: "var(--foreground)",
+											border: "1px solid var(--accent)",
+										}}
+										onClick={() => {
+											setSortBy("name");
+											setCurrentPage(1);
+										}}
+									>
+										이름순
+									</button>
+								</div>
 							</div>
 						</div>
 					</div>
