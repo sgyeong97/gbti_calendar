@@ -48,49 +48,51 @@ export default function ActivityDashboardPage() {
 	const [currentPage, setCurrentPage] = useState<number>(1);
 	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc"); // 날짜별: desc(최신순), 사용자별: desc(활동량 많은순)
 	const [dateRangeType, setDateRangeType] = useState<"week" | "month" | "custom">("month");
-	const [startDate, setStartDate] = useState<string>(
-		new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-	);
-	const [endDate, setEndDate] = useState<string>(
-		new Date().toISOString().split('T')[0]
-	);
+	// 한국 시간대(KST) 기준 날짜 유틸
+	function toKoreaDate(date: Date): Date {
+		const utcTime = date.getTime() + date.getTimezoneOffset() * 60000;
+		return new Date(utcTime + 9 * 60 * 60000);
+	}
+	function formatDateYMD(date: Date): string {
+		const year = date.getFullYear();
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const day = String(date.getDate()).padStart(2, '0');
+		return `${year}-${month}-${day}`;
+	}
+	const [startDate, setStartDate] = useState<string>(() => {
+		const todayKorea = toKoreaDate(new Date());
+		const monthAgo = new Date(todayKorea);
+		monthAgo.setDate(monthAgo.getDate() - 30);
+		return formatDateYMD(monthAgo);
+	});
+	const [endDate, setEndDate] = useState<string>(() => {
+		const todayKorea = toKoreaDate(new Date());
+		return formatDateYMD(todayKorea);
+	});
 
 	// 한국 시간 기준으로 오늘 날짜 가져오기
 	function getKoreaToday(): string {
-		const now = new Date();
-		// 한국 시간대 (UTC+9)로 변환
-		const koreaOffset = 9 * 60; // 분 단위
-		const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-		const koreaTime = new Date(utc + (koreaOffset * 60000));
-		
-		const year = koreaTime.getFullYear();
-		const month = String(koreaTime.getMonth() + 1).padStart(2, '0');
-		const day = String(koreaTime.getDate()).padStart(2, '0');
-		return `${year}-${month}-${day}`;
+		return formatDateYMD(toKoreaDate(new Date()));
 	}
 
 	// 날짜 범위 타입 변경 시 날짜 자동 설정
 	useEffect(() => {
-		const todayStr = getKoreaToday();
-
 		if (dateRangeType === "week") {
 			// 한국 시간 기준으로 날짜 계산
-			const today = new Date(todayStr);
+			const today = toKoreaDate(new Date());
 			today.setHours(0, 0, 0, 0);
 			const weekAgo = new Date(today);
 			weekAgo.setDate(weekAgo.getDate() - 7);
-			const weekAgoStr = weekAgo.toISOString().split('T')[0];
-			setStartDate(weekAgoStr);
-			setEndDate(todayStr);
+			setStartDate(formatDateYMD(weekAgo));
+			setEndDate(formatDateYMD(today));
 		} else if (dateRangeType === "month") {
 			// 한국 시간 기준으로 날짜 계산
-			const today = new Date(todayStr);
+			const today = toKoreaDate(new Date());
 			today.setHours(0, 0, 0, 0);
 			const monthAgo = new Date(today);
 			monthAgo.setDate(monthAgo.getDate() - 30);
-			const monthAgoStr = monthAgo.toISOString().split('T')[0];
-			setStartDate(monthAgoStr);
-			setEndDate(todayStr);
+			setStartDate(formatDateYMD(monthAgo));
+			setEndDate(formatDateYMD(today));
 		}
 		// custom인 경우는 사용자가 직접 입력하므로 변경하지 않음
 	}, [dateRangeType]);
@@ -285,15 +287,13 @@ export default function ActivityDashboardPage() {
 	}
 
 	// date 필드 보정: startTime 또는 createdAt의 날짜를 사용
-	// 로컬 시간대 기준으로 날짜 추출 (UTC 변환으로 인한 날짜 밀림 방지)
-	function getLocalDateString(dateStr: string): string {
+	// 한국 시간대 기준으로 날짜 추출 (UTC 변환으로 인한 날짜 밀림 방지)
+	function getKoreaDateString(dateStr: string): string {
 		const date = new Date(dateStr);
 		if (isNaN(date.getTime())) return "";
-		// 로컬 시간대 기준으로 YYYY-MM-DD 형식 추출
-		const year = date.getFullYear();
-		const month = String(date.getMonth() + 1).padStart(2, '0');
-		const day = String(date.getDate()).padStart(2, '0');
-		return `${year}-${month}-${day}`;
+		// 입력된 시간을 KST로 변환한 뒤 날짜만 추출
+		const koreaDate = toKoreaDate(date);
+		return formatDateYMD(koreaDate);
 	}
 
 	function normalizeDates(data: Record<string, ActivityData | UserActivityData>): Record<string, ActivityData | UserActivityData> {
@@ -311,7 +311,7 @@ export default function ActivityDashboardPage() {
 					if (!timeStr) continue;
 
 					// 로컬 시간대 기준으로 날짜 추출
-					const actualDate = getLocalDateString(timeStr);
+					const actualDate = getKoreaDateString(timeStr);
 					if (!actualDate) continue;
 
 					const activities = activitiesByDate.get(actualDate) || [];
@@ -344,7 +344,7 @@ export default function ActivityDashboardPage() {
 				const normalizedActivities = (userData.activities || []).map((act: any) => {
 					const timeStr = act.startTime || act.startAt || act.createdAt || act.created_at || act.date;
 					if (timeStr) {
-						const actualDate = getLocalDateString(timeStr);
+						const actualDate = getKoreaDateString(timeStr);
 						if (actualDate) {
 							return { ...act, date: actualDate };
 						}
