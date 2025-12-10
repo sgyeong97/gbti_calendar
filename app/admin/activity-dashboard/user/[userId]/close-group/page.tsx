@@ -49,22 +49,33 @@ export default function CloseGroupPage() {
 	// 겹친 시간 계산
 	function computeOverlapMinutes(myActs: Activity[], otherActs: Activity[]): number {
 		let total = 0;
-		const mine = (myActs || []).filter(Boolean).map((a) => ({
-			start: new Date(a.startTime || a.startAt || a.date || "").getTime(),
-			end: a.endTime || a.endAt
-				? new Date(a.endTime || a.endAt).getTime()
-				: new Date(a.startTime || a.startAt || a.date || "").getTime() +
-				  ((typeof a.durationMinutes === "number" ? a.durationMinutes : 0) * 60000),
-			channelId: a.channelId,
-		}));
-		const yours = (otherActs || []).filter(Boolean).map((a) => ({
-			start: new Date(a.startTime || a.startAt || a.date || "").getTime(),
-			end: a.endTime || a.endAt
-				? new Date(a.endTime || a.endAt).getTime()
-				: new Date(a.startTime || a.startAt || a.date || "").getTime() +
-				  ((typeof a.durationMinutes === "number" ? a.durationMinutes : 0) * 60000),
-			channelId: a.channelId,
-		}));
+		const mine = (myActs || []).filter(Boolean).map((a) => {
+			const startRaw = a.startTime ?? a.startAt ?? a.date;
+			const startMs = startRaw ? new Date(startRaw).getTime() : NaN;
+			const endRaw = a.endTime ?? a.endAt;
+			const endMs = endRaw
+				? new Date(endRaw).getTime()
+				: startMs + ((typeof a.durationMinutes === "number" ? a.durationMinutes : 0) * 60000);
+			return {
+				start: startMs,
+				end: endMs,
+				channelId: a.channelId,
+			};
+		}).filter((a) => Number.isFinite(a.start) && Number.isFinite(a.end));
+
+		const yours = (otherActs || []).filter(Boolean).map((a) => {
+			const startRaw = a.startTime ?? a.startAt ?? a.date;
+			const startMs = startRaw ? new Date(startRaw).getTime() : NaN;
+			const endRaw = a.endTime ?? a.endAt;
+			const endMs = endRaw
+				? new Date(endRaw).getTime()
+				: startMs + ((typeof a.durationMinutes === "number" ? a.durationMinutes : 0) * 60000);
+			return {
+				start: startMs,
+				end: endMs,
+				channelId: a.channelId,
+			};
+		}).filter((a) => Number.isFinite(a.start) && Number.isFinite(a.end));
 		for (const a of mine) {
 			if (!a.channelId) continue;
 			for (const b of yours) {
