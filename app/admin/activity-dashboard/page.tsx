@@ -1192,13 +1192,13 @@ export default function ActivityDashboardPage() {
 				)}
 			</div>
 
-			{/* 수상한 활동 모달 */}
-			{showSuspiciousModal && (
+			{/* 끼리끼리 인원 모달 */}
+			{showCloseGroupModal && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center">
 					{/* 배경 */}
 					<div
 						className="absolute inset-0 bg-black/60"
-						onClick={() => setShowSuspiciousModal(false)}
+						onClick={() => setShowCloseGroupModal(false)}
 					/>
 					{/* 내용 */}
 					<div
@@ -1211,161 +1211,62 @@ export default function ActivityDashboardPage() {
 					>
 						<div className="flex items-center justify-between mb-3">
 							<div>
-								<h2 className="text-lg font-semibold">수상한 활동 상세</h2>
+								<h2 className="text-lg font-semibold">끼리끼리 인원 5명 이상</h2>
 								<p className="text-xs md:text-sm opacity-70 mt-1">
-									1분 안에 2채널 이상의 채널을 이동하면서 0분 세션이 3개 이상 연속으로
-									발생한 경우를 수상한 활동으로 표시합니다.
+									평균 만남 횟수보다 10회 이상 많은 사람이 5명 이상인 유저 목록입니다.
 								</p>
 							</div>
 							<button
 								className="px-3 py-1 border rounded text-sm cursor-pointer"
-								onClick={() => setShowSuspiciousModal(false)}
+								onClick={() => setShowCloseGroupModal(false)}
 							>
 								닫기
 							</button>
 						</div>
 
-						{suspicious.length === 0 ? (
+						{closeGroupUsers.length === 0 ? (
 							<div
 								className="text-center py-6 text-sm"
 								style={{ color: "var(--foreground)", opacity: 0.7 }}
 							>
-								현재 기간에는 수상한 활동이 감지되지 않았습니다.
+								끼리끼리 인원이 5명 이상인 유저가 없습니다.
 							</div>
 						) : (
 							<div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
-								{suspicious.map((entry) => {
-									const isExpanded = expandedSuspiciousUser === entry.userId;
-									return (
-										<div
-											key={entry.userId}
-											className="p-3 rounded border cursor-pointer transition-colors"
-											style={{
-												borderColor: "var(--accent)",
-												background: "var(--background)",
-											}}
-											onClick={() =>
-												setExpandedSuspiciousUser(
-													isExpanded ? null : entry.userId,
-												)
-											}
-										>
-											<div className="flex items-center justify-between">
-												<div>
-													<div className="font-medium">
-														{entry.userName || entry.userId}
-													</div>
-													<div className="text-xs opacity-70">
-														수상한 로그 {entry.count}개
-													</div>
+								{closeGroupUsers.map((user) => (
+									<div
+										key={user.userId}
+										className="p-3 rounded border transition-colors cursor-pointer"
+										style={{
+											borderColor: "var(--accent)",
+											background: "var(--background)",
+										}}
+										onMouseEnter={(e) => {
+											e.currentTarget.style.background =
+												"color-mix(in srgb, var(--background) 95%, var(--accent) 5%)";
+										}}
+										onMouseLeave={(e) => {
+											e.currentTarget.style.background = "var(--background)";
+										}}
+										onClick={() => {
+											router.push(`/admin/activity-dashboard/user/${user.userId}`);
+										}}
+									>
+										<div className="flex items-center justify-between">
+											<div>
+												<div className="font-medium">
+													{user.userName || user.userId}
 												</div>
 												<div className="text-xs opacity-70">
-													{isExpanded ? "접기 ▲" : "펼치기 ▼"}
+													끼리끼리 인원: {user.closeGroupCount}명
 												</div>
 											</div>
-
-											{isExpanded && (
-												<div className="mt-3 pt-2 border-t border-dashed border-zinc-700/50 text-xs md:text-sm">
-													<ul className="space-y-1 max-h-64 overflow-y-auto pr-1">
-														{entry.activities
-															.slice()
-															.sort((a: any, b: any) => {
-																const aTime = new Date(
-																	a.startTime ||
-																		a.startAt ||
-																		a.date,
-																).getTime();
-																const bTime = new Date(
-																	b.startTime ||
-																		b.startAt ||
-																		b.date,
-																).getTime();
-																return bTime - aTime;
-															})
-															.map((act: any) => {
-																const start =
-																	act.startTime ||
-																	act.startAt;
-																const end =
-																	act.endTime || act.endAt;
-																const startDate = start
-																	? new Date(start)
-																	: null;
-																const endDate = end
-																	? new Date(end)
-																	: null;
-																const dur =
-																	typeof act.durationMinutes ===
-																	"number"
-																		? act.durationMinutes
-																		: 0;
-																return (
-																	<li
-																		key={act.id}
-																		className="flex flex-col md:flex-row md:items-center md:justify-between py-1 border-b border-zinc-800/40 last:border-b-0"
-																	>
-																		<div>
-																			<div className="font-medium">
-																				{startDate
-																					? startDate.toLocaleString(
-																							"ko-KR",
-																							{
-																								month: "long",
-																								day: "numeric",
-																								weekday:
-																									"short",
-																								hour: "2-digit",
-																								minute:
-																									"2-digit",
-																							},
-																					  )
-																					: act.date}
-																			</div>
-																			<div className="opacity-70">
-																				채널:{" "}
-																				{act.channelName ||
-																					act.channelId ||
-																					"알 수 없음"}
-																			</div>
-																		</div>
-																		<div className="mt-1 md:mt-0 text-right">
-																			<div>
-																				{formatMinutes(
-																					dur,
-																				)}
-																			</div>
-																			{startDate &&
-																				endDate && (
-																					<div className="opacity-60">
-																						{startDate.toLocaleTimeString(
-																							"ko-KR",
-																							{
-																								hour: "2-digit",
-																								minute:
-																									"2-digit",
-																							},
-																						)}
-																						{" ~ "}
-																						{endDate.toLocaleTimeString(
-																							"ko-KR",
-																							{
-																								hour: "2-digit",
-																								minute:
-																									"2-digit",
-																							},
-																						)}
-																					</div>
-																				)}
-																		</div>
-																	</li>
-																);
-															})}
-													</ul>
-												</div>
-											)}
+											<div className="text-xs opacity-70">
+												상세보기 →
+											</div>
 										</div>
-									);
-								})}
+									</div>
+								))}
 							</div>
 						)}
 					</div>
