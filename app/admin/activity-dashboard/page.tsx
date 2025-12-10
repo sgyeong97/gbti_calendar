@@ -30,11 +30,10 @@ type ActivityStats = {
 	mostActiveDay: { date: string; minutes: number } | null;
 };
 
-type SuspiciousEntry = {
+type CloseGroupUser = {
 	userId: string;
 	userName: string;
-	count: number;
-	activities: any[];
+	closeGroupCount: number; // 끼리끼리 인원 수
 };
 
 export default function ActivityDashboardPage() {
@@ -100,9 +99,8 @@ export default function ActivityDashboardPage() {
 	const [stats, setStats] = useState<ActivityStats | null>(null);
 	const [expandedKey, setExpandedKey] = useState<string | null>(null);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
-	const [suspicious, setSuspicious] = useState<SuspiciousEntry[]>([]);
-	const [expandedSuspiciousUser, setExpandedSuspiciousUser] = useState<string | null>(null);
-	const [showSuspiciousModal, setShowSuspiciousModal] = useState(false);
+	const [closeGroupUsers, setCloseGroupUsers] = useState<CloseGroupUser[]>([]);
+	const [showCloseGroupModal, setShowCloseGroupModal] = useState(false);
 
 	useEffect(() => {
 		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
@@ -408,8 +406,8 @@ export default function ActivityDashboardPage() {
 
 			// 통계 계산
 			calculateStats(normalizedData);
-			// 수상한 활동 계산
-			calculateSuspicious(normalizedData);
+			// 끼리끼리 인원 계산
+			await calculateCloseGroupUsers();
 		} catch (err) {
 			console.error("활동 데이터 로딩 실패:", err);
 			alert("활동 데이터를 불러오지 못했습니다.");
@@ -471,99 +469,68 @@ export default function ActivityDashboardPage() {
 		}
 	}
 
-	// 수상한 활동 탐지:
-	// - 기준 1) 1분 안에 2채널 이상의 채널 입장
-	// - 기준 2) 총 입장시간이 0분인 세션이 3개 이상 연속으로 있음
-	// 위 두 조건을 모두 만족하는 구간에 포함된 세션들을 "수상한 활동"으로 간주
-	function calculateSuspicious(data: Record<string, ActivityData | UserActivityData>) {
-		const suspiciousByUser = new Map<string, SuspiciousEntry>();
-
-		// 1) 데이터 구조: userId -> 활동 배열 (시간순)
-		const byUser = new Map<string, any[]>();
-
-		for (const value of Object.values(data || {})) {
-			if ((value as any).activities && Array.isArray((value as any).activities)) {
-				for (const act of (value as any).activities as any[]) {
-					const userId: string = act.userId || act.user_id || "";
-					if (!userId) continue;
-					const arr = byUser.get(userId) || [];
-					arr.push(act);
-					byUser.set(userId, arr);
-				}
-			}
-		}
-
-		if (byUser.size === 0) {
-			setSuspicious([]);
-			return;
-		}
-
-		// 2) 각 사용자별로 시간순 정렬 후 패턴 탐지
-		for (const [userId, actsRaw] of byUser.entries()) {
-			const acts = actsRaw
-				.filter((a: any) => a)
-				.slice()
-				.sort((a: any, b: any) => {
-					const aTime = new Date(a.startTime || a.startAt || a.date).getTime();
-					const bTime = new Date(b.startTime || b.startAt || b.date).getTime();
-					return aTime - bTime;
-				});
-
-			if (acts.length < 3) continue;
-
-			const suspiciousSet = new Set<string>(); // 활동 ID 집합
-
-			for (let i = 0; i <= acts.length - 3; i++) {
-				const triple = acts.slice(i, i + 3);
-
-				// 기준 2: 연속 3개가 모두 0분 세션
-				if (!triple.every((a: any) => (a.durationMinutes ?? 0) === 0)) continue;
-
-				// 시작~끝이 1분(60초) 이내인지
-				const firstTime = new Date(
-					triple[0].startTime || triple[0].startAt || triple[0].date,
-				).getTime();
-				const lastTime = new Date(
-					triple[2].startTime || triple[2].startAt || triple[2].date,
-				).getTime();
-				if (Number.isNaN(firstTime) || Number.isNaN(lastTime)) continue;
-				const diffMs = lastTime - firstTime;
-				if (diffMs > 60 * 1000) continue; // 1분 초과
-
-				// 기준 1: 이 구간 안에서 2개 이상의 채널
-				const channelSet = new Set(
-					triple.map(
-						(a: any) => a.channelId || a.channelName || (a.channel_id ?? "unknown"),
-					),
-				);
-				if (channelSet.size < 2) continue;
-
-				// 조건을 만족하는 triple에 포함된 세션들 모두 수상한 세션으로 표시
-				for (const a of triple) {
-					if (a.id) suspiciousSet.add(a.id);
-				}
-			}
-
-			if (suspiciousSet.size === 0) continue;
-
-			const suspiciousActivities = acts.filter((a: any) =>
-				a.id ? suspiciousSet.has(a.id) : false,
-			);
-			if (suspiciousActivities.length === 0) continue;
-
-			const sample = suspiciousActivities[0];
-			const userName: string = sample.userName || sample.user_name || userId || "알 수 없음";
-
-			suspiciousByUser.set(userId, {
-				userId,
-				userName,
-				count: suspiciousActivities.length,
-				activities: suspiciousActivities,
+	// 끼리끼리 인원 5명 이상인 유저 계산
+	async function calculateCloseGroupUsers() {
+		try {
+			// 모든 유저 목록 가져오기
+			const params = new URLSearchParams({
+				groupBy: "user",
 			});
+			const res = await fetch(`/api/discord-activity?${params}`);
+			if (!res.ok) {
+				setCloseGroupUsers([]);
+				return;
+			}
+			
+			const result = await res.json();
+			const rawData = result.data || {};
+			
+			// 각 유저별로 만남 횟수 조회 및 끼리끼리 인원 계산
+			const closeGroupUsersList: CloseGroupUser[] = [];
+			
+			for (const [userId, userData] of Object.entries(rawData)) {
+				const user = userData as UserActivityData;
+				if (!user || !user.userId) continue;
+				
+				try {
+					// 해당 유저의 만남 횟수 조회
+					const meetingRes = await fetch(`/api/discord-activity/meeting-counts?userId=${encodeURIComponent(userId)}`);
+					if (!meetingRes.ok) continue;
+					
+					const meetingResult = await meetingRes.json();
+					const meetings = meetingResult.data || [];
+					
+					if (meetings.length === 0) continue;
+					
+					// 평균 만남 횟수 계산
+					const totalCount = meetings.reduce((sum: number, m: any) => sum + (m.count || 0), 0);
+					const averageCount = totalCount / meetings.length;
+					const threshold = averageCount + 10;
+					
+					// 평균 + 10 이상인 사람들 필터링
+					const closeGroupMembers = meetings.filter((m: any) => (m.count || 0) >= threshold);
+					
+					// 5명 이상인 경우만 추가
+					if (closeGroupMembers.length >= 5) {
+						closeGroupUsersList.push({
+							userId: user.userId,
+							userName: user.userName || user.userId,
+							closeGroupCount: closeGroupMembers.length,
+						});
+					}
+				} catch (err) {
+					console.error(`유저 ${userId}의 만남 횟수 조회 실패:`, err);
+					continue;
+				}
+			}
+			
+			// 끼리끼리 인원 수로 정렬 (내림차순)
+			closeGroupUsersList.sort((a, b) => b.closeGroupCount - a.closeGroupCount);
+			setCloseGroupUsers(closeGroupUsersList);
+		} catch (err) {
+			console.error("끼리끼리 인원 계산 실패:", err);
+			setCloseGroupUsers([]);
 		}
-
-		const list = Array.from(suspiciousByUser.values()).sort((a, b) => b.count - a.count);
-		setSuspicious(list);
 	}
 
 	function formatMinutes(minutes: number): string {
@@ -710,13 +677,13 @@ export default function ActivityDashboardPage() {
 							<div className="text-sm opacity-70">{formatMinutes(stats.mostActiveDay.minutes)}</div>
 						</div>
 					)}
-					{/* 수상한 활동 카드 */}
+					{/* 끼리끼리 인원 5명 이상 카드 */}
 					<div
 						className="rounded-lg p-4 cursor-pointer transition-colors"
 						style={{
 							background: "var(--background)",
 							border: "1px solid var(--accent)",
-							opacity: suspicious.length === 0 ? 0.7 : 1,
+							opacity: closeGroupUsers.length === 0 ? 0.7 : 1,
 						}}
 						onMouseEnter={(e) => {
 							e.currentTarget.style.background =
@@ -726,23 +693,17 @@ export default function ActivityDashboardPage() {
 							e.currentTarget.style.background = "var(--background)";
 						}}
 						onClick={() => {
-							if (suspicious.length > 0) {
-								setShowSuspiciousModal(true);
+							if (closeGroupUsers.length > 0) {
+								setShowCloseGroupModal(true);
 							}
 						}}
 					>
-						<div className="text-sm opacity-70 mb-1">수상한 활동</div>
+						<div className="text-sm opacity-70 mb-1">끼리끼리 인원 5명 이상</div>
 						<div className="text-2xl font-bold">
-							{(() => {
-								const total = suspicious.reduce(
-									(sum, entry) => sum + entry.activities.length,
-									0,
-								);
-								return total > 0 ? `${total}건` : "없음";
-							})()}
+							{closeGroupUsers.length > 0 ? `${closeGroupUsers.length}명` : "없음"}
 						</div>
 						<div className="text-xs opacity-70 mt-1">
-							클릭해서 상세 로그 보기
+							클릭해서 상세 보기
 						</div>
 					</div>
 				</div>
