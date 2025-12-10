@@ -83,20 +83,10 @@ export default function UserDetailPage() {
 	const [deletingWeekKey, setDeletingWeekKey] = useState<string | null>(null);
 	const [showWeekDeleteConfirm, setShowWeekDeleteConfirm] = useState<string | null>(null);
 	const [expandedWeekKey, setExpandedWeekKey] = useState<string | null>(null);
-	const [showCloseGroup, setShowCloseGroup] = useState<boolean>(false);
-	const [closeMode, setCloseMode] = useState<"count" | "time">("count");
 	const [overlapByUser, setOverlapByUser] = useState<Record<string, ChannelOverlap[]>>({});
 	const [overlapLoading, setOverlapLoading] = useState<Record<string, boolean>>({});
 	const [overlapError, setOverlapError] = useState<Record<string, string>>({});
-	const [closeOverlapsLoading, setCloseOverlapsLoading] = useState(false);
-	const [closeOverlapsLoaded, setCloseOverlapsLoaded] = useState(false);
 
-	// 끼리끼리 열릴 때 겹친 시간 미리 계산
-	useEffect(() => {
-		if (showCloseGroup) {
-			preloadAllOverlaps();
-		}
-	}, [showCloseGroup, closeMode]);
 
 	function getTotalOverlapMinutes(userId: string): number | null {
 		const overlaps = overlapByUser[userId];
@@ -466,25 +456,6 @@ export default function UserDetailPage() {
 		return total ?? 0;
 	}
 
-	// 끼리끼리 섹션: 모든 상대의 겹친 시간 미리 로드
-	async function preloadAllOverlaps() {
-		if (closeOverlapsLoaded || closeOverlapsLoading) return;
-		setCloseOverlapsLoading(true);
-		try {
-			for (const m of meetings) {
-				if (!overlapByUser[m.userId]) {
-					// 순차 실행로 API 부하 완화
-					// eslint-disable-next-line no-await-in-loop
-					await loadChannelOverlaps(m.userId);
-				}
-			}
-			setCloseOverlapsLoaded(true);
-		} catch (err) {
-			console.error("끼리끼리 겹친시간 프리로드 실패:", err);
-		} finally {
-			setCloseOverlapsLoading(false);
-		}
-	}
 
 	// 시간대별 활동 집계 (0시~23시)
 	function getHourlyActivity(activities: any[]) {
@@ -1822,7 +1793,7 @@ export default function UserDetailPage() {
 						)}
 					</div>
 
-					{/* [테스트]끼리끼리 그룹 */}
+					{/* 끼리끼리 별도 페이지 이동 */}
 					{meetingCountMode === "total" && meetings.length > 0 && (
 						<div 
 							className="rounded-lg p-6 mt-6"
@@ -1831,176 +1802,29 @@ export default function UserDetailPage() {
 								border: "1px solid var(--accent)" 
 							}}
 						>
-						<div className="flex items-center justify-between mb-4">
-							<h2 className="text-lg font-semibold">[테스트]끼리끼리</h2>
-							<div className="flex items-center gap-2">
-								{showCloseGroup && (
-									<div className="flex gap-1 mr-1">
-										<button
-											className={`px-3 py-1 rounded border text-sm ${closeMode === "count" ? "font-semibold" : "opacity-70"}`}
-											style={{
-												borderColor: "var(--accent)",
-												background: closeMode === "count" ? "var(--accent)" : "transparent",
-												color: "var(--foreground)",
-											}}
-											onClick={() => setCloseMode("count")}
-										>
-											만남횟수
-										</button>
-										<button
-											className={`px-3 py-1 rounded border text-sm ${closeMode === "time" ? "font-semibold" : "opacity-70"}`}
-											style={{
-												borderColor: "var(--accent)",
-												background: closeMode === "time" ? "var(--accent)" : "transparent",
-												color: "var(--foreground)",
-											}}
-											onClick={() => setCloseMode("time")}
-										>
-											시간
-										</button>
-									</div>
-								)}
+							<div className="flex items-center justify-between mb-3">
+								<h2 className="text-lg font-semibold">끼리끼리 분석</h2>
 								<button
-									className="px-3 py-1 rounded text-sm transition-colors"
+									className="px-3 py-2 rounded text-sm transition-colors cursor-pointer"
 									style={{
-										backgroundColor: "var(--accent)",
+										background: "var(--accent)",
 										color: "var(--foreground)",
 										border: "1px solid var(--accent)",
 									}}
-									onClick={() => setShowCloseGroup(!showCloseGroup)}
+									onMouseEnter={(e) => {
+										e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 80%, var(--foreground) 20%)";
+									}}
+									onMouseLeave={(e) => {
+										e.currentTarget.style.background = "var(--accent)";
+									}}
+									onClick={() => router.push(`/admin/activity-dashboard/user/${userId}/close-group`)}
 								>
-									{showCloseGroup ? "▼" : "▶"}
+									페이지 이동
 								</button>
 							</div>
-						</div>
-
-							{showCloseGroup && (() => {
-								// 평균 만남 횟수 계산
-								const totalCount = meetings.reduce((sum, m) => sum + m.count, 0);
-								const averageCount = meetings.length > 0 ? totalCount / meetings.length : 0;
-								const threshold = averageCount + 10;
-
-								// 겹친 시간 기준
-								const overlapTotals = meetings.map((m) => getTotalOverlapMinutes(m.userId) ?? 0);
-								const totalOverlap = overlapTotals.reduce((s, v) => s + v, 0);
-								const averageOverlap = meetings.length > 0 ? totalOverlap / meetings.length : 0;
-								const overlapThreshold = averageOverlap + 300; // +5시간(분 단위)
-
-								// 기준별 필터
-								const closeGroupMembers = meetings.filter((m) => {
-									const overlap = getTotalOverlapMinutes(m.userId) ?? 0;
-									if (closeMode === "time") {
-										return overlap >= overlapThreshold;
-									}
-									return m.count >= threshold;
-								});
-
-								return (
-									<div>
-										<div className="mb-4 p-3 rounded" style={{ 
-											background: "color-mix(in srgb, var(--accent) 10%, transparent)",
-											border: "1px solid var(--accent)"
-										}}>
-											<div className="text-sm space-y-1">
-												<div>전체 만남 횟수 평균: <strong>{averageCount.toFixed(2)}회</strong></div>
-												<div>기준선 (평균 + 10회): <strong>{threshold.toFixed(2)}회</strong></div>
-												<div>평균 같이 있는 시간: <strong>{formatMinutes(Math.round(averageOverlap))}</strong></div>
-												<div>기준선 (평균 + 5시간): <strong>{formatMinutes(Math.round(overlapThreshold))}</strong></div>
-												<div>해당 인원: <strong>{closeGroupMembers.length}명</strong></div>
-											</div>
-											{closeOverlapsLoading && (
-												<div className="text-xs opacity-70 mt-1">같이 있는 시간 계산 중...</div>
-											)}
-										</div>
-
-										{closeGroupMembers.length === 0 ? (
-											<div className="text-center py-8" style={{ color: "var(--foreground)", opacity: 0.7 }}>
-												{closeMode === "count"
-													? "기준(평균 + 10회) 이상인 사람이 없습니다."
-													: "기준(평균 + 5시간) 이상 같이 있었던 사람이 없습니다."}
-											</div>
-										) : (
-											<div className="space-y-3">
-												{closeGroupMembers.map((meeting) => {
-													const isExpanded = expandedMeetingUserId === meeting.userId;
-													const overlapTotal = getTotalOverlapMinutes(meeting.userId) ?? 0;
-													
-													return (
-														<div
-															key={meeting.userId}
-															className="p-4 rounded transition-colors"
-															style={{ 
-																border: "1px solid var(--accent)",
-																background: "var(--background)"
-															}}
-															onMouseEnter={(e) => {
-																e.currentTarget.style.background = "color-mix(in srgb, var(--background) 95%, var(--accent) 5%)";
-															}}
-															onMouseLeave={(e) => {
-																e.currentTarget.style.background = "var(--background)";
-															}}
-														>
-															<div 
-																className="flex items-center justify-between cursor-pointer"
-																onClick={async () => {
-																	const next = isExpanded ? null : meeting.userId;
-																	setExpandedMeetingUserId(next);
-																	if (next && !overlapByUser[meeting.userId]) {
-																		await loadChannelOverlaps(next);
-																	}
-																}}
-															>
-																<div className="font-medium text-lg">▶ {meeting.userName}</div>
-																<div className="text-xl font-semibold">
-																	{meeting.count}번
-																	{overlapTotal > 0
-																		? ` (${formatMinutes(overlapTotal)})`
-																		: overlapLoading[meeting.userId]
-																			? " (계산중...)"
-																			: ""}
-																</div>
-															</div>
-
-															{/* 만남 정보 */}
-															{isExpanded && (
-																<div className="mt-4 pt-4 border-t border-dashed border-zinc-700/50">
-																	<div className="text-sm space-y-2">
-																		<div className="opacity-70">
-																			평균 대비: <strong>+{(meeting.count - averageCount).toFixed(2)}회</strong>
-																		</div>
-																		{meeting.lastMetAt && (
-																			<div className="opacity-70">
-																				마지막 만남: {new Date(meeting.lastMetAt).toLocaleString("ko-KR", {
-																					year: "numeric",
-																					month: "long",
-																					day: "numeric",
-																					hour: "2-digit",
-																					minute: "2-digit",
-																				})}
-																			</div>
-																		)}
-																		{meeting.updatedAt && (
-																			<div className="opacity-70 text-xs">
-																				업데이트: {new Date(meeting.updatedAt).toLocaleString("ko-KR", {
-																					year: "numeric",
-																					month: "long",
-																					day: "numeric",
-																					hour: "2-digit",
-																					minute: "2-digit",
-																				})}
-																			</div>
-																		)}
-																	</div>
-																</div>
-															)}
-														</div>
-													);
-												})}
-											</div>
-										)}
-									</div>
-								);
-							})()}
+							<div className="text-sm opacity-70">
+								페이지에서 끼리끼리(3명 이상) 분석을 시작합니다. 기준: 만남 횟수 평균+5회, 같이 있는 시간 평균+5시간.
+							</div>
 						</div>
 					)}
 
