@@ -70,6 +70,9 @@ export default function UserDetailPage() {
 	const [deletingWeekKey, setDeletingWeekKey] = useState<string | null>(null);
 	const [showWeekDeleteConfirm, setShowWeekDeleteConfirm] = useState<string | null>(null);
 	const [expandedWeekKey, setExpandedWeekKey] = useState<string | null>(null);
+	const [showCloseGroup, setShowCloseGroup] = useState<boolean>(false);
+	const [isDayActivityExpanded, setIsDayActivityExpanded] = useState<boolean>(true);
+	const [isMeetingCountExpanded, setIsMeetingCountExpanded] = useState<boolean>(true);
 
 	useEffect(() => {
 		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
@@ -552,10 +555,10 @@ export default function UserDetailPage() {
 					{/* 주 활동 시간대 차트 */}
 					{userData.activities && userData.activities.length > 0 && (() => {
 						const hourlyData = getHourlyActivity(userData.activities);
-						const maxMinutes = Math.max(...hourlyData.map(h => h.minutes), 1);
+						const maxCount = Math.max(...hourlyData.map(h => h.count), 1);
 						const topHours = hourlyData
-							.filter(h => h.minutes > 0)
-							.sort((a, b) => b.minutes - a.minutes)
+							.filter(h => h.count > 0)
+							.sort((a, b) => b.count - a.count)
 							.slice(0, 5);
 						
 						return (
@@ -580,7 +583,7 @@ export default function UserDetailPage() {
 											/>
 											<YAxis 
 												style={{ fill: "var(--foreground)" }}
-												label={{ value: '활동 시간 (분)', angle: -90, position: 'insideLeft', style: { fill: 'var(--foreground)' } }}
+												label={{ value: '활동 횟수', angle: -90, position: 'insideLeft', style: { fill: 'var(--foreground)' } }}
 											/>
 											<Tooltip 
 												contentStyle={{ 
@@ -589,14 +592,11 @@ export default function UserDetailPage() {
 													color: "var(--foreground)",
 												}}
 												formatter={(value: any, payload: any) => {
-													const hours = Math.floor(value / 60);
-													const mins = value % 60;
-													const timeStr = hours > 0 ? `${hours}시간 ${mins}분` : `${mins}분`;
-													const count = payload?.[0]?.payload?.count || 0;
-													return [`${timeStr} (${count}회 활동)`, "활동 시간"];
+													const count = value || 0;
+													return [`${count}회 활동`, "활동 횟수"];
 												}}
 											/>
-											<Bar dataKey="minutes" fill="var(--accent)" />
+											<Bar dataKey="count" fill="var(--accent)" />
 										</BarChart>
 									</ResponsiveContainer>
 								</div>
@@ -607,9 +607,6 @@ export default function UserDetailPage() {
 										<div className="text-sm font-semibold mb-2">가장 활동이 많은 시간대 (상위 5개)</div>
 										<div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
 											{topHours.map((h) => {
-												const hours = Math.floor(h.minutes / 60);
-												const mins = h.minutes % 60;
-												const timeStr = hours > 0 ? `${hours}시간 ${mins}분` : `${mins}분`;
 												return (
 													<div 
 														key={h.hour}
@@ -620,8 +617,7 @@ export default function UserDetailPage() {
 														}}
 													>
 														<div className="font-semibold">{h.label}</div>
-														<div className="opacity-70">{timeStr}</div>
-														<div className="opacity-60 text-xs">{h.count}회 활동</div>
+														<div className="opacity-70">{h.count}회 활동</div>
 													</div>
 												);
 											})}
@@ -694,45 +690,6 @@ export default function UserDetailPage() {
 						</div>
 					)}
 
-					{/* 검색 및 정렬 */}
-					<div 
-						className="rounded-lg p-4 mb-6"
-						style={{ 
-							background: "var(--background)", 
-							border: "1px solid var(--accent)" 
-						}}
-					>
-						<div className="flex flex-col md:flex-row gap-4 items-end">
-							<div className="flex-1 min-w-[200px]">
-								<label className="block text-sm mb-2">검색</label>
-								<input
-									type="text"
-									placeholder="날짜 검색..."
-									value={searchTerm}
-									onChange={(e) => setSearchTerm(e.target.value)}
-									className="w-full border rounded px-3 py-2"
-								/>
-							</div>
-							<div className="flex-1 min-w-[200px]">
-								<label className="block text-sm mb-2">정렬 기준</label>
-								<select
-									value={sortBy}
-									onChange={(e) => setSortBy(e.target.value as "date" | "time" | "count")}
-									className="w-full border rounded px-3 py-2"
-									style={{
-										background: "var(--background)",
-										color: "var(--foreground)",
-										borderColor: "var(--accent)",
-									}}
-								>
-									<option value="date">날짜순 (최신)</option>
-									<option value="time">활동 시간순</option>
-									<option value="count">활동 횟수순</option>
-								</select>
-							</div>
-						</div>
-					</div>
-
 					{/* 날짜별 리스트 */}
 					<div 
 						className="rounded-lg p-6 mb-6"
@@ -743,13 +700,56 @@ export default function UserDetailPage() {
 					>
 						<div className="flex items-center justify-between mb-4">
 							<h2 className="text-lg font-semibold">날짜별 활동 ({filteredAndSortedDays.length}일)</h2>
-							<div className="text-sm opacity-70">
-								{filteredAndSortedDays.length > 0 
-									? `${(dayCurrentPage - 1) * dayPageSize + 1}-${Math.min(dayCurrentPage * dayPageSize, filteredAndSortedDays.length)} / ${filteredAndSortedDays.length}개`
-									: "0개"
-								}
-							</div>
+							<button
+								className="px-3 py-1 rounded text-sm transition-colors"
+								style={{
+									backgroundColor: "var(--accent)",
+									color: "var(--foreground)",
+									border: "1px solid var(--accent)",
+								}}
+								onClick={() => setIsDayActivityExpanded(!isDayActivityExpanded)}
+							>
+								{isDayActivityExpanded ? "▼" : "▶"}
+							</button>
 						</div>
+
+						{isDayActivityExpanded && (
+							<>
+								{/* 검색 및 정렬 */}
+								<div className="flex flex-col md:flex-row gap-4 items-end mb-4">
+									<div className="flex-1 min-w-[200px]">
+										<label className="block text-sm mb-2">검색</label>
+										<input
+											type="text"
+											placeholder="날짜 검색..."
+											value={searchTerm}
+											onChange={(e) => setSearchTerm(e.target.value)}
+											className="w-full border rounded px-3 py-2"
+											style={{
+												background: "var(--background)",
+												color: "var(--foreground)",
+												borderColor: "var(--accent)",
+											}}
+										/>
+									</div>
+									<div className="flex-1 min-w-[200px]">
+										<label className="block text-sm mb-2">정렬 기준</label>
+										<select
+											value={sortBy}
+											onChange={(e) => setSortBy(e.target.value as "date" | "time" | "count")}
+											className="w-full border rounded px-3 py-2"
+											style={{
+												background: "var(--background)",
+												color: "var(--foreground)",
+												borderColor: "var(--accent)",
+											}}
+										>
+											<option value="date">날짜순 (최신)</option>
+											<option value="time">활동 시간순</option>
+											<option value="count">활동 횟수순</option>
+										</select>
+									</div>
+								</div>
 						
 						{filteredAndSortedDays.length === 0 ? (
 							<div className="text-center py-8" style={{ color: "var(--foreground)", opacity: 0.7 }}>
@@ -893,6 +893,8 @@ export default function UserDetailPage() {
 								)}
 							</>
 						)}
+							</>
+						)}
 					</div>
 
 					{/* 만남 횟수 리스트 */}
@@ -904,9 +906,22 @@ export default function UserDetailPage() {
 						}}
 					>
 						<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-							<h2 className="text-lg font-semibold">
-								유저별 만남 횟수 ({meetingCountMode === "total" ? meetings.length : weeklyMeetings.length}명)
-							</h2>
+							<div className="flex items-center gap-3">
+								<h2 className="text-lg font-semibold">
+									유저별 만남 횟수 ({meetingCountMode === "total" ? meetings.length : weeklyMeetings.length}명)
+								</h2>
+								<button
+									className="px-3 py-1 rounded text-sm transition-colors"
+									style={{
+										backgroundColor: "var(--accent)",
+										color: "var(--foreground)",
+										border: "1px solid var(--accent)",
+									}}
+									onClick={() => setIsMeetingCountExpanded(!isMeetingCountExpanded)}
+								>
+									{isMeetingCountExpanded ? "▼" : "▶"}
+								</button>
+							</div>
 							
 							<div className="flex gap-2 items-center">
 								{/* 누적 카운트 / 위클리 토글 */}
@@ -979,6 +994,8 @@ export default function UserDetailPage() {
 							</div>
 						</div>
 
+						{isMeetingCountExpanded && (
+							<>
 						{/* 위클리 모드일 때 월 선택 */}
 						{meetingCountMode === "weekly" && (
 							<div className="mb-4">
@@ -1599,7 +1616,130 @@ export default function UserDetailPage() {
 								})()
 							)
 						)}
+							</>
+						)}
 					</div>
+
+					{/* [테스트]끼리끼리 그룹 */}
+					{meetingCountMode === "total" && meetings.length > 0 && (
+						<div 
+							className="rounded-lg p-6 mt-6"
+							style={{ 
+								background: "var(--background)", 
+								border: "1px solid var(--accent)" 
+							}}
+						>
+						<div className="flex items-center justify-between mb-4">
+							<h2 className="text-lg font-semibold">[테스트]끼리끼리</h2>
+							<button
+								className="px-3 py-1 rounded text-sm transition-colors"
+								style={{
+									backgroundColor: "var(--accent)",
+									color: "var(--foreground)",
+									border: "1px solid var(--accent)",
+								}}
+								onClick={() => setShowCloseGroup(!showCloseGroup)}
+							>
+								{showCloseGroup ? "▼" : "▶"}
+							</button>
+						</div>
+
+							{showCloseGroup && (() => {
+								// 평균 만남 횟수 계산
+								const totalCount = meetings.reduce((sum, m) => sum + m.count, 0);
+								const averageCount = meetings.length > 0 ? totalCount / meetings.length : 0;
+								const threshold = averageCount + 10;
+
+								// 평균 + 10 이상인 사람들 필터링
+								const closeGroupMembers = meetings.filter(m => m.count >= threshold);
+
+								return (
+									<div>
+										<div className="mb-4 p-3 rounded" style={{ 
+											background: "color-mix(in srgb, var(--accent) 10%, transparent)",
+											border: "1px solid var(--accent)"
+										}}>
+											<div className="text-sm space-y-1">
+												<div>전체 만남 횟수 평균: <strong>{averageCount.toFixed(2)}회</strong></div>
+												<div>기준선 (평균 + 10회): <strong>{threshold.toFixed(2)}회</strong></div>
+												<div>해당 인원: <strong>{closeGroupMembers.length}명</strong></div>
+											</div>
+										</div>
+
+										{closeGroupMembers.length === 0 ? (
+											<div className="text-center py-8" style={{ color: "var(--foreground)", opacity: 0.7 }}>
+												평균 + 10회 이상인 사람이 없습니다.
+											</div>
+										) : (
+											<div className="space-y-3">
+												{closeGroupMembers.map((meeting) => {
+													const isExpanded = expandedMeetingUserId === meeting.userId;
+													
+													return (
+														<div
+															key={meeting.userId}
+															className="p-4 rounded transition-colors"
+															style={{ 
+																border: "1px solid var(--accent)",
+																background: "var(--background)"
+															}}
+															onMouseEnter={(e) => {
+																e.currentTarget.style.background = "color-mix(in srgb, var(--background) 95%, var(--accent) 5%)";
+															}}
+															onMouseLeave={(e) => {
+																e.currentTarget.style.background = "var(--background)";
+															}}
+														>
+															<div 
+																className="flex items-center justify-between cursor-pointer"
+																onClick={() => setExpandedMeetingUserId(isExpanded ? null : meeting.userId)}
+															>
+																<div className="font-medium text-lg">▶ {meeting.userName}</div>
+																<div className="text-xl font-semibold">{meeting.count}번</div>
+															</div>
+
+															{/* 만남 정보 */}
+															{isExpanded && (
+																<div className="mt-4 pt-4 border-t border-dashed border-zinc-700/50">
+																	<div className="text-sm space-y-2">
+																		<div className="opacity-70">
+																			평균 대비: <strong>+{(meeting.count - averageCount).toFixed(2)}회</strong>
+																		</div>
+																		{meeting.lastMetAt && (
+																			<div className="opacity-70">
+																				마지막 만남: {new Date(meeting.lastMetAt).toLocaleString("ko-KR", {
+																					year: "numeric",
+																					month: "long",
+																					day: "numeric",
+																					hour: "2-digit",
+																					minute: "2-digit",
+																				})}
+																			</div>
+																		)}
+																		{meeting.updatedAt && (
+																			<div className="opacity-70 text-xs">
+																				업데이트: {new Date(meeting.updatedAt).toLocaleString("ko-KR", {
+																					year: "numeric",
+																					month: "long",
+																					day: "numeric",
+																					hour: "2-digit",
+																					minute: "2-digit",
+																				})}
+																			</div>
+																		)}
+																	</div>
+																</div>
+															)}
+														</div>
+													);
+												})}
+											</div>
+										)}
+									</div>
+								);
+							})()}
+						</div>
+					)}
 
 					{/* 주별 삭제 확인 팝업 */}
 					{showWeekDeleteConfirm && (
