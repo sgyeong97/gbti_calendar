@@ -46,6 +46,9 @@ export default function CloseGroupGlobalPage() {
 	// 액티비티 캐시
 	const [activityCache, setActivityCache] = useState<Record<string, Activity[]>>({});
 
+	// 검색어
+	const [searchTerm, setSearchTerm] = useState<string>("");
+
 	const thresholds = useMemo(() => {
 		if (!summary) {
 			return {
@@ -65,6 +68,20 @@ export default function CloseGroupGlobalPage() {
 			.filter((p) => p.count >= thresholds.countThreshold && p.overlapMinutes >= thresholds.overlapThreshold && p.count >= minCount)
 			.sort((a, b) => b.overlapMinutes - a.overlapMinutes);
 	}, [pairs, summary, thresholds, minCount]);
+
+	const searchMatcher = (p: PairMeeting) => {
+		if (!searchTerm.trim()) return true;
+		const q = searchTerm.trim().toLowerCase();
+		return (
+			p.userName1?.toLowerCase().includes(q) ||
+			p.userName2?.toLowerCase().includes(q) ||
+			p.userId1.toLowerCase().includes(q) ||
+			p.userId2.toLowerCase().includes(q)
+		);
+	};
+
+	const filteredPairsBySearch = useMemo(() => filteredPairs.filter(searchMatcher), [filteredPairs, searchTerm]);
+	const allPairsBySearch = useMemo(() => pairs.filter(searchMatcher), [pairs, searchTerm]);
 
 	function formatMinutes(minutes: number): string {
 		const mins = Math.round(minutes);
@@ -264,10 +281,22 @@ export default function CloseGroupGlobalPage() {
 								setCountOffset(5);
 								setTimeOffsetHours(5);
 								setMinCount(3);
+								setSearchTerm("");
 							}}
 						>
 							초기값으로
 						</button>
+						<label className="flex items-center gap-2 flex-1 min-w-[200px]">
+							<span className="opacity-80 whitespace-nowrap">유저 검색</span>
+							<input
+								type="text"
+								value={searchTerm}
+								onChange={(e) => setSearchTerm(e.target.value)}
+								placeholder="이름 또는 ID 입력"
+								className="px-3 py-2 rounded border bg-transparent w-full"
+								style={{ borderColor: "var(--accent)" }}
+							/>
+						</label>
 					</div>
 				</div>
 			)}
@@ -275,13 +304,13 @@ export default function CloseGroupGlobalPage() {
 			<div className="space-y-6">
 				<div>
 					<h2 className="text-lg font-semibold mb-2">조건 충족 쌍</h2>
-					{filteredPairs.length === 0 ? (
+					{filteredPairsBySearch.length === 0 ? (
 						<div className="text-center py-8" style={{ opacity: 0.7 }}>
 							조건을 만족하는 쌍이 없습니다.
 						</div>
 					) : (
 						<div className="space-y-3">
-							{filteredPairs.map((p, idx) => (
+							{filteredPairsBySearch.map((p, idx) => (
 								<div
 									key={`filtered-${p.userId1}-${p.userId2}-${idx}`}
 									className="p-4 rounded border"
@@ -329,13 +358,13 @@ export default function CloseGroupGlobalPage() {
 
 				<div>
 					<h2 className="text-lg font-semibold mb-2">전체 후보 쌍</h2>
-					{pairs.length === 0 ? (
+					{allPairsBySearch.length === 0 ? (
 						<div className="text-center py-8" style={{ opacity: 0.7 }}>
 							계산된 후보 쌍이 없습니다.
 						</div>
 					) : (
 						<div className="space-y-3">
-							{pairs.map((p, idx) => (
+							{allPairsBySearch.map((p, idx) => (
 								<div
 									key={`all-${p.userId1}-${p.userId2}-${idx}`}
 									className="p-4 rounded border"
