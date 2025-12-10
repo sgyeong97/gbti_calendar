@@ -13,11 +13,11 @@ export default function SwaggerPage() {
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
-		// swagger.yaml 파일을 API 라우트를 통해 가져오기 (JSON으로 변환됨)
-		fetch("/api/swagger.yaml")
+		// 빌드 시 생성된 정적 JSON 파일 로드
+		fetch("/swagger.json")
 			.then((res) => {
 				if (!res.ok) {
-					throw new Error(`Failed to load swagger.yaml: ${res.status}`);
+					throw new Error(`Failed to load swagger.json: ${res.status}`);
 				}
 				return res.json();
 			})
