@@ -677,13 +677,12 @@ export default function ActivityDashboardPage() {
 							<div className="text-sm opacity-70">{formatMinutes(stats.mostActiveDay.minutes)}</div>
 						</div>
 					)}
-					{/* 끼리끼리 인원 5명 이상 카드 */}
+					{/* 끼리끼리 페이지 이동 카드 */}
 					<div
-						className="rounded-lg p-4 cursor-pointer transition-colors"
+						className="rounded-lg p-4 transition-colors"
 						style={{
 							background: "var(--background)",
 							border: "1px solid var(--accent)",
-							opacity: closeGroupUsers.length === 0 ? 0.7 : 1,
 						}}
 						onMouseEnter={(e) => {
 							e.currentTarget.style.background =
@@ -692,19 +691,20 @@ export default function ActivityDashboardPage() {
 						onMouseLeave={(e) => {
 							e.currentTarget.style.background = "var(--background)";
 						}}
-						onClick={() => {
-							if (closeGroupUsers.length > 0) {
-								setShowCloseGroupModal(true);
-							}
-						}}
 					>
-						<div className="text-sm opacity-70 mb-1">끼리끼리 인원 5명 이상</div>
-						<div className="text-2xl font-bold">
-							{closeGroupUsers.length > 0 ? `${closeGroupUsers.length}명` : "없음"}
-						</div>
-						<div className="text-xs opacity-70 mt-1">
-							클릭해서 상세 보기
-						</div>
+						<div className="text-sm opacity-70 mb-1">끼리끼리 분석</div>
+						<div className="text-2xl font-bold mb-2">페이지로 이동</div>
+						<button
+							className="px-3 py-2 rounded text-sm transition-colors cursor-pointer"
+							style={{
+								background: "var(--accent)",
+								color: "var(--foreground)",
+								border: "1px solid var(--accent)",
+							}}
+							onClick={() => router.push("/admin/activity-dashboard/close-group")}
+						>
+							열기
+						</button>
 					</div>
 				</div>
 			)}
