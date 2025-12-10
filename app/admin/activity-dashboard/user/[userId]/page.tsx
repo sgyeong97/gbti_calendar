@@ -905,98 +905,96 @@ export default function UserDetailPage() {
 							border: "1px solid var(--accent)" 
 						}}
 					>
-						<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-							<div className="flex items-center gap-3">
-								<h2 className="text-lg font-semibold">
-									유저별 만남 횟수 ({meetingCountMode === "total" ? meetings.length : weeklyMeetings.length}명)
-								</h2>
-								<button
-									className="px-3 py-1 rounded text-sm transition-colors"
-									style={{
-										backgroundColor: "var(--accent)",
-										color: "var(--foreground)",
-										border: "1px solid var(--accent)",
-									}}
-									onClick={() => setIsMeetingCountExpanded(!isMeetingCountExpanded)}
-								>
-									{isMeetingCountExpanded ? "▼" : "▶"}
-								</button>
-							</div>
-							
-							<div className="flex gap-2 items-center">
-								{/* 누적 카운트 / 위클리 토글 */}
-								<button
-									className={`px-3 py-2 rounded text-sm transition-colors ${
-										meetingCountMode === "total"
-											? "font-semibold"
-											: "opacity-70"
-									}`}
-									style={{
-										backgroundColor: meetingCountMode === "total" ? "var(--accent)" : "transparent",
-										color: "var(--foreground)",
-										border: "1px solid var(--accent)",
-									}}
-									onClick={() => setMeetingCountMode("total")}
-								>
-									누적 카운트
-								</button>
-								<button
-									className={`px-3 py-2 rounded text-sm transition-colors ${
-										meetingCountMode === "weekly"
-											? "font-semibold"
-											: "opacity-70"
-									}`}
-									style={{
-										backgroundColor: meetingCountMode === "weekly" ? "var(--accent)" : "transparent",
-										color: "var(--foreground)",
-										border: "1px solid var(--accent)",
-									}}
-									onClick={() => setMeetingCountMode("weekly")}
-								>
-									위클리 만남 횟수
-								</button>
-								
-								{/* 리스트/차트 토글 */}
-								{(meetingCountMode === "total" ? meetings.length > 0 : weeklyMeetings.length > 0) && (
-									<div className="flex gap-2 ml-2">
-										<button
-											className={`px-4 py-2 rounded text-sm transition-colors ${
-												meetingViewMode === "list"
-													? "font-semibold"
-													: "opacity-70"
-											}`}
-											style={{
-												backgroundColor: meetingViewMode === "list" ? "var(--accent)" : "transparent",
-												color: "var(--foreground)",
-												border: "1px solid var(--accent)",
-											}}
-											onClick={() => setMeetingViewMode("list")}
-										>
-											리스트
-										</button>
-										<button
-											className={`px-4 py-2 rounded text-sm transition-colors ${
-												meetingViewMode === "chart"
-													? "font-semibold"
-													: "opacity-70"
-											}`}
-											style={{
-												backgroundColor: meetingViewMode === "chart" ? "var(--accent)" : "transparent",
-												color: "var(--foreground)",
-												border: "1px solid var(--accent)",
-											}}
-											onClick={() => setMeetingViewMode("chart")}
-										>
-											차트
-										</button>
-									</div>
-								)}
-							</div>
+						<div className="flex items-center justify-between mb-4">
+							<h2 className="text-lg font-semibold">
+								유저별 만남 횟수 ({meetingCountMode === "total" ? meetings.length : weeklyMeetings.length}명)
+							</h2>
+							<button
+								className="px-3 py-1 rounded text-sm transition-colors"
+								style={{
+									backgroundColor: "var(--accent)",
+									color: "var(--foreground)",
+									border: "1px solid var(--accent)",
+								}}
+								onClick={() => setIsMeetingCountExpanded(!isMeetingCountExpanded)}
+							>
+								{isMeetingCountExpanded ? "▼" : "▶"}
+							</button>
 						</div>
 
 						{isMeetingCountExpanded && (
 							<>
-						{/* 위클리 모드일 때 월 선택 */}
+								<div className="flex gap-2 items-center mb-4">
+									{/* 누적 카운트 / 위클리 토글 */}
+									<button
+										className={`px-3 py-2 rounded text-sm transition-colors ${
+											meetingCountMode === "total"
+												? "font-semibold"
+												: "opacity-70"
+										}`}
+										style={{
+											backgroundColor: meetingCountMode === "total" ? "var(--accent)" : "transparent",
+											color: "var(--foreground)",
+											border: "1px solid var(--accent)",
+										}}
+										onClick={() => setMeetingCountMode("total")}
+									>
+										누적 카운트
+									</button>
+									<button
+										className={`px-3 py-2 rounded text-sm transition-colors ${
+											meetingCountMode === "weekly"
+												? "font-semibold"
+												: "opacity-70"
+										}`}
+										style={{
+											backgroundColor: meetingCountMode === "weekly" ? "var(--accent)" : "transparent",
+											color: "var(--foreground)",
+											border: "1px solid var(--accent)",
+										}}
+										onClick={() => setMeetingCountMode("weekly")}
+									>
+										위클리 만남 횟수
+									</button>
+									
+									{/* 리스트/차트 토글 */}
+									{(meetingCountMode === "total" ? meetings.length > 0 : weeklyMeetings.length > 0) && (
+										<div className="flex gap-2 ml-2">
+											<button
+												className={`px-4 py-2 rounded text-sm transition-colors ${
+													meetingViewMode === "list"
+														? "font-semibold"
+														: "opacity-70"
+												}`}
+												style={{
+													backgroundColor: meetingViewMode === "list" ? "var(--accent)" : "transparent",
+													color: "var(--foreground)",
+													border: "1px solid var(--accent)",
+												}}
+												onClick={() => setMeetingViewMode("list")}
+											>
+												리스트
+											</button>
+											<button
+												className={`px-4 py-2 rounded text-sm transition-colors ${
+													meetingViewMode === "chart"
+														? "font-semibold"
+														: "opacity-70"
+												}`}
+												style={{
+													backgroundColor: meetingViewMode === "chart" ? "var(--accent)" : "transparent",
+													color: "var(--foreground)",
+													border: "1px solid var(--accent)",
+												}}
+												onClick={() => setMeetingViewMode("chart")}
+											>
+												차트
+											</button>
+										</div>
+									)}
+								</div>
+
+								{/* 위클리 모드일 때 월 선택 */}
 						{meetingCountMode === "weekly" && (
 							<div className="mb-4">
 								<label className="block text-sm mb-2">월 선택 (선택사항)</label>
