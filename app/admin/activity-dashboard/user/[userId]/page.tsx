@@ -36,6 +36,19 @@ type MeetingEntry = {
 	}>;
 };
 
+type OverlapDetail = {
+	start: string;
+	end: string;
+	minutes: number;
+};
+
+type ChannelOverlap = {
+	channelId: string;
+	channelName: string;
+	totalMinutes: number;
+	overlaps: OverlapDetail[];
+};
+
 export default function UserDetailPage() {
 	const router = useRouter();
 	const params = useParams();
@@ -71,6 +84,9 @@ export default function UserDetailPage() {
 	const [showWeekDeleteConfirm, setShowWeekDeleteConfirm] = useState<string | null>(null);
 	const [expandedWeekKey, setExpandedWeekKey] = useState<string | null>(null);
 	const [showCloseGroup, setShowCloseGroup] = useState<boolean>(false);
+	const [overlapByUser, setOverlapByUser] = useState<Record<string, ChannelOverlap[]>>({});
+	const [overlapLoading, setOverlapLoading] = useState<Record<string, boolean>>({});
+	const [overlapError, setOverlapError] = useState<Record<string, string>>({});
 	const [isDayActivityExpanded, setIsDayActivityExpanded] = useState<boolean>(true);
 	const [isMeetingCountExpanded, setIsMeetingCountExpanded] = useState<boolean>(true);
 
@@ -345,6 +361,87 @@ export default function UserDetailPage() {
 			day: 'numeric',
 			weekday: 'short'
 		});
+	}
+
+	// 두 유저가 같은 채널에 머문 시간(분) 계산
+	function computeChannelOverlaps(
+		userActs: any[],
+		otherActs: any[],
+	): ChannelOverlap[] {
+		const resultMap = new Map<string, ChannelOverlap>();
+
+		const safeActs = (userActs || []).filter(Boolean).map((a) => ({
+			...a,
+			start: new Date(a.startTime || a.startAt || a.date).getTime(),
+			end: a.endTime || a.endAt
+				? new Date(a.endTime || a.endAt).getTime()
+				: new Date(a.startTime || a.startAt || a.date).getTime() +
+				  ((typeof a.durationMinutes === "number" ? a.durationMinutes : 0) * 60000),
+		}));
+
+		const otherSafe = (otherActs || []).filter(Boolean).map((a) => ({
+			...a,
+			start: new Date(a.startTime || a.startAt || a.date).getTime(),
+			end: a.endTime || a.endAt
+				? new Date(a.endTime || a.endAt).getTime()
+				: new Date(a.startTime || a.startAt || a.date).getTime() +
+				  ((typeof a.durationMinutes === "number" ? a.durationMinutes : 0) * 60000),
+		}));
+
+		for (const a of safeActs) {
+			if (!a.channelId) continue;
+			for (const b of otherSafe) {
+				if (a.channelId !== b.channelId) continue;
+				const overlapStart = Math.max(a.start, b.start);
+				const overlapEnd = Math.min(a.end, b.end);
+				const diffMs = overlapEnd - overlapStart;
+				if (diffMs <= 0) continue;
+				const minutes = Math.round(diffMs / 60000);
+				const key = a.channelId;
+				const entry = resultMap.get(key) || {
+					channelId: a.channelId,
+					channelName: a.channelName || b.channelName || a.channelId,
+					totalMinutes: 0,
+					overlaps: [] as OverlapDetail[],
+				};
+				entry.totalMinutes += minutes;
+				entry.overlaps.push({
+					start: new Date(overlapStart).toISOString(),
+					end: new Date(overlapEnd).toISOString(),
+					minutes,
+				});
+				resultMap.set(key, entry);
+			}
+		}
+
+		return Array.from(resultMap.values()).sort((a, b) => b.totalMinutes - a.totalMinutes);
+	}
+
+	// 특정 상대 유저와의 채널별 겹친 시간 조회
+	async function loadChannelOverlaps(otherUserId: string) {
+		if (overlapByUser[otherUserId]) return;
+		if (!userData?.activities) return;
+
+		setOverlapLoading((prev) => ({ ...prev, [otherUserId]: true }));
+		setOverlapError((prev) => ({ ...prev, [otherUserId]: "" }));
+
+		try {
+			const res = await fetch(`/api/discord-activity?groupBy=user&userId=${encodeURIComponent(otherUserId)}`);
+			if (!res.ok) {
+				throw new Error(`상대 유저 활동 조회 실패: ${res.status}`);
+			}
+			const result = await res.json();
+			const otherData = result.data?.[otherUserId];
+			const otherActivities = otherData?.activities || [];
+
+			const overlaps = computeChannelOverlaps(userData.activities, otherActivities);
+			setOverlapByUser((prev) => ({ ...prev, [otherUserId]: overlaps }));
+		} catch (err: any) {
+			console.error("채널 겹친 시간 계산 실패:", err);
+			setOverlapError((prev) => ({ ...prev, [otherUserId]: err?.message || "조회 실패" }));
+		} finally {
+			setOverlapLoading((prev) => ({ ...prev, [otherUserId]: false }));
+		}
 	}
 
 	// 시간대별 활동 집계 (0시~23시)
@@ -1197,7 +1294,13 @@ export default function UserDetailPage() {
 																>
 																	<div 
 																		className="flex items-center justify-between cursor-pointer"
-																		onClick={() => setExpandedMeetingUserId(isExpanded ? null : meeting.userId)}
+												onClick={async () => {
+													const next = isExpanded ? null : meeting.userId;
+													setExpandedMeetingUserId(next);
+													if (next) {
+														await loadChannelOverlaps(next);
+													}
+												}}
 																	>
 																		<div className="font-medium text-lg">▶ {meeting.userName}</div>
 																		<div className="text-xl font-semibold">{meeting.count}번</div>
@@ -1229,6 +1332,62 @@ export default function UserDetailPage() {
 																						})}
 																					</div>
 																				)}
+														<div className="pt-3 border-t border-dashed border-zinc-700/50">
+															<div className="font-semibold mb-2">같이 있었던 채널</div>
+															{overlapLoading[meeting.userId] ? (
+																<div className="text-xs opacity-70">불러오는 중...</div>
+															) : overlapError[meeting.userId] ? (
+																<div className="text-xs text-red-500">
+																	오류: {overlapError[meeting.userId]}
+																</div>
+															) : !overlapByUser[meeting.userId] ||
+																overlapByUser[meeting.userId].length === 0 ? (
+																<div className="text-xs opacity-70">
+																	같이 있었던 채널 기록이 없습니다.
+																</div>
+															) : (
+																<div className="space-y-2 text-xs md:text-sm">
+																	{overlapByUser[meeting.userId].map((ch) => (
+																		<div
+																			key={ch.channelId}
+																			className="p-2 rounded border"
+																			style={{
+																				borderColor: "var(--accent)",
+																				background: "color-mix(in srgb, var(--background) 98%, var(--accent) 2%)",
+																			}}
+																		>
+																			<div className="flex items-center justify-between">
+																				<div className="font-medium">{ch.channelName || ch.channelId}</div>
+																				<div className="opacity-70">{formatMinutes(ch.totalMinutes)}</div>
+																			</div>
+																			{ch.overlaps.length > 0 && (
+																				<ul className="mt-1 space-y-1 opacity-80">
+																					{ch.overlaps.slice(0, 5).map((o, idx) => (
+																						<li key={`${ch.channelId}-${idx}`} className="flex items-center justify-between">
+																							<span>
+																								{new Date(o.start).toLocaleTimeString("ko-KR", {
+																									hour: "2-digit",
+																									minute: "2-digit",
+																								})}
+																								{" ~ "}
+																								{new Date(o.end).toLocaleTimeString("ko-KR", {
+																									hour: "2-digit",
+																									minute: "2-digit",
+																								})}
+																							</span>
+																							<span>{formatMinutes(o.minutes)}</span>
+																						</li>
+																					))}
+																					{ch.overlaps.length > 5 && (
+																						<li className="text-[11px] opacity-60">...더 있음</li>
+																					)}
+																				</ul>
+																			)}
+																		</div>
+																	))}
+																</div>
+															)}
+														</div>
 																			</div>
 																		</div>
 																	)}
