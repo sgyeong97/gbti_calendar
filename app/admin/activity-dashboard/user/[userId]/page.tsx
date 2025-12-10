@@ -1303,7 +1303,16 @@ export default function UserDetailPage() {
 												}}
 																	>
 																		<div className="font-medium text-lg">▶ {meeting.userName}</div>
-																		<div className="text-xl font-semibold">{meeting.count}번</div>
+											<div className="text-xl font-semibold">
+												{(() => {
+													const overlaps = overlapByUser[meeting.userId] || [];
+													const totalMinutes = overlaps.reduce(
+														(sum, ch) => sum + (ch?.totalMinutes || 0),
+														0,
+													);
+													return `${meeting.count}번${totalMinutes > 0 ? ` (${formatMinutes(totalMinutes)})` : ""}`;
+												})()}
+											</div>
 																	</div>
 
 																	{/* 만남 정보 */}
@@ -1347,44 +1356,34 @@ export default function UserDetailPage() {
 																</div>
 															) : (
 																<div className="space-y-2 text-xs md:text-sm">
-																	{overlapByUser[meeting.userId].map((ch) => (
-																		<div
-																			key={ch.channelId}
-																			className="p-2 rounded border"
-																			style={{
-																				borderColor: "var(--accent)",
-																				background: "color-mix(in srgb, var(--background) 98%, var(--accent) 2%)",
-																			}}
-																		>
-																			<div className="flex items-center justify-between">
-																				<div className="font-medium">{ch.channelName || ch.channelId}</div>
-																				<div className="opacity-70">{formatMinutes(ch.totalMinutes)}</div>
+																	{overlapByUser[meeting.userId].map((ch) => {
+																		const firstOverlap = ch.overlaps[0];
+																		const dateText = firstOverlap
+																			? new Date(firstOverlap.start).toLocaleDateString("ko-KR", {
+																					year: "numeric",
+																					month: "long",
+																					day: "numeric",
+																			  })
+																			: "";
+																		return (
+																			<div
+																				key={ch.channelId}
+																				className="p-2 rounded border"
+																				style={{
+																					borderColor: "var(--accent)",
+																					background: "color-mix(in srgb, var(--background) 98%, var(--accent) 2%)",
+																				}}
+																			>
+																				<div className="flex items-center justify-between">
+																					<div className="font-medium">
+																						{ch.channelName || ch.channelId}
+																						{dateText ? ` (${dateText})` : ""}
+																					</div>
+																					<div className="opacity-70">{formatMinutes(ch.totalMinutes)}</div>
+																				</div>
 																			</div>
-																			{ch.overlaps.length > 0 && (
-																				<ul className="mt-1 space-y-1 opacity-80">
-																					{ch.overlaps.slice(0, 5).map((o, idx) => (
-																						<li key={`${ch.channelId}-${idx}`} className="flex items-center justify-between">
-																							<span>
-																								{new Date(o.start).toLocaleTimeString("ko-KR", {
-																									hour: "2-digit",
-																									minute: "2-digit",
-																								})}
-																								{" ~ "}
-																								{new Date(o.end).toLocaleTimeString("ko-KR", {
-																									hour: "2-digit",
-																									minute: "2-digit",
-																								})}
-																							</span>
-																							<span>{formatMinutes(o.minutes)}</span>
-																						</li>
-																					))}
-																					{ch.overlaps.length > 5 && (
-																						<li className="text-[11px] opacity-60">...더 있음</li>
-																					)}
-																				</ul>
-																			)}
-																		</div>
-																	))}
+																		);
+																	})}
 																</div>
 															)}
 														</div>
