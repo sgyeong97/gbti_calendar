@@ -71,7 +71,7 @@ export default function UserDetailPage() {
 	const [meetingViewMode, setMeetingViewMode] = useState<"list" | "chart">("list");
 	const [meetingChartType, setMeetingChartType] = useState<"bar" | "line" | "pie">("bar");
 	const [meetingSearchTerm, setMeetingSearchTerm] = useState<string>("");
-	const [meetingSortBy, setMeetingSortBy] = useState<"name" | "count">("count");
+	const [meetingSortBy, setMeetingSortBy] = useState<"count" | "time">("count");
 	const [meetingPageSize, setMeetingPageSize] = useState<number>(10);
 	const [meetingCurrentPage, setMeetingCurrentPage] = useState<number>(1);
 	const [deleting, setDeleting] = useState(false);
@@ -84,9 +84,25 @@ export default function UserDetailPage() {
 	const [showWeekDeleteConfirm, setShowWeekDeleteConfirm] = useState<string | null>(null);
 	const [expandedWeekKey, setExpandedWeekKey] = useState<string | null>(null);
 	const [showCloseGroup, setShowCloseGroup] = useState<boolean>(false);
+	const [closeMode, setCloseMode] = useState<"count" | "time">("count");
 	const [overlapByUser, setOverlapByUser] = useState<Record<string, ChannelOverlap[]>>({});
 	const [overlapLoading, setOverlapLoading] = useState<Record<string, boolean>>({});
 	const [overlapError, setOverlapError] = useState<Record<string, string>>({});
+	const [closeOverlapsLoading, setCloseOverlapsLoading] = useState(false);
+	const [closeOverlapsLoaded, setCloseOverlapsLoaded] = useState(false);
+
+	// 끼리끼리 열릴 때 겹친 시간 미리 계산
+	useEffect(() => {
+		if (showCloseGroup) {
+			preloadAllOverlaps();
+		}
+	}, [showCloseGroup, closeMode]);
+
+	function getTotalOverlapMinutes(userId: string): number | null {
+		const overlaps = overlapByUser[userId];
+		if (!overlaps) return null;
+		return overlaps.reduce((sum, ch) => sum + (ch?.totalMinutes || 0), 0);
+	}
 	const [isDayActivityExpanded, setIsDayActivityExpanded] = useState<boolean>(true);
 	const [isMeetingCountExpanded, setIsMeetingCountExpanded] = useState<boolean>(true);
 
@@ -441,6 +457,32 @@ export default function UserDetailPage() {
 			setOverlapError((prev) => ({ ...prev, [otherUserId]: err?.message || "조회 실패" }));
 		} finally {
 			setOverlapLoading((prev) => ({ ...prev, [otherUserId]: false }));
+		}
+	}
+	
+	// 만남 리스트용: 총 겹친 시간 정렬 지원
+	function getOverlapSortValue(userId: string): number {
+		const total = getTotalOverlapMinutes(userId);
+		return total ?? 0;
+	}
+
+	// 끼리끼리 섹션: 모든 상대의 겹친 시간 미리 로드
+	async function preloadAllOverlaps() {
+		if (closeOverlapsLoaded || closeOverlapsLoading) return;
+		setCloseOverlapsLoading(true);
+		try {
+			for (const m of meetings) {
+				if (!overlapByUser[m.userId]) {
+					// 순차 실행로 API 부하 완화
+					// eslint-disable-next-line no-await-in-loop
+					await loadChannelOverlaps(m.userId);
+				}
+			}
+			setCloseOverlapsLoaded(true);
+		} catch (err) {
+			console.error("끼리끼리 겹친시간 프리로드 실패:", err);
+		} finally {
+			setCloseOverlapsLoading(false);
 		}
 	}
 
@@ -1176,21 +1218,21 @@ export default function UserDetailPage() {
 												</button>
 												<button
 													className={`px-3 py-2 rounded text-sm transition-colors flex-1 ${
-														meetingSortBy === "name"
+														meetingSortBy === "time"
 															? "font-semibold"
 															: "opacity-70"
 													}`}
 													style={{
-														backgroundColor: meetingSortBy === "name" ? "var(--accent)" : "transparent",
+														backgroundColor: meetingSortBy === "time" ? "var(--accent)" : "transparent",
 														color: "var(--foreground)",
 														border: "1px solid var(--accent)",
 													}}
 													onClick={() => {
-														setMeetingSortBy("name");
+														setMeetingSortBy("time");
 														setMeetingCurrentPage(1);
 													}}
 												>
-													이름순
+													시간순
 												</button>
 											</div>
 										</div>
@@ -1226,11 +1268,10 @@ export default function UserDetailPage() {
 										});
 
 										const sorted = filtered.sort((a, b) => {
-											if (meetingSortBy === "name") {
-												return (a.userName || a.userId).localeCompare(b.userName || b.userId);
-											} else {
-												return b.count - a.count;
+											if (meetingSortBy === "time") {
+												return getOverlapSortValue(b.userId) - getOverlapSortValue(a.userId);
 											}
+											return b.count - a.count;
 										});
 
 										const totalPages = Math.max(1, Math.ceil(sorted.length / meetingPageSize));
@@ -1276,6 +1317,11 @@ export default function UserDetailPage() {
 													<div className="space-y-3">
 														{pageMeetings.map((meeting) => {
 															const isExpanded = expandedMeetingUserId === meeting.userId;
+															// 사전 로드: 겹친 시간 없으면 비동기 로드
+															if (!overlapByUser[meeting.userId] && !overlapLoading[meeting.userId]) {
+																loadChannelOverlaps(meeting.userId);
+															}
+															const overlapTotal = getTotalOverlapMinutes(meeting.userId);
 															
 															return (
 																<div
@@ -1305,12 +1351,13 @@ export default function UserDetailPage() {
 																		<div className="font-medium text-lg">▶ {meeting.userName}</div>
 											<div className="text-xl font-semibold">
 												{(() => {
-													const overlaps = overlapByUser[meeting.userId] || [];
-													const totalMinutes = overlaps.reduce(
-														(sum, ch) => sum + (ch?.totalMinutes || 0),
-														0,
-													);
-													return `${meeting.count}번${totalMinutes > 0 ? ` (${formatMinutes(totalMinutes)})` : ""}`;
+																				return `${meeting.count}번${
+																					overlapTotal !== null && overlapTotal > 0
+																						? ` (${formatMinutes(overlapTotal)})`
+																						: overlapLoading[meeting.userId]
+																							? " (계산중...)"
+																							: ""
+																				}`;
 												})()}
 											</div>
 																	</div>
@@ -1459,11 +1506,10 @@ export default function UserDetailPage() {
 										});
 
 										const sorted = filtered.sort((a, b) => {
-											if (meetingSortBy === "name") {
-												return (a.userName || a.userId).localeCompare(b.userName || b.userId);
-											} else {
-												return b.count - a.count;
+											if (meetingSortBy === "time") {
+												return getOverlapSortValue(b.userId) - getOverlapSortValue(a.userId);
 											}
+											return b.count - a.count;
 										});
 
 										const chartData = sorted
@@ -1787,17 +1833,45 @@ export default function UserDetailPage() {
 						>
 						<div className="flex items-center justify-between mb-4">
 							<h2 className="text-lg font-semibold">[테스트]끼리끼리</h2>
-							<button
-								className="px-3 py-1 rounded text-sm transition-colors"
-								style={{
-									backgroundColor: "var(--accent)",
-									color: "var(--foreground)",
-									border: "1px solid var(--accent)",
-								}}
-								onClick={() => setShowCloseGroup(!showCloseGroup)}
-							>
-								{showCloseGroup ? "▼" : "▶"}
-							</button>
+							<div className="flex items-center gap-2">
+								{showCloseGroup && (
+									<div className="flex gap-1 mr-1">
+										<button
+											className={`px-3 py-1 rounded border text-sm ${closeMode === "count" ? "font-semibold" : "opacity-70"}`}
+											style={{
+												borderColor: "var(--accent)",
+												background: closeMode === "count" ? "var(--accent)" : "transparent",
+												color: "var(--foreground)",
+											}}
+											onClick={() => setCloseMode("count")}
+										>
+											만남횟수
+										</button>
+										<button
+											className={`px-3 py-1 rounded border text-sm ${closeMode === "time" ? "font-semibold" : "opacity-70"}`}
+											style={{
+												borderColor: "var(--accent)",
+												background: closeMode === "time" ? "var(--accent)" : "transparent",
+												color: "var(--foreground)",
+											}}
+											onClick={() => setCloseMode("time")}
+										>
+											시간
+										</button>
+									</div>
+								)}
+								<button
+									className="px-3 py-1 rounded text-sm transition-colors"
+									style={{
+										backgroundColor: "var(--accent)",
+										color: "var(--foreground)",
+										border: "1px solid var(--accent)",
+									}}
+									onClick={() => setShowCloseGroup(!showCloseGroup)}
+								>
+									{showCloseGroup ? "▼" : "▶"}
+								</button>
+							</div>
 						</div>
 
 							{showCloseGroup && (() => {
@@ -1806,8 +1880,20 @@ export default function UserDetailPage() {
 								const averageCount = meetings.length > 0 ? totalCount / meetings.length : 0;
 								const threshold = averageCount + 10;
 
-								// 평균 + 10 이상인 사람들 필터링
-								const closeGroupMembers = meetings.filter(m => m.count >= threshold);
+								// 겹친 시간 기준
+								const overlapTotals = meetings.map((m) => getTotalOverlapMinutes(m.userId) ?? 0);
+								const totalOverlap = overlapTotals.reduce((s, v) => s + v, 0);
+								const averageOverlap = meetings.length > 0 ? totalOverlap / meetings.length : 0;
+								const overlapThreshold = averageOverlap + 300; // +5시간(분 단위)
+
+								// 기준별 필터
+								const closeGroupMembers = meetings.filter((m) => {
+									const overlap = getTotalOverlapMinutes(m.userId) ?? 0;
+									if (closeMode === "time") {
+										return overlap >= overlapThreshold;
+									}
+									return m.count >= threshold;
+								});
 
 								return (
 									<div>
@@ -1818,18 +1904,26 @@ export default function UserDetailPage() {
 											<div className="text-sm space-y-1">
 												<div>전체 만남 횟수 평균: <strong>{averageCount.toFixed(2)}회</strong></div>
 												<div>기준선 (평균 + 10회): <strong>{threshold.toFixed(2)}회</strong></div>
+												<div>평균 같이 있는 시간: <strong>{formatMinutes(Math.round(averageOverlap))}</strong></div>
+												<div>기준선 (평균 + 5시간): <strong>{formatMinutes(Math.round(overlapThreshold))}</strong></div>
 												<div>해당 인원: <strong>{closeGroupMembers.length}명</strong></div>
 											</div>
+											{closeOverlapsLoading && (
+												<div className="text-xs opacity-70 mt-1">같이 있는 시간 계산 중...</div>
+											)}
 										</div>
 
 										{closeGroupMembers.length === 0 ? (
 											<div className="text-center py-8" style={{ color: "var(--foreground)", opacity: 0.7 }}>
-												평균 + 10회 이상인 사람이 없습니다.
+												{closeMode === "count"
+													? "기준(평균 + 10회) 이상인 사람이 없습니다."
+													: "기준(평균 + 5시간) 이상 같이 있었던 사람이 없습니다."}
 											</div>
 										) : (
 											<div className="space-y-3">
 												{closeGroupMembers.map((meeting) => {
 													const isExpanded = expandedMeetingUserId === meeting.userId;
+													const overlapTotal = getTotalOverlapMinutes(meeting.userId) ?? 0;
 													
 													return (
 														<div
@@ -1848,10 +1942,23 @@ export default function UserDetailPage() {
 														>
 															<div 
 																className="flex items-center justify-between cursor-pointer"
-																onClick={() => setExpandedMeetingUserId(isExpanded ? null : meeting.userId)}
+																onClick={async () => {
+																	const next = isExpanded ? null : meeting.userId;
+																	setExpandedMeetingUserId(next);
+																	if (next && !overlapByUser[meeting.userId]) {
+																		await loadChannelOverlaps(next);
+																	}
+																}}
 															>
 																<div className="font-medium text-lg">▶ {meeting.userName}</div>
-																<div className="text-xl font-semibold">{meeting.count}번</div>
+																<div className="text-xl font-semibold">
+																	{meeting.count}번
+																	{overlapTotal > 0
+																		? ` (${formatMinutes(overlapTotal)})`
+																		: overlapLoading[meeting.userId]
+																			? " (계산중...)"
+																			: ""}
+																</div>
 															</div>
 
 															{/* 만남 정보 */}
