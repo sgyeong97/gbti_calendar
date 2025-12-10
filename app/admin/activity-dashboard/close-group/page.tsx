@@ -34,21 +34,37 @@ export default function CloseGroupGlobalPage() {
 	const [pairs, setPairs] = useState<PairMeeting[]>([]);
 	const [summary, setSummary] = useState<{
 		averageCount: number;
-		countThreshold: number;
 		averageOverlap: number;
-		overlapThreshold: number;
 		total: number;
 	} | null>(null);
+
+	// 기준 옵션
+	const [countOffset, setCountOffset] = useState<number>(5); // 평균 + n회
+	const [timeOffsetHours, setTimeOffsetHours] = useState<number>(5); // 평균 + n시간
+	const [minCount, setMinCount] = useState<number>(3); // 최소 만남 회수
 
 	// 액티비티 캐시
 	const [activityCache, setActivityCache] = useState<Record<string, Activity[]>>({});
 
+	const thresholds = useMemo(() => {
+		if (!summary) {
+			return {
+				countThreshold: countOffset,
+				overlapThreshold: timeOffsetHours * 60,
+			};
+		}
+		return {
+			countThreshold: summary.averageCount + countOffset,
+			overlapThreshold: summary.averageOverlap + timeOffsetHours * 60,
+		};
+	}, [summary, countOffset, timeOffsetHours]);
+
 	const filteredPairs = useMemo(() => {
 		if (!summary) return [];
 		return pairs
-			.filter((p) => p.count >= summary.countThreshold && p.overlapMinutes >= summary.overlapThreshold && p.count >= 3)
+			.filter((p) => p.count >= thresholds.countThreshold && p.overlapMinutes >= thresholds.overlapThreshold && p.count >= minCount)
 			.sort((a, b) => b.overlapMinutes - a.overlapMinutes);
-	}, [pairs, summary]);
+	}, [pairs, summary, thresholds, minCount]);
 
 	function formatMinutes(minutes: number): string {
 		const mins = Math.round(minutes);
@@ -118,9 +134,7 @@ export default function CloseGroupGlobalPage() {
 				if (!data.length) {
 					setSummary({
 						averageCount: 0,
-						countThreshold: 5,
 						averageOverlap: 0,
-						overlapThreshold: 300,
 						total: 0,
 					});
 					setPairs([]);
@@ -128,12 +142,10 @@ export default function CloseGroupGlobalPage() {
 				}
 
 				const avgCount = data.reduce((s, r) => s + (r.count || 0), 0) / data.length;
-				const countThreshold = avgCount + 5;
 
 				const results: PairMeeting[] = [];
 				for (let i = 0; i < data.length; i++) {
 					const pair = data[i];
-					if ((pair.count || 0) < countThreshold || (pair.count || 0) < 3) continue;
 
 					setProgress(`겹친 시간 계산 중 ${i + 1}/${data.length}`);
 					const acts1 = await loadActivities(pair.userId1);
@@ -153,13 +165,10 @@ export default function CloseGroupGlobalPage() {
 				}
 
 				const avgOverlap = results.reduce((s, r) => s + r.overlapMinutes, 0) / (results.length || 1);
-				const overlapThreshold = avgOverlap + 300; // +5시간
 
 				setSummary({
 					averageCount: avgCount,
-					countThreshold,
 					averageOverlap: avgOverlap,
-					overlapThreshold,
 					total: results.length,
 				});
 				setPairs(results);
@@ -201,65 +210,180 @@ export default function CloseGroupGlobalPage() {
 				>
 					<div className="text-sm space-y-1">
 						<div>평균 만남 횟수: <strong>{summary.averageCount.toFixed(2)}회</strong></div>
-						<div>기준 (평균 + 5회): <strong>{summary.countThreshold.toFixed(2)}회</strong></div>
+						<div>기준 (평균 + {countOffset}회): <strong>{thresholds.countThreshold.toFixed(2)}회</strong></div>
 						<div>평균 같이 있는 시간: <strong>{formatMinutes(summary.averageOverlap)}</strong></div>
-						<div>기준 (평균 + 5시간): <strong>{formatMinutes(summary.overlapThreshold)}</strong></div>
-						<div>총 후보 쌍: <strong>{summary.total}쌍</strong></div>
-						<div>해당 쌍: <strong>{filteredPairs.length}쌍</strong></div>
+						<div>기준 (평균 + {timeOffsetHours}시간): <strong>{formatMinutes(thresholds.overlapThreshold)}</strong></div>
+						<div>최소 만남 회수: <strong>{minCount}회 이상</strong></div>
+						<div>총 후보 쌍(전체 계산됨): <strong>{summary.total}쌍</strong></div>
+						<div>조건 충족 쌍: <strong>{filteredPairs.length}쌍</strong></div>
+					</div>
+					<div className="mt-3 flex flex-wrap items-end gap-3 text-sm">
+						<label className="flex items-center gap-2">
+							<span className="opacity-80">만남 기준 +</span>
+							<input
+								type="number"
+								min={0}
+								step={1}
+								value={countOffset}
+								onChange={(e) => setCountOffset(Number(e.target.value) || 0)}
+								className="px-2 py-1 rounded border bg-transparent"
+								style={{ borderColor: "var(--accent)" }}
+							/>
+							<span>회</span>
+						</label>
+						<label className="flex items-center gap-2">
+							<span className="opacity-80">시간 기준 +</span>
+							<input
+								type="number"
+								min={0}
+								step={0.5}
+								value={timeOffsetHours}
+								onChange={(e) => setTimeOffsetHours(Number(e.target.value) || 0)}
+								className="px-2 py-1 rounded border bg-transparent"
+								style={{ borderColor: "var(--accent)" }}
+							/>
+							<span>시간</span>
+						</label>
+						<label className="flex items-center gap-2">
+							<span className="opacity-80">최소 만남</span>
+							<input
+								type="number"
+								min={0}
+								step={1}
+								value={minCount}
+								onChange={(e) => setMinCount(Number(e.target.value) || 0)}
+								className="px-2 py-1 rounded border bg-transparent"
+								style={{ borderColor: "var(--accent)" }}
+							/>
+							<span>회 이상</span>
+						</label>
+						<button
+							className="px-3 py-2 rounded border text-xs cursor-pointer"
+							style={{ borderColor: "var(--accent)" }}
+							onClick={() => {
+								setCountOffset(5);
+								setTimeOffsetHours(5);
+								setMinCount(3);
+							}}
+						>
+							초기값으로
+						</button>
 					</div>
 				</div>
 			)}
 
-			{filteredPairs.length === 0 ? (
-				<div className="text-center py-12" style={{ opacity: 0.7 }}>
-					조건을 만족하는 쌍이 없습니다.
-				</div>
-			) : (
-				<div className="space-y-3">
-					{filteredPairs.map((p, idx) => (
-						<div
-							key={`${p.userId1}-${p.userId2}-${idx}`}
-							className="p-4 rounded border"
-							style={{ borderColor: "var(--accent)", background: "var(--background)" }}
-						>
-							<div className="flex items-center justify-between">
-								<div className="font-medium text-lg">
-									{p.userName1} · {p.userName2}
-								</div>
-								<div className="text-sm opacity-70">
-									{p.userId1} / {p.userId2}
-								</div>
-							</div>
-							<div className="mt-1 text-sm flex flex-wrap gap-3">
-								<span className="font-semibold">{p.count}회</span>
-								<span className="opacity-80">{formatMinutes(p.overlapMinutes)}</span>
-								{p.lastMetAt && (
-									<span className="opacity-70">
-										마지막 만남: {new Date(p.lastMetAt).toLocaleString("ko-KR", {
-											year: "numeric",
-											month: "long",
-											day: "numeric",
-											hour: "2-digit",
-											minute: "2-digit",
-										})}
-									</span>
-								)}
-								{p.updatedAt && (
-									<span className="opacity-50 text-xs">
-										업데이트: {new Date(p.updatedAt).toLocaleString("ko-KR", {
-											year: "numeric",
-											month: "long",
-											day: "numeric",
-											hour: "2-digit",
-											minute: "2-digit",
-										})}
-									</span>
-								)}
-							</div>
+			<div className="space-y-6">
+				<div>
+					<h2 className="text-lg font-semibold mb-2">조건 충족 쌍</h2>
+					{filteredPairs.length === 0 ? (
+						<div className="text-center py-8" style={{ opacity: 0.7 }}>
+							조건을 만족하는 쌍이 없습니다.
 						</div>
-					))}
+					) : (
+						<div className="space-y-3">
+							{filteredPairs.map((p, idx) => (
+								<div
+									key={`filtered-${p.userId1}-${p.userId2}-${idx}`}
+									className="p-4 rounded border"
+									style={{ borderColor: "var(--accent)", background: "var(--background)" }}
+								>
+									<div className="flex items-center justify-between">
+										<div className="font-medium text-lg">
+											{p.userName1} · {p.userName2}
+										</div>
+										<div className="text-sm opacity-70">
+											{p.userId1} / {p.userId2}
+										</div>
+									</div>
+									<div className="mt-1 text-sm flex flex-wrap gap-3">
+										<span className="font-semibold">{p.count}회</span>
+										<span className="opacity-80">{formatMinutes(p.overlapMinutes)}</span>
+										{p.lastMetAt && (
+											<span className="opacity-70">
+												마지막 만남: {new Date(p.lastMetAt).toLocaleString("ko-KR", {
+													year: "numeric",
+													month: "long",
+													day: "numeric",
+													hour: "2-digit",
+													minute: "2-digit",
+												})}
+											</span>
+										)}
+										{p.updatedAt && (
+											<span className="opacity-50 text-xs">
+												업데이트: {new Date(p.updatedAt).toLocaleString("ko-KR", {
+													year: "numeric",
+													month: "long",
+													day: "numeric",
+													hour: "2-digit",
+													minute: "2-digit",
+												})}
+											</span>
+										)}
+									</div>
+								</div>
+							))}
+						</div>
+					)}
 				</div>
-			)}
+
+				<div>
+					<h2 className="text-lg font-semibold mb-2">전체 후보 쌍</h2>
+					{pairs.length === 0 ? (
+						<div className="text-center py-8" style={{ opacity: 0.7 }}>
+							계산된 후보 쌍이 없습니다.
+						</div>
+					) : (
+						<div className="space-y-3">
+							{pairs.map((p, idx) => (
+								<div
+									key={`all-${p.userId1}-${p.userId2}-${idx}`}
+									className="p-4 rounded border"
+									style={{
+										borderColor: "var(--accent)",
+										background: "color-mix(in srgb, var(--background) 95%, var(--accent) 5%)",
+									}}
+								>
+									<div className="flex items-center justify-between">
+										<div className="font-medium text-lg">
+											{p.userName1} · {p.userName2}
+										</div>
+										<div className="text-sm opacity-70">
+											{p.userId1} / {p.userId2}
+										</div>
+									</div>
+									<div className="mt-1 text-sm flex flex-wrap gap-3">
+										<span className="font-semibold">{p.count}회</span>
+										<span className="opacity-80">{formatMinutes(p.overlapMinutes)}</span>
+										{p.lastMetAt && (
+											<span className="opacity-70">
+												마지막 만남: {new Date(p.lastMetAt).toLocaleString("ko-KR", {
+													year: "numeric",
+													month: "long",
+													day: "numeric",
+													hour: "2-digit",
+													minute: "2-digit",
+												})}
+											</span>
+										)}
+										{p.updatedAt && (
+											<span className="opacity-50 text-xs">
+												업데이트: {new Date(p.updatedAt).toLocaleString("ko-KR", {
+													year: "numeric",
+													month: "long",
+													day: "numeric",
+													hour: "2-digit",
+													minute: "2-digit",
+												})}
+											</span>
+										)}
+									</div>
+								</div>
+							))}
+						</div>
+					)}
+				</div>
+			</div>
 		</div>
 	);
 }
