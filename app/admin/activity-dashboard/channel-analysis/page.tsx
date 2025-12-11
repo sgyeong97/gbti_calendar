@@ -5,11 +5,18 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { applyColorTheme } from "@/app/lib/color-themes";
 
+type ChannelNameHistory = {
+	name: string;
+	firstUsed: string; // 처음 사용 시각 (ISO 8601)
+	lastUsed: string; // 마지막 사용 시각 (ISO 8601)
+};
+
 type ChannelInfo = {
 	channelId: string;
 	channelName: string;
 	createdAt?: string; // 채널 생성 시각
 	deletedAt?: string; // 채널 사라진 시각
+	channelNameHistory?: ChannelNameHistory[]; // 채널 이름 변경 이력 (이름이 2개 이상일 때만 존재)
 	titles: string[]; // 로그별 기록된 제목들
 	participants: {
 		userId: string;
@@ -100,6 +107,7 @@ export default function ChannelAnalysisPage() {
 			filtered = filtered.filter((ch) =>
 				ch.channelId.toLowerCase().includes(q) ||
 				ch.channelName.toLowerCase().includes(q) ||
+				(ch.channelNameHistory?.some((h) => h.name.toLowerCase().includes(q)) ?? false) ||
 				ch.titles.some((t) => t.toLowerCase().includes(q)) ||
 				ch.participants.some((p) => p.userName.toLowerCase().includes(q) || p.userId.toLowerCase().includes(q))
 			);
@@ -231,8 +239,20 @@ export default function ChannelAnalysisPage() {
 											onClick={() => setExpandedChannelId(isExpanded ? null : channel.channelId)}
 										>
 											<div className="flex-1">
-												<div className="font-medium text-lg">
-													{isExpanded ? "▼" : "▶"} {channel.channelName}
+												<div className="font-medium text-lg flex items-center gap-2">
+													<span>{isExpanded ? "▼" : "▶"} {channel.channelName}</span>
+													{channel.channelNameHistory && channel.channelNameHistory.length > 0 && (
+														<span
+															className="text-xs px-2 py-0.5 rounded"
+															style={{
+																background: "color-mix(in srgb, var(--accent) 30%, transparent)",
+																border: "1px solid var(--accent)"
+															}}
+															title={`이름이 ${channel.channelNameHistory.length + 1}번 변경되었습니다`}
+														>
+															이름 변경됨
+														</span>
+													)}
 												</div>
 												<div className="text-sm opacity-70 mt-1">
 													ID: {channel.channelId}
@@ -262,6 +282,33 @@ export default function ChannelAnalysisPage() {
 															<div>총 활동 로그: {channel.totalActivityCount}개</div>
 														</div>
 													</div>
+
+													{/* 채널 이름 변경 이력 */}
+													{channel.channelNameHistory && channel.channelNameHistory.length > 0 && (
+														<div>
+															<h3 className="text-sm font-semibold mb-2">채널 이름 변경 이력 ({channel.channelNameHistory.length}개)</h3>
+															<div className="space-y-2">
+																{channel.channelNameHistory
+																	.sort((a, b) => new Date(a.firstUsed).getTime() - new Date(b.firstUsed).getTime())
+																	.map((history, idx) => (
+																		<div
+																			key={idx}
+																			className="p-3 rounded"
+																			style={{
+																				background: "color-mix(in srgb, var(--accent) 15%, transparent)",
+																				border: "1px solid var(--accent)"
+																			}}
+																		>
+																			<div className="font-medium mb-1">{history.name}</div>
+																			<div className="text-xs opacity-70 space-y-0.5">
+																				<div>처음 사용: {formatDateTime(history.firstUsed)}</div>
+																				<div>마지막 사용: {formatDateTime(history.lastUsed)}</div>
+																			</div>
+																		</div>
+																	))}
+															</div>
+														</div>
+													)}
 
 													{/* 기록된 제목들 */}
 													{channel.titles.length > 0 && (
