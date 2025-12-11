@@ -91,8 +91,9 @@ export default function CloseGroupGlobalPage() {
 		return `${m}분`;
 	}
 
-	function computeOverlapMinutes(myActs: Activity[], otherActs: Activity[]): number {
+	function computeOverlapMinutes(myActs: Activity[], otherActs: Activity[]): { totalMinutes: number; channelCount: number } {
 		let total = 0;
+		const channelSet = new Set<string>();
 		const mine = (myActs || []).filter(Boolean).map((a) => {
 			const startRaw = a.startTime ?? a.startAt ?? a.date;
 			const startMs = startRaw ? new Date(startRaw).getTime() : NaN;
@@ -122,10 +123,11 @@ export default function CloseGroupGlobalPage() {
 				const diff = overlapEnd - overlapStart;
 				if (diff > 0) {
 					total += Math.round(diff / 60000);
+					channelSet.add(a.channelId);
 				}
 			}
 		}
-		return total;
+		return { totalMinutes: total, channelCount: channelSet.size };
 	}
 
 	async function loadActivities(userId: string): Promise<Activity[]> {
@@ -158,8 +160,6 @@ export default function CloseGroupGlobalPage() {
 					return;
 				}
 
-				const avgCount = data.reduce((s, r) => s + (r.count || 0), 0) / data.length;
-
 				const results: PairMeeting[] = [];
 				for (let i = 0; i < data.length; i++) {
 					const pair = data[i];
@@ -167,20 +167,21 @@ export default function CloseGroupGlobalPage() {
 					setProgress(`겹친 시간 계산 중 ${i + 1}/${data.length}`);
 					const acts1 = await loadActivities(pair.userId1);
 					const acts2 = await loadActivities(pair.userId2);
-					const overlap = computeOverlapMinutes(acts1, acts2);
+					const overlapResult = computeOverlapMinutes(acts1, acts2);
 
 					results.push({
 						userId1: pair.userId1,
 						userId2: pair.userId2,
 						userName1: pair.userName1 || pair.userId1,
 						userName2: pair.userName2 || pair.userId2,
-						count: pair.count || 0,
+						count: overlapResult.channelCount, // 실제 겹친 채널 개수 사용
 						lastMetAt: pair.lastMetAt,
 						updatedAt: pair.updatedAt,
-						overlapMinutes: overlap,
+						overlapMinutes: overlapResult.totalMinutes,
 					});
 				}
 
+				const avgCount = results.reduce((s, r) => s + r.count, 0) / (results.length || 1);
 				const avgOverlap = results.reduce((s, r) => s + r.overlapMinutes, 0) / (results.length || 1);
 
 				setSummary({

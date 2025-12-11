@@ -677,34 +677,51 @@ export default function ActivityDashboardPage() {
 							<div className="text-sm opacity-70">{formatMinutes(stats.mostActiveDay.minutes)}</div>
 						</div>
 					)}
-					{/* 끼리끼리 페이지 이동 카드 */}
+					{/* 분석 페이지 이동 버튼들 */}
 					<div
-						className="rounded-lg p-4 transition-colors"
+						className="rounded-lg p-4"
 						style={{
 							background: "var(--background)",
 							border: "1px solid var(--accent)",
 						}}
-						onMouseEnter={(e) => {
-							e.currentTarget.style.background =
-								"color-mix(in srgb, var(--background) 95%, var(--accent) 5%)";
-						}}
-						onMouseLeave={(e) => {
-							e.currentTarget.style.background = "var(--background)";
-						}}
 					>
-						<div className="text-sm opacity-70 mb-1">끼리끼리 분석</div>
-						<div className="text-2xl font-bold mb-2">페이지로 이동</div>
-						<button
-							className="px-3 py-2 rounded text-sm transition-colors cursor-pointer"
-							style={{
-								background: "var(--accent)",
-								color: "var(--foreground)",
-								border: "1px solid var(--accent)",
-							}}
-							onClick={() => router.push("/admin/activity-dashboard/close-group")}
-						>
-							열기
-						</button>
+						<div className="text-sm opacity-70 mb-3">분석 페이지</div>
+						<div className="flex gap-2">
+							<button
+								className="flex-1 px-4 py-3 rounded text-sm font-semibold transition-colors cursor-pointer"
+								style={{
+									background: "var(--accent)",
+									color: "var(--foreground)",
+									border: "1px solid var(--accent)",
+								}}
+								onMouseEnter={(e) => {
+									e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 80%, var(--foreground) 20%)";
+								}}
+								onMouseLeave={(e) => {
+									e.currentTarget.style.background = "var(--accent)";
+								}}
+								onClick={() => router.push("/admin/activity-dashboard/close-group")}
+							>
+								끼리끼리
+							</button>
+							<button
+								className="flex-1 px-4 py-3 rounded text-sm font-semibold transition-colors cursor-pointer"
+								style={{
+									background: "var(--accent)",
+									color: "var(--foreground)",
+									border: "1px solid var(--accent)",
+								}}
+								onMouseEnter={(e) => {
+									e.currentTarget.style.background = "color-mix(in srgb, var(--accent) 80%, var(--foreground) 20%)";
+								}}
+								onMouseLeave={(e) => {
+									e.currentTarget.style.background = "var(--accent)";
+								}}
+								onClick={() => router.push("/admin/activity-dashboard/channel-analysis")}
+							>
+								채널별
+							</button>
+						</div>
 					</div>
 				</div>
 			)}
