@@ -372,40 +372,80 @@ export default function ActivityDashboardPage() {
 		setLoading(true);
 		try {
 			const params = new URLSearchParams({
-				groupBy,
 				startDate,
 				endDate,
 			});
 
-			const res = await fetch(`/api/discord-activity?${params}`);
+			// 최적화된 API 사용
+			const apiEndpoint = groupBy === "day" 
+				? `/api/discord-activity/grouped-by-date`
+				: `/api/discord-activity/grouped-by-user`;
+
+			const res = await fetch(`${apiEndpoint}?${params}`);
 			if (!res.ok) throw new Error("Failed to fetch");
 			
 			const result = await res.json();
-			const rawData = result.data || {};
+			const rawData = result.data || [];
 
-			// 디버깅: 받아온 데이터 확인
-			console.log("[대시보드] 받아온 원본 데이터:", rawData);
+			console.log(`[대시보드] 최적화된 API 응답: ${rawData.length}개 항목`);
+
+			// 최적화된 API 응답을 기존 형식으로 변환
+			let convertedData: Record<string, ActivityData | UserActivityData> = {};
+
 			if (groupBy === "day") {
-				for (const [dateKey, dayData] of Object.entries(rawData)) {
-					const activities = (dayData as ActivityData).activities || [];
-					console.log(`[대시보드] 날짜 ${dateKey}: ${activities.length}개 활동`);
-					activities.forEach((act: any, idx: number) => {
-						if (idx < 3) { // 처음 3개만 로그
-							console.log(`  - 활동 ${idx + 1}: date=${act.date}, startTime=${act.startTime}, createdAt=${act.createdAt}`);
+				// 날짜별 그룹화 데이터 변환
+				for (const dayItem of rawData) {
+					// users 배열을 activities로 변환 (기존 형식 호환)
+					const activities: any[] = [];
+					for (const user of dayItem.users || []) {
+						// 사용자별 활동을 시뮬레이션 (실제 활동 데이터는 없지만 통계는 유지)
+						activities.push({
+							userId: user.userId,
+							userName: user.userName,
+							durationMinutes: user.totalMinutes,
+							date: dayItem.date,
+						});
+					}
+
+					convertedData[dayItem.date] = {
+						date: dayItem.date,
+						totalMinutes: dayItem.totalMinutes,
+						userCount: dayItem.userCount,
+						users: dayItem.users?.map((u: any) => u.userId) || [],
+						activities,
+					};
+				}
+			} else {
+				// 사용자별 그룹화 데이터 변환
+				for (const userItem of rawData) {
+					// dates 배열을 activities로 변환 (기존 형식 호환)
+					const activities: any[] = [];
+					for (const dateItem of userItem.dates || []) {
+						for (const activity of dateItem.activities || []) {
+							activities.push({
+								...activity,
+								date: dateItem.date,
+								userId: userItem.userId,
+								userName: userItem.userName,
+							});
 						}
-					});
+					}
+
+					convertedData[userItem.userId] = {
+						userId: userItem.userId,
+						userName: userItem.userName,
+						totalMinutes: userItem.totalMinutes,
+						dayCount: userItem.activeDays,
+						days: userItem.dates?.map((d: any) => d.date) || [],
+						activities,
+					};
 				}
 			}
 
-			// date 필드 보정 (startTime 또는 createdAt의 날짜 사용)
-			const dateNormalized = normalizeDates(rawData);
-			console.log("[대시보드] 날짜 보정 후 데이터:", dateNormalized);
-			// userName 정규화 (userId 기준으로 가장 최근 userName 사용)
-			const normalizedData = normalizeUserNames(dateNormalized);
-			setActivityData(normalizedData);
+			setActivityData(convertedData);
 
 			// 통계 계산
-			calculateStats(normalizedData);
+			calculateStats(convertedData);
 			// 끼리끼리 인원 계산
 			await calculateCloseGroupUsers();
 		} catch (err) {
