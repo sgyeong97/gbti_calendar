@@ -395,22 +395,31 @@ export default function ActivityDashboardPage() {
 			if (groupBy === "day") {
 				// 날짜별 그룹화 데이터 변환
 				for (const dayItem of rawData) {
+					// totalMinutes를 숫자로 변환 (문자열일 수 있음)
+					const totalMinutes = typeof dayItem.totalMinutes === 'string' 
+						? parseInt(dayItem.totalMinutes, 10) 
+						: (dayItem.totalMinutes || 0);
+					
 					// users 배열을 activities로 변환 (기존 형식 호환)
 					const activities: any[] = [];
 					for (const user of dayItem.users || []) {
 						// 사용자별 활동을 시뮬레이션 (실제 활동 데이터는 없지만 통계는 유지)
+						const userMinutes = typeof user.totalMinutes === 'string'
+							? parseInt(user.totalMinutes, 10)
+							: (user.totalMinutes || 0);
+						
 						activities.push({
 							userId: user.userId,
 							userName: user.userName,
-							durationMinutes: user.totalMinutes,
+							durationMinutes: userMinutes,
 							date: dayItem.date,
 						});
 					}
 
 					convertedData[dayItem.date] = {
 						date: dayItem.date,
-						totalMinutes: dayItem.totalMinutes,
-						userCount: dayItem.userCount,
+						totalMinutes: totalMinutes,
+						userCount: dayItem.userCount || 0,
 						users: dayItem.users?.map((u: any) => u.userId) || [],
 						activities,
 					};
@@ -418,6 +427,11 @@ export default function ActivityDashboardPage() {
 			} else {
 				// 사용자별 그룹화 데이터 변환
 				for (const userItem of rawData) {
+					// totalMinutes를 숫자로 변환 (문자열일 수 있음)
+					const totalMinutes = typeof userItem.totalMinutes === 'string'
+						? parseInt(userItem.totalMinutes, 10)
+						: (userItem.totalMinutes || 0);
+					
 					// dates 배열을 activities로 변환 (기존 형식 호환)
 					const activities: any[] = [];
 					for (const dateItem of userItem.dates || []) {
@@ -434,8 +448,8 @@ export default function ActivityDashboardPage() {
 					convertedData[userItem.userId] = {
 						userId: userItem.userId,
 						userName: userItem.userName,
-						totalMinutes: userItem.totalMinutes,
-						dayCount: userItem.activeDays,
+						totalMinutes: totalMinutes,
+						dayCount: userItem.activeDays || 0,
 						days: userItem.dates?.map((d: any) => d.date) || [],
 						activities,
 					};
@@ -470,39 +484,73 @@ export default function ActivityDashboardPage() {
 
 		if (groupBy === "day") {
 			const days = Object.values(data) as ActivityData[];
-			const totalMinutes = days.reduce((sum, day) => sum + day.totalMinutes, 0);
+			// totalMinutes를 숫자로 안전하게 변환
+			const totalMinutes = days.reduce((sum, day) => {
+				const minutes = typeof day.totalMinutes === 'string' 
+					? parseInt(day.totalMinutes, 10) 
+					: (day.totalMinutes || 0);
+				return sum + (isNaN(minutes) ? 0 : minutes);
+			}, 0);
+			
 			const allUsers = new Set<string>();
 			days.forEach(day => day.users.forEach(u => allUsers.add(u)));
 			
-			const mostActiveDay = days.reduce((max, day) => 
-				day.totalMinutes > max.totalMinutes ? day : max, days[0]
-			);
+			const mostActiveDay = days.reduce((max, day) => {
+				const maxMinutes = typeof max.totalMinutes === 'string'
+					? parseInt(max.totalMinutes, 10)
+					: (max.totalMinutes || 0);
+				const dayMinutes = typeof day.totalMinutes === 'string'
+					? parseInt(day.totalMinutes, 10)
+					: (day.totalMinutes || 0);
+				return (isNaN(dayMinutes) ? 0 : dayMinutes) > (isNaN(maxMinutes) ? 0 : maxMinutes) ? day : max;
+			}, days[0]);
+
+			const mostActiveMinutes = typeof mostActiveDay.totalMinutes === 'string'
+				? parseInt(mostActiveDay.totalMinutes, 10)
+				: (mostActiveDay.totalMinutes || 0);
 
 			setStats({
 				totalUsers: allUsers.size,
-				totalMinutes,
+				totalMinutes: isNaN(totalMinutes) ? 0 : totalMinutes,
 				averageMinutesPerUser: allUsers.size > 0 ? Math.round(totalMinutes / allUsers.size) : 0,
 				mostActiveUser: null,
 				mostActiveDay: {
 					date: mostActiveDay.date,
-					minutes: mostActiveDay.totalMinutes,
+					minutes: isNaN(mostActiveMinutes) ? 0 : mostActiveMinutes,
 				},
 			});
 		} else {
 			const users = Object.values(data) as UserActivityData[];
-			const totalMinutes = users.reduce((sum, user) => sum + user.totalMinutes, 0);
-			const mostActiveUser = users.reduce((max, user) => 
-				user.totalMinutes > max.totalMinutes ? user : max, users[0]
-			);
+			// totalMinutes를 숫자로 안전하게 변환
+			const totalMinutes = users.reduce((sum, user) => {
+				const minutes = typeof user.totalMinutes === 'string'
+					? parseInt(user.totalMinutes, 10)
+					: (user.totalMinutes || 0);
+				return sum + (isNaN(minutes) ? 0 : minutes);
+			}, 0);
+			
+			const mostActiveUser = users.reduce((max, user) => {
+				const maxMinutes = typeof max.totalMinutes === 'string'
+					? parseInt(max.totalMinutes, 10)
+					: (max.totalMinutes || 0);
+				const userMinutes = typeof user.totalMinutes === 'string'
+					? parseInt(user.totalMinutes, 10)
+					: (user.totalMinutes || 0);
+				return (isNaN(userMinutes) ? 0 : userMinutes) > (isNaN(maxMinutes) ? 0 : maxMinutes) ? user : max;
+			}, users[0]);
+
+			const mostActiveMinutes = typeof mostActiveUser.totalMinutes === 'string'
+				? parseInt(mostActiveUser.totalMinutes, 10)
+				: (mostActiveUser.totalMinutes || 0);
 
 			setStats({
 				totalUsers: users.length,
-				totalMinutes,
+				totalMinutes: isNaN(totalMinutes) ? 0 : totalMinutes,
 				averageMinutesPerUser: users.length > 0 ? Math.round(totalMinutes / users.length) : 0,
 				mostActiveUser: {
 					userId: mostActiveUser.userId,
 					userName: mostActiveUser.userName,
-					minutes: mostActiveUser.totalMinutes,
+					minutes: isNaN(mostActiveMinutes) ? 0 : mostActiveMinutes,
 				},
 				mostActiveDay: null,
 			});
