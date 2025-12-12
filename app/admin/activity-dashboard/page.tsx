@@ -509,63 +509,29 @@ export default function ActivityDashboardPage() {
 		}
 	}
 
-	// 끼리끼리 인원 5명 이상인 유저 계산
+	// 끼리끼리 인원 5명 이상인 유저 계산 (최적화된 API 사용)
 	async function calculateCloseGroupUsers() {
 		try {
-			// 모든 유저 목록 가져오기
-			const params = new URLSearchParams({
-				groupBy: "user",
-			});
-			const res = await fetch(`/api/discord-activity?${params}`);
+			// 최적화된 API 사용 (백엔드에서 직접 집계)
+			const res = await fetch(`/api/discord-activity/close-group-users?minGroupSize=5&countOffset=10`);
+			
+			// 백엔드에 아직 구현되지 않았다면 빈 배열 반환 (404 등)
 			if (!res.ok) {
+				console.log("[대시보드] 끼리끼리 인원 계산 API가 아직 구현되지 않았습니다. 기능을 비활성화합니다.");
 				setCloseGroupUsers([]);
 				return;
 			}
 			
 			const result = await res.json();
-			const rawData = result.data || {};
+			const data = result.data || [];
 			
-			// 각 유저별로 만남 횟수 조회 및 끼리끼리 인원 계산
-			const closeGroupUsersList: CloseGroupUser[] = [];
+			// 응답 데이터를 기존 형식으로 변환
+			const closeGroupUsersList: CloseGroupUser[] = data.map((item: any) => ({
+				userId: item.userId,
+				userName: item.userName || item.userId,
+				closeGroupCount: item.closeGroupCount,
+			}));
 			
-			for (const [userId, userData] of Object.entries(rawData)) {
-				const user = userData as UserActivityData;
-				if (!user || !user.userId) continue;
-				
-				try {
-					// 해당 유저의 만남 횟수 조회
-					const meetingRes = await fetch(`/api/discord-activity/meeting-counts?userId=${encodeURIComponent(userId)}`);
-					if (!meetingRes.ok) continue;
-					
-					const meetingResult = await meetingRes.json();
-					const meetings = meetingResult.data || [];
-					
-					if (meetings.length === 0) continue;
-					
-					// 평균 만남 횟수 계산
-					const totalCount = meetings.reduce((sum: number, m: any) => sum + (m.count || 0), 0);
-					const averageCount = totalCount / meetings.length;
-					const threshold = averageCount + 10;
-					
-					// 평균 + 10 이상인 사람들 필터링
-					const closeGroupMembers = meetings.filter((m: any) => (m.count || 0) >= threshold);
-					
-					// 5명 이상인 경우만 추가
-					if (closeGroupMembers.length >= 5) {
-						closeGroupUsersList.push({
-							userId: user.userId,
-							userName: user.userName || user.userId,
-							closeGroupCount: closeGroupMembers.length,
-						});
-					}
-				} catch (err) {
-					console.error(`유저 ${userId}의 만남 횟수 조회 실패:`, err);
-					continue;
-				}
-			}
-			
-			// 끼리끼리 인원 수로 정렬 (내림차순)
-			closeGroupUsersList.sort((a, b) => b.closeGroupCount - a.closeGroupCount);
 			setCloseGroupUsers(closeGroupUsersList);
 		} catch (err) {
 			console.error("끼리끼리 인원 계산 실패:", err);
