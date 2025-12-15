@@ -204,34 +204,104 @@ export default function DayDetailPage() {
 	async function fetchDayData() {
 		setLoading(true);
 		try {
+			// 날짜 파싱 (URL 디코딩 및 안전한 파싱)
+			let targetDate: Date;
+			try {
+				// URL 인코딩된 날짜 디코딩
+				const decodedDate = decodeURIComponent(date);
+				targetDate = new Date(decodedDate);
+				
+				// 유효한 날짜인지 확인
+				if (isNaN(targetDate.getTime())) {
+					// ISO 문자열이 아닌 경우, 날짜만 추출 시도 (YYYY-MM-DD 형식)
+					const dateOnly = decodedDate.split('T')[0];
+					targetDate = new Date(dateOnly);
+					
+					if (isNaN(targetDate.getTime())) {
+						throw new Error(`Invalid date format: ${date}`);
+					}
+				}
+			} catch (err) {
+				console.error("날짜 파싱 실패:", err);
+				alert(`유효하지 않은 날짜 형식입니다: ${date}`);
+				setLoading(false);
+				return;
+			}
+			
 			// 날짜 범위를 넓게 설정 (봇 API의 date 필드가 부정확할 수 있으므로)
 			// 해당 날짜 전후 1일씩 포함하여 요청
-			const targetDate = new Date(date);
 			const prevDate = new Date(targetDate);
 			prevDate.setDate(prevDate.getDate() - 1);
 			const nextDate = new Date(targetDate);
 			nextDate.setDate(nextDate.getDate() + 1);
 			
-			const startDate = prevDate.toISOString().split('T')[0];
-			const endDate = nextDate.toISOString().split('T')[0];
+			// 안전하게 ISO 문자열로 변환
+			let startDate: string;
+			let endDate: string;
+			try {
+				startDate = prevDate.toISOString().split('T')[0];
+				endDate = nextDate.toISOString().split('T')[0];
+			} catch (err) {
+				console.error("날짜 변환 실패:", err);
+				alert("날짜 변환 중 오류가 발생했습니다.");
+				setLoading(false);
+				return;
+			}
 			
 			const params = new URLSearchParams({
-				groupBy: "day",
 				startDate,
 				endDate,
 			});
 
-			const res = await fetch(`/api/discord-activity?${params}`);
+			// 최적화된 API 사용
+			const res = await fetch(`/api/discord-activity/grouped-by-date?${params}`);
 			if (!res.ok) throw new Error("Failed to fetch");
 			
 			const result = await res.json();
-			const rawData = result.data || {};
+			const rawDataArray = result.data || [];
+			
+			// 배열을 Record 형식으로 변환 (기존 normalizeDates와 호환)
+			const rawData: Record<string, ActivityData> = {};
+			for (const dayItem of rawDataArray) {
+				// totalMinutes를 숫자로 변환
+				const totalMinutes = typeof dayItem.totalMinutes === 'string' 
+					? parseInt(dayItem.totalMinutes, 10) 
+					: (dayItem.totalMinutes || 0);
+				
+				// activities 배열 구성
+				const activities: any[] = [];
+				for (const user of dayItem.users || []) {
+					const userMinutes = typeof user.totalMinutes === 'string'
+						? parseInt(user.totalMinutes, 10)
+						: (user.totalMinutes || 0);
+					
+					activities.push({
+						userId: user.userId,
+						userName: user.userName,
+						durationMinutes: userMinutes,
+						date: dayItem.date,
+						startTime: dayItem.date, // 날짜를 startTime으로도 설정
+					});
+				}
+				
+				rawData[dayItem.date] = {
+					date: dayItem.date,
+					totalMinutes: totalMinutes,
+					userCount: dayItem.userCount || 0,
+					users: dayItem.users?.map((u: any) => u.userId) || [],
+					activities,
+				};
+			}
 			
 			// 날짜 보정 적용 (대시보드 메인 페이지와 동일한 로직)
 			const normalizedData = normalizeDates(rawData);
 			
+			// URL 파라미터의 날짜를 YYYY-MM-DD 형식으로 변환하여 매칭
+			// (normalizeDates가 getLocalDateString을 사용하므로 동일한 형식으로 변환 필요)
+			const dateKey = getLocalDateString(date) || date.split('T')[0];
+			
 			// 해당 날짜의 데이터 찾기
-			const dayData = normalizedData[date] as ActivityData;
+			const dayData = normalizedData[dateKey] as ActivityData;
 			if (dayData) {
 				setActivityData(dayData);
 				

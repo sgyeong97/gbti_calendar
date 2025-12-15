@@ -101,6 +101,7 @@ export default function ActivityDashboardPage() {
 	const [deletingId, setDeletingId] = useState<string | null>(null);
 	const [closeGroupUsers, setCloseGroupUsers] = useState<CloseGroupUser[]>([]);
 	const [showCloseGroupModal, setShowCloseGroupModal] = useState(false);
+	const [syncingUsers, setSyncingUsers] = useState(false);
 
 	useEffect(() => {
 		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
@@ -557,6 +558,42 @@ export default function ActivityDashboardPage() {
 		}
 	}
 
+	// 사용자 이름 동기화
+	async function syncUserNames() {
+		setSyncingUsers(true);
+		try {
+			const res = await fetch(`/api/discord-activity/sync-user-names`, {
+				method: 'POST',
+			});
+			
+			if (!res.ok) {
+				const error = await res.json();
+				throw new Error(error.error || "사용자 이름 동기화 실패");
+			}
+			
+			const result = await res.json();
+			
+			// 성공 메시지 표시
+			const summary = result.summary || {};
+			const message = `사용자 이름 동기화 완료!\n\n` +
+				`- DB 사용자: ${summary.totalDbUsers || 0}명\n` +
+				`- Discord 서버 사용자: ${summary.totalServerUsers || 0}명\n` +
+				`- 업데이트: ${summary.updatedCount || 0}명\n` +
+				`- 변경 없음: ${summary.skippedCount || 0}명\n` +
+				`- 서버에 없음: ${summary.notFoundCount || 0}명`;
+			
+			alert(message);
+			
+			// 데이터 새로고침
+			await fetchActivityData();
+		} catch (err: any) {
+			console.error("사용자 이름 동기화 실패:", err);
+			alert(`사용자 이름 동기화 중 오류가 발생했습니다: ${err.message || String(err)}`);
+		} finally {
+			setSyncingUsers(false);
+		}
+	}
+
 	// 끼리끼리 인원 5명 이상인 유저 계산 (최적화된 API 사용)
 	async function calculateCloseGroupUsers() {
 		try {
@@ -682,7 +719,18 @@ export default function ActivityDashboardPage() {
 							border: "1px solid var(--accent)" 
 						}}
 					>
-						<div className="text-sm opacity-70 mb-1">총 사용자 수</div>
+						<div className="flex items-center justify-between mb-1">
+							<div className="text-sm opacity-70">총 사용자 수</div>
+							<button
+								onClick={syncUserNames}
+								disabled={syncingUsers}
+								className="text-lg cursor-pointer transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+								style={{ color: "var(--accent)" }}
+								title="사용자 이름 동기화"
+							>
+								{syncingUsers ? "⏳" : "🔄"}
+							</button>
+						</div>
 						<div className="text-2xl font-bold">{stats.totalUsers}명</div>
 					</div>
 					<div 
