@@ -38,11 +38,13 @@ export async function GET(req: NextRequest) {
 		const { searchParams } = new URL(req.url);
 		const startDate = searchParams.get("startDate");
 		const endDate = searchParams.get("endDate");
+		const includeInactive = searchParams.get("includeInactive");
 
 		// Discord 봇 API에 전달할 쿼리 파라미터 구성
 		const botParams = new URLSearchParams();
 		if (startDate) botParams.set("startDate", startDate);
 		if (endDate) botParams.set("endDate", endDate);
+		if (includeInactive !== null) botParams.set("includeInactive", includeInactive);
 
 		// Discord 봇 API 호출
 		// 봇의 엔드포인트: GET /discord-activity/grouped-by-date

@@ -20,6 +20,8 @@ type UserActivityData = {
 	dayCount: number;
 	days: string[];
 	activities: any[];
+	isActive?: boolean; // 서버에 있는 사용자인지 여부
+	inServer?: boolean; // 서버에 있는 사용자인지 여부 (isActive와 동일한 의미)
 };
 
 type ActivityStats = {
@@ -102,6 +104,7 @@ export default function ActivityDashboardPage() {
 	const [closeGroupUsers, setCloseGroupUsers] = useState<CloseGroupUser[]>([]);
 	const [showCloseGroupModal, setShowCloseGroupModal] = useState(false);
 	const [syncingUsers, setSyncingUsers] = useState(false);
+	const [includeInactive, setIncludeInactive] = useState<boolean>(true); // 기본값: true (서버에 나간 사용자 포함)
 
 	useEffect(() => {
 		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
@@ -136,7 +139,7 @@ export default function ActivityDashboardPage() {
 		setCurrentPage(1);
 		setExpandedKey(null);
 		fetchActivityData();
-	}, [groupBy, startDate, endDate, dateRangeType]);
+	}, [groupBy, startDate, endDate, dateRangeType, includeInactive]);
 
 	async function handleDeleteActivity(activityId: string) {
 		if (!activityId) return;
@@ -375,6 +378,7 @@ export default function ActivityDashboardPage() {
 			const params = new URLSearchParams({
 				startDate,
 				endDate,
+				includeInactive: includeInactive ? "true" : "false",
 			});
 
 			// 최적화된 API 사용
@@ -414,6 +418,8 @@ export default function ActivityDashboardPage() {
 							userName: user.userName,
 							durationMinutes: userMinutes,
 							date: dayItem.date,
+							isActive: user.isActive !== undefined ? user.isActive : (user.inServer !== undefined ? user.inServer : true), // 활성 상태 정보 보존
+							inServer: user.inServer !== undefined ? user.inServer : (user.isActive !== undefined ? user.isActive : true),
 						});
 					}
 
@@ -453,6 +459,8 @@ export default function ActivityDashboardPage() {
 						dayCount: userItem.activeDays || 0,
 						days: userItem.dates?.map((d: any) => d.date) || [],
 						activities,
+						isActive: userItem.isActive !== undefined ? userItem.isActive : (userItem.inServer !== undefined ? userItem.inServer : true), // 활성 상태 정보 보존
+						inServer: userItem.inServer !== undefined ? userItem.inServer : (userItem.isActive !== undefined ? userItem.isActive : true),
 					};
 				}
 			}
@@ -598,7 +606,12 @@ export default function ActivityDashboardPage() {
 	async function calculateCloseGroupUsers() {
 		try {
 			// 최적화된 API 사용 (백엔드에서 직접 집계)
-			const res = await fetch(`/api/discord-activity/close-group-users?minGroupSize=5&countOffset=10`);
+			const params = new URLSearchParams({
+				minGroupSize: "5",
+				countOffset: "10",
+				includeInactive: includeInactive ? "true" : "false",
+			});
+			const res = await fetch(`/api/discord-activity/close-group-users?${params}`);
 			
 			// 백엔드에 아직 구현되지 않았다면 빈 배열 반환 (404 등)
 			if (!res.ok) {
@@ -942,6 +955,24 @@ export default function ActivityDashboardPage() {
 							)}
 						</div>
 					</div>
+
+					{/* 서버에 나간 사용자 포함 옵션 */}
+					<div className="flex items-center gap-2">
+						<label className="flex items-center gap-2 cursor-pointer">
+							<input
+								type="checkbox"
+								checked={includeInactive}
+								onChange={(e) => {
+									setIncludeInactive(e.target.checked);
+								}}
+								className="w-4 h-4 cursor-pointer"
+								style={{
+									accentColor: "var(--accent)"
+								}}
+							/>
+							<span className="text-sm">서버에 나간 사용자 포함</span>
+						</label>
+					</div>
 				</div>
 			</div>
 
@@ -1134,19 +1165,33 @@ export default function ActivityDashboardPage() {
 
 													return (
 														<ul className="space-y-1">
-															{entries.map(([name, info]) => (
-																<li key={name} className="flex items-center justify-between text-xs md:text-sm">
-																	<div>
-																		<span className="font-medium">{name}</span>
-																		<span className="opacity-70 ml-2">
-																			({info.count}회 활동)
-																		</span>
-																	</div>
-																	<div className="font-semibold">
-																		{formatMinutes(info.minutes)}
-																	</div>
-																</li>
-															))}
+															{entries.map(([name, info]) => {
+																// 해당 사용자의 활성 상태 확인
+																const userActivity = dayData.activities.find((act: any) => 
+																	(act.userName || act.userId) === name
+																);
+																const isActive = userActivity?.isActive !== false && userActivity?.inServer !== false;
+																const showInactive = includeInactive && !isActive;
+																
+																return (
+																	<li key={name} className="flex items-center justify-between text-xs md:text-sm">
+																		<div>
+																			<span className="font-medium">
+																				{name}
+																				{showInactive && (
+																					<span className="ml-1 text-red-500" title="서버에 나간 사용자">(X)</span>
+																				)}
+																			</span>
+																			<span className="opacity-70 ml-2">
+																				({info.count}회 활동)
+																			</span>
+																		</div>
+																		<div className="font-semibold">
+																			{formatMinutes(info.minutes)}
+																		</div>
+																	</li>
+																);
+															})}
 														</ul>
 													);
 												})()}
@@ -1173,7 +1218,12 @@ export default function ActivityDashboardPage() {
 									>
 										<div className="flex items-center justify-between">
 											<div className="flex-1 cursor-pointer" onClick={() => setExpandedKey(expandedKey === key ? null : key)}>
-												<div className="font-medium">{userData.userName || userData.userId}</div>
+												<div className="font-medium">
+													{userData.userName || userData.userId}
+													{includeInactive && (userData.isActive === false || userData.inServer === false) && (
+														<span className="ml-1 text-red-500" title="서버에 나간 사용자">(X)</span>
+													)}
+												</div>
 												<div className="text-sm opacity-70">
 													{userData.dayCount}일 활동 ·{" "}
 													{(() => {

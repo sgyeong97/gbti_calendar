@@ -20,6 +20,8 @@ type UserSummary = {
 	activityCount: number;
 	totalMinutes: number;
 	activities: any[];
+	isActive?: boolean; // 서버에 있는 사용자인지 여부
+	inServer?: boolean; // 서버에 있는 사용자인지 여부 (isActive와 동일한 의미)
 };
 
 export default function DayDetailPage() {
@@ -251,6 +253,7 @@ export default function DayDetailPage() {
 			const params = new URLSearchParams({
 				startDate,
 				endDate,
+				includeInactive: "true", // 기본값: 서버에 나간 사용자 포함
 			});
 
 			// 최적화된 API 사용
@@ -281,6 +284,8 @@ export default function DayDetailPage() {
 						durationMinutes: userMinutes,
 						date: dayItem.date,
 						startTime: dayItem.date, // 날짜를 startTime으로도 설정
+						isActive: user.isActive !== undefined ? user.isActive : (user.inServer !== undefined ? user.inServer : true), // 활성 상태 정보 보존
+						inServer: user.inServer !== undefined ? user.inServer : (user.isActive !== undefined ? user.isActive : true),
 					});
 				}
 				
@@ -325,7 +330,9 @@ export default function DayDetailPage() {
 							activityCount: 1,
 							totalMinutes: minutes,
 							activities: [act],
-						});
+							isActive: act.isActive !== undefined ? act.isActive : (act.inServer !== undefined ? act.inServer : true), // 활성 상태 정보 보존
+							inServer: act.inServer !== undefined ? act.inServer : (act.isActive !== undefined ? act.isActive : true),
+						} as any);
 					}
 				}
 
@@ -927,7 +934,12 @@ export default function DayDetailPage() {
 												onClick={() => setExpandedUserId(isExpanded ? null : user.userId)}
 											>
 												<div>
-													<div className="font-medium text-lg">▶ {user.userName}</div>
+													<div className="font-medium text-lg">
+														▶ {user.userName}
+														{(user as any).isActive === false || (user as any).inServer === false ? (
+															<span className="ml-1 text-red-500" title="서버에 나간 사용자">(X)</span>
+														) : null}
+													</div>
 													<div className="text-sm opacity-70">
 														{user.activityCount}회 활동
 													</div>

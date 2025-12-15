@@ -38,11 +38,13 @@ export async function GET(req: NextRequest) {
 		const { searchParams } = new URL(req.url);
 		const minGroupSize = searchParams.get("minGroupSize") || "5";
 		const countOffset = searchParams.get("countOffset") || "10";
+		const includeInactive = searchParams.get("includeInactive");
 
 		// Discord 봇 API에 전달할 쿼리 파라미터 구성
 		const botParams = new URLSearchParams();
 		botParams.set("minGroupSize", minGroupSize);
 		botParams.set("countOffset", countOffset);
+		if (includeInactive !== null) botParams.set("includeInactive", includeInactive);
 
 		// Discord 봇 API 호출
 		// 봇의 엔드포인트: GET /discord-activity/close-group-users
