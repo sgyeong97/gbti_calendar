@@ -22,6 +22,7 @@ type UserActivityData = {
 	activities: any[];
 	isActive?: boolean; // 서버에 있는 사용자인지 여부
 	inServer?: boolean; // 서버에 있는 사용자인지 여부 (isActive와 동일한 의미)
+	isInServer?: boolean; // 백엔드 응답 필드 호환
 };
 
 type ActivityStats = {
@@ -106,6 +107,33 @@ export default function ActivityDashboardPage() {
 	const [syncingUsers, setSyncingUsers] = useState(false);
 	const [includeInactive, setIncludeInactive] = useState<boolean>(true); // 기본값: true (서버에 나간 사용자 포함)
 	const DEFAULT_GUILD_ID = "1373916592294985828";
+
+	// 서버 존재 여부 뱃지 렌더링
+	function renderServerBadge(user: { isActive?: boolean; inServer?: boolean; isInServer?: boolean }) {
+		const inServer =
+			user.isInServer ??
+			user.inServer ??
+			user.isActive ??
+			true;
+		const label = inServer ? "서버 있음" : "서버 없음";
+		const colors = inServer
+			? { bg: "rgba(34,197,94,0.15)", text: "#16a34a", border: "rgba(34,197,94,0.6)" }
+			: { bg: "rgba(239,68,68,0.15)", text: "#ef4444", border: "rgba(239,68,68,0.6)" };
+
+		return (
+			<span
+				className="ml-2 px-2 py-1 rounded-full text-[11px] font-semibold border"
+				style={{
+					background: colors.bg,
+					color: colors.text,
+					borderColor: colors.border,
+				}}
+				title={inServer ? "현재 서버에 있는 사용자" : "현재 서버에 없는 사용자"}
+			>
+				{label}
+			</span>
+		);
+	}
 
 	useEffect(() => {
 		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
@@ -460,8 +488,31 @@ export default function ActivityDashboardPage() {
 						dayCount: userItem.activeDays || 0,
 						days: userItem.dates?.map((d: any) => d.date) || [],
 						activities,
-						isActive: userItem.isActive !== undefined ? userItem.isActive : (userItem.inServer !== undefined ? userItem.inServer : true), // 활성 상태 정보 보존
-						inServer: userItem.inServer !== undefined ? userItem.inServer : (userItem.isActive !== undefined ? userItem.isActive : true),
+						// 서버 존재 여부(백엔드 필드명 통합 처리)
+						isActive:
+							userItem.isActive !== undefined
+								? userItem.isActive
+								: userItem.inServer !== undefined
+									? userItem.inServer
+									: userItem.isInServer !== undefined
+										? userItem.isInServer
+										: true,
+						inServer:
+							userItem.inServer !== undefined
+								? userItem.inServer
+								: userItem.isInServer !== undefined
+									? userItem.isInServer
+									: userItem.isActive !== undefined
+										? userItem.isActive
+										: true,
+						isInServer:
+							userItem.isInServer !== undefined
+								? userItem.isInServer
+								: userItem.inServer !== undefined
+									? userItem.inServer
+									: userItem.isActive !== undefined
+										? userItem.isActive
+										: true,
 					};
 				}
 			}
@@ -1175,18 +1226,22 @@ export default function ActivityDashboardPage() {
 																const userActivity = dayData.activities.find((act: any) => 
 																	(act.userName || act.userId) === name
 																);
-																const isActive = userActivity?.isActive !== false && userActivity?.inServer !== false;
+																const isActive =
+																	userActivity?.isInServer ??
+																	userActivity?.inServer ??
+																	userActivity?.isActive ??
+																	true;
 																const showInactive = includeInactive && !isActive;
 																
 																return (
 																	<li key={name} className="flex items-center justify-between text-xs md:text-sm">
-																		<div>
-																			<span className="font-medium">
-																				{name}
-																				{showInactive && (
-																					<span className="ml-1 text-red-500" title="서버에 나간 사용자">(X)</span>
-																				)}
-																			</span>
+																		<div className="flex items-center gap-2 flex-wrap">
+																			<span className="font-medium">{name}</span>
+																			{includeInactive && renderServerBadge({
+																				isActive: userActivity?.isActive,
+																				inServer: userActivity?.inServer,
+																				isInServer: userActivity?.isInServer,
+																			})}
 																			<span className="opacity-70 ml-2">
 																				({info.count}회 활동)
 																			</span>
@@ -1223,11 +1278,9 @@ export default function ActivityDashboardPage() {
 									>
 										<div className="flex items-center justify-between">
 											<div className="flex-1 cursor-pointer" onClick={() => setExpandedKey(expandedKey === key ? null : key)}>
-												<div className="font-medium">
-													{userData.userName || userData.userId}
-													{includeInactive && (userData.isActive === false || userData.inServer === false) && (
-														<span className="ml-1 text-red-500" title="서버에 나간 사용자">(X)</span>
-													)}
+												<div className="font-medium flex items-center flex-wrap gap-1">
+													<span>{userData.userName || userData.userId}</span>
+													{includeInactive && renderServerBadge(userData)}
 												</div>
 												<div className="text-sm opacity-70">
 													{userData.dayCount}일 활동 ·{" "}
