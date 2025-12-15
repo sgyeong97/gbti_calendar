@@ -105,6 +105,7 @@ export default function ActivityDashboardPage() {
 	const [showCloseGroupModal, setShowCloseGroupModal] = useState(false);
 	const [syncingUsers, setSyncingUsers] = useState(false);
 	const [includeInactive, setIncludeInactive] = useState<boolean>(true); // 기본값: true (서버에 나간 사용자 포함)
+	const DEFAULT_GUILD_ID = "1373916592294985828";
 
 	useEffect(() => {
 		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
@@ -570,7 +571,11 @@ export default function ActivityDashboardPage() {
 	async function syncUserNames() {
 		setSyncingUsers(true);
 		try {
-			const res = await fetch(`/api/discord-activity/sync-user-names`, {
+			const params = new URLSearchParams({
+				guildId: DEFAULT_GUILD_ID,
+			});
+
+			const res = await fetch(`/api/discord-activity/sync-user-names?${params.toString()}`, {
 				method: 'POST',
 			});
 			

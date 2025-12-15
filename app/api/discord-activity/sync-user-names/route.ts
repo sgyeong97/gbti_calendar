@@ -12,6 +12,16 @@ export async function POST(req: NextRequest) {
 	}
 
 	try {
+		// 길드 ID는 필수
+		const searchParams = req.nextUrl.searchParams;
+		const guildId = searchParams.get("guildId") || "1373916592294985828";
+		if (!guildId) {
+			return NextResponse.json(
+				{ error: "guildId is required" },
+				{ status: 400 },
+			);
+		}
+
 		// Discord 봇 API URL 가져오기
 		const botApiUrl = process.env.DISCORD_BOT_API_URL;
 		if (!botApiUrl) {
@@ -35,8 +45,8 @@ export async function POST(req: NextRequest) {
 		console.log(`[Sync User Names API] 봇 API 호출 시작: ${botApiUrl}`);
 
 		// Discord 봇 API 호출
-		// 봇의 엔드포인트: POST /discord-activity/sync-user-names
-		const botApiEndpoint = `${botApiUrl}${botApiUrl.endsWith('/') ? '' : '/'}discord-activity/sync-user-names`;
+		// 봇의 엔드포인트: POST /discord-activity/sync-user-names?guildId=...
+		const botApiEndpoint = `${botApiUrl}${botApiUrl.endsWith('/') ? '' : '/'}discord-activity/sync-user-names?guildId=${encodeURIComponent(guildId)}`;
 		
 		console.log(`[Sync User Names API] 요청 URL: ${botApiEndpoint}`);
 		console.log(`[Sync User Names API] 인증 토큰 존재: ${apiToken ? '예' : '아니오'}`);
