@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		const botApiUrl = process.env.DISCORD_BOT_API_URL;
+		let botApiUrl = process.env.DISCORD_BOT_API_URL;
 		const apiToken = process.env.DISCORD_BOT_API_TOKEN;
 
 		if (!botApiUrl || !apiToken) {
@@ -34,6 +34,11 @@ export async function POST(req: NextRequest) {
 				{ success: false, error: "Discord bot API is not configured" },
 				{ status: 500 }
 			);
+		}
+
+		// 프로토콜이 없으면 http:// 자동 추가
+		if (!botApiUrl.startsWith('http://') && !botApiUrl.startsWith('https://')) {
+			botApiUrl = `http://${botApiUrl}`;
 		}
 
 		const endpointBase = botApiUrl.endsWith("/")

@@ -13,13 +13,18 @@ export async function GET(req: NextRequest) {
 
 	try {
 		// Discord 봇 API URL 가져오기
-		const botApiUrl = process.env.DISCORD_BOT_API_URL;
+		let botApiUrl = process.env.DISCORD_BOT_API_URL;
 		if (!botApiUrl) {
 			console.error("DISCORD_BOT_API_URL 환경 변수가 설정되지 않았습니다.");
 			return NextResponse.json(
 				{ error: "Discord bot API URL not configured. Please set DISCORD_BOT_API_URL environment variable." },
 				{ status: 500 }
 			);
+		}
+
+		// 프로토콜이 없으면 http:// 자동 추가
+		if (!botApiUrl.startsWith('http://') && !botApiUrl.startsWith('https://')) {
+			botApiUrl = `http://${botApiUrl}`;
 		}
 
 		// API 인증 토큰

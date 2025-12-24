@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		const botApiUrl = process.env.DISCORD_BOT_API_URL;
+		let botApiUrl = process.env.DISCORD_BOT_API_URL;
 		const apiToken = process.env.DISCORD_BOT_API_TOKEN;
 
 		if (!botApiUrl || !apiToken) {
@@ -31,6 +31,11 @@ export async function POST(req: NextRequest) {
 				{ error: "Discord bot API configuration missing" },
 				{ status: 500 }
 			);
+		}
+
+		// 프로토콜이 없으면 http:// 자동 추가
+		if (!botApiUrl.startsWith('http://') && !botApiUrl.startsWith('https://')) {
+			botApiUrl = `http://${botApiUrl}`;
 		}
 
 		const botApiEndpoint = `${botApiUrl}${botApiUrl.endsWith('/') ? '' : '/'}discord-activity/delete-by-dates`;
