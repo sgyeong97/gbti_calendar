@@ -98,8 +98,8 @@ export async function GET(req: NextRequest) {
 			message: err?.message,
 			stack: err?.stack,
 			cause: err?.cause,
-			botApiUrl: botApiUrl ? '설정됨' : '설정 안됨',
-			apiToken: apiToken ? '설정됨' : '설정 안됨',
+			botApiUrl: process.env.DISCORD_BOT_API_URL ? '설정됨' : '설정 안됨',
+			apiToken: process.env.DISCORD_BOT_API_TOKEN ? '설정됨' : '설정 안됨',
 		});
 		
 		// 타임아웃 오류 처리
