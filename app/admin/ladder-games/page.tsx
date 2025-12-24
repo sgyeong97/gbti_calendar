@@ -41,7 +41,7 @@ export default function LadderGameManagementPage() {
 	useEffect(() => {
 		const savedColorTheme = localStorage.getItem("gbti_color_theme") || "default";
 		setColorTheme(savedColorTheme);
-		
+
 		// 테마 적용
 		applyColorTheme();
 
@@ -49,7 +49,7 @@ export default function LadderGameManagementPage() {
 		const handleStorageChange = () => {
 			const newColorTheme = localStorage.getItem("gbti_color_theme") || "default";
 			if (newColorTheme !== colorTheme) {
-				setColorTheme(newColorTheme);
+			setColorTheme(newColorTheme);
 			}
 		};
 

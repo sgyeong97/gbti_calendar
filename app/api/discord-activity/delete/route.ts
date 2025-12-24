@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sanitizeErrorMessage, getSafeErrorMessage } from "../../utils/sanitize-error";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -62,11 +63,15 @@ export async function POST(req: NextRequest) {
 				status: response.status,
 				data,
 			});
+			// details에서 민감한 정보 제거
+			const safeDetails = typeof data === 'string' 
+				? sanitizeErrorMessage(data)
+				: data;
 			return NextResponse.json(
 				{
 					success: false,
 					error: "Failed to delete activity in Discord bot",
-					details: data,
+					details: safeDetails,
 				},
 				{ status: response.status >= 500 ? 502 : response.status }
 			);
@@ -85,7 +90,7 @@ export async function POST(req: NextRequest) {
 			{
 				success: false,
 				error: "Unexpected error",
-				message: err?.message || String(err),
+				message: getSafeErrorMessage(err),
 			},
 			{ status: 500 }
 		);

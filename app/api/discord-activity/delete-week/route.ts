@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { sanitizeErrorMessage, getSafeErrorMessage } from "../../utils/sanitize-error";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -62,7 +63,7 @@ export async function DELETE(req: NextRequest) {
 				{
 					success: false,
 					error: "Failed to delete week data from Discord bot",
-					details: errorText,
+					details: sanitizeErrorMessage(errorText),
 					status: response.status,
 				},
 				{ status: response.status >= 500 ? 502 : response.status }
@@ -91,7 +92,7 @@ export async function DELETE(req: NextRequest) {
 		}
 
 		return NextResponse.json(
-			{ error: "Failed to delete week data", message: err?.message || String(err) },
+			{ error: "Failed to delete week data", message: getSafeErrorMessage(err) },
 			{ status: 500 }
 		);
 	}

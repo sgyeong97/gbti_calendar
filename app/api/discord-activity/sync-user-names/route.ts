@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sanitizeErrorMessage, getSafeErrorMessage } from "../../utils/sanitize-error";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
 			return NextResponse.json(
 				{ 
 					error: "Failed to sync user names from Discord bot",
-					details: errorText,
+					details: sanitizeErrorMessage(errorText),
 					status: response.status,
 				},
 				{ status: response.status >= 500 ? 502 : response.status }
@@ -103,7 +104,7 @@ export async function POST(req: NextRequest) {
 		}
 
 		return NextResponse.json(
-			{ error: "Failed to sync user names", message: err?.message || String(err) },
+			{ error: "Failed to sync user names", message: getSafeErrorMessage(err) },
 			{ status: 500 }
 		);
 	}
