@@ -24,16 +24,30 @@ function maskIpAddress(text: string): string {
 }
 
 /**
- * URL에서 내부 IP 주소를 마스킹합니다
+ * URL에서 내부 IP 주소를 마스킹하고 경로 정보를 제거합니다
  */
 function maskUrl(text: string): string {
-	// http://192.168.x.x:port 또는 https://192.168.x.x:port 패턴
-	const urlPattern = /https?:\/\/(?:192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3}|127\.0\.0\.1|localhost)(?::\d+)?(?:\/[^\s]*)?/gi;
+	// http://192.168.x.x:port 또는 https://192.168.x.x:port 패턴 (전체 URL 마스킹)
+	const fullUrlPattern = /https?:\/\/(?:192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3}|127\.0\.0\.1|localhost)(?::\d+)?(?:\/[^\s]*)?/gi;
 	
-	return text.replace(urlPattern, (match) => {
-		// URL에서 IP 부분만 마스킹
-		return match.replace(/\b(?:192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3}|127\.0\.0\.1|localhost)\b/gi, '[REDACTED]');
-	});
+	// 프로토콜 없는 URL 패턴 (예: [REDACTED]/discord-activity/... 또는 192.168.x.x/discord-activity/...)
+	const pathOnlyPattern = /(?:\[REDACTED\]|(?:192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3}|127\.0\.0\.1|localhost))(?::\d+)?\/[^\s]*/gi;
+	
+	// "Failed to parse URL from" 같은 패턴에서 URL 부분 전체 제거
+	const parseUrlPattern = /(Failed to parse URL from\s+)(?:https?:\/\/)?(?:\[REDACTED\]|(?:192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3}|127\.0\.0\.1|localhost))(?::\d+)?(?:\/[^\s]*)?/gi;
+	
+	let sanitized = text;
+	
+	// "Failed to parse URL from" 패턴 처리 (전체 URL 부분 제거)
+	sanitized = sanitized.replace(parseUrlPattern, '$1[REDACTED]');
+	
+	// 전체 URL 패턴 마스킹
+	sanitized = sanitized.replace(fullUrlPattern, '[REDACTED]');
+	
+	// 프로토콜 없는 경로 패턴 마스킹
+	sanitized = sanitized.replace(pathOnlyPattern, '[REDACTED]');
+	
+	return sanitized;
 }
 
 /**
